@@ -78,6 +78,13 @@ Every prompt you generate for the user to paste into online generators must stri
   2. **Plausible Lifestyle Variety**: Different lifestyle corners (minimalist weekend boutique hotel, private Pilates studio changing room, quiet coffee table corner, cozy couch corner with moody lamplight).
   3. **No Structural Tells**: When backgrounds are tight, minimalist, or softly blurred, there are zero continuity errors across different sets.
 
+### Rule 7: Truth in Advertising & Fanvue Offer Consistency (Zero False Promises)
+* **NEVER promise "fully uncensored", "towel-drop", or explicit hardcore reveals in captions, reply threads, or teaser marketing unless that exact media is uploaded to Fanvue.**
+* If marketing says "fully uncensored" or "towel drop" and the subscriber pays $9.99/mo only to find soft-NSFW / implied boudoir / lingerie, subscribers feel deceived, resulting in chargebacks, complaints, and brand destruction.
+* **Always maintain strict truth-in-advertising**:
+  - Tease what IS actually on the feed: intimate morning sets, private camera roll, exclusive full high-res try-ons, unhurried video diaries, and 1-on-1 private inbox conversations.
+  - Keep the copy alluring, authentic, and completely faithful to the subscriber experience.
+
 ---
 
 ## 4. STANDARD OUTPUT FORMAT FOR PROMPTS
