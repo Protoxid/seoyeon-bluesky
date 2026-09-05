@@ -1,0 +1,57 @@
+name: Bluesky Funnel Scheduler
+
+on:
+  schedule:
+    # 23:30 UTC = 08:30 KST (Morning wake-up drop)
+    - cron: '30 23 * * *'
+    # 11:30 UTC = 20:30 KST (Evening high-engagement drop)
+    - cron: '30 11 * * *'
+  workflow_dispatch:
+    inputs:
+      drop_id:
+        description: 'Specific Drop ID to dispatch (e.g. tue_cozy_knit, fri_morning_window). Leave blank for auto day detection.'
+        required: false
+        type: string
+      dry_run:
+        description: 'Dry run simulation (validates auth & assets without publishing)'
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  dispatch_drop:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: '**/requirements.txt'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install Pillow requests
+
+      - name: Execute Bluesky Funnel Dispatch
+        env:
+          BSKY_HANDLE: ${{ secrets.BSKY_HANDLE }}
+          BSKY_APP_PASSWORD: ${{ secrets.BSKY_APP_PASSWORD }}
+        run: |
+          EXTRA_FLAGS=""
+          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
+            EXTRA_FLAGS="--dry-run"
+          fi
+
+          if [ -n "${{ github.event.inputs.drop_id }}" ]; then
+            python growth/bsky_schedule_worker.py --drop "${{ github.event.inputs.drop_id }}" $EXTRA_FLAGS
+          else
+            python growth/bsky_schedule_worker.py --auto $EXTRA_FLAGS
+          fi

@@ -1,0 +1,60 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# SECRETS — never commit. Every line here is a bearer credential: whoever holds
+# the file contents IS the account. Patterns are listed BEFORE the files exist,
+# because a secret that is committed once is public forever, even after the
+# commit is reverted — the object stays in the history.
+# ─────────────────────────────────────────────────────────────────────────────
+*.env
+.env
+.env.*
+!*.env.example
+
+# tokens issued by an oauth exchange are as sensitive as the secret that got them
+*_tokens.json
+fanvue_tokens.json
+
+# key files, by name and by pattern
+*_key.txt
+*_token.txt
+*_secret.txt
+fanvue_oauth.env
+kie_key.txt
+fal_key.txt
+elevenlabs_key.txt
+ig_token.txt
+ig_user_id.txt
+ftp_host.txt
+ftp_public.txt
+x_key.txt
+bluesky_app_password.txt
+
+# ─────────────────────────────────────────────────────────────────────────────
+# GENERATED / LARGE — not secret, just noise
+# ─────────────────────────────────────────────────────────────────────────────
+__pycache__/
+*.pyc
+seed/
+master/
+_trash/
+_prep/
+_thumbs/
+_lora_dataset/
+*.part
+manifest.jsonl
+*.mp4
+*.png
+*.jpg
+*.jpeg
+*.safetensors
+
+# Whitelist scheduled funnel assets so cloud runner can access them
+!growth/schedule_assets/**
+
+
+# Bluesky credentials
+bsky_credentials.json
+*_credentials.json
+
+# spent PKCE verifier — harmless once used, still not for a repo
+_pkce_state.json
+_oidc.json

@@ -1,0 +1,87 @@
+[
+  {
+    "id": "mon_linen_wakeup",
+    "day": "Monday",
+    "slot": "morning",
+    "time_kst": "08:30",
+    "media_type": "image",
+    "media_file": "growth/schedule_assets/mon_linen_wakeup.png",
+    "main_text": "woke up slow today in seongsu... linen sheets and warm morning sun ✨",
+    "reply_text": "put together a quiet morning set + video for you on my private feed... come say hi 🖤☕ https://www.fanvue.com/syeon.hn?c=fv-4",
+    "label": "suggestive",
+    "status": "published",
+    "uri": "at://did:plc:qmzkrqxywyhq4ar4k3nxdbvg/app.bsky.feed.post/3musahzizcv2n"
+  },
+  {
+    "id": "tue_cozy_knit",
+    "day": "Tuesday",
+    "slot": "evening",
+    "time_kst": "20:00",
+    "media_type": "image",
+    "media_file": "growth/schedule_assets/tue_cozy_knit.png",
+    "main_text": "it's raining in seongsu tonight... curled up with warm tea in an oversized knit 🌧️☕",
+    "reply_text": "slipped into something much lighter once the room warmed up... full uncensored set is up on my page 🖤 https://www.fanvue.com/syeon.hn?c=fv-4",
+    "label": "suggestive",
+    "status": "ready"
+  },
+  {
+    "id": "wed_towel_steam",
+    "day": "Wednesday",
+    "slot": "night",
+    "time_kst": "22:45",
+    "media_type": "image",
+    "media_file": "growth/schedule_assets/wed_towel_steam.png",
+    "main_text": "warm shower after a late night in seoul... steam still on the glass ☁️🫧",
+    "reply_text": "dropped the uncensored towel-drop set on my private wall... don't be shy, link is here 🖤🛁 https://www.fanvue.com/syeon.hn?c=fv-4",
+    "label": "suggestive",
+    "status": "ready"
+  },
+  {
+    "id": "thu_silk_slip",
+    "day": "Thursday",
+    "slot": "evening",
+    "time_kst": "18:30",
+    "media_type": "image",
+    "media_file": "growth/schedule_assets/thu_silk_slip.png",
+    "main_text": "golden hour hitting my living room just right... this slip dress is dangerously light ✨",
+    "reply_text": "took a few unfiltered photos before changing for dinner... see the private camera roll here 🍯 https://www.fanvue.com/syeon.hn?c=fv-4",
+    "label": "suggestive",
+    "status": "ready"
+  },
+  {
+    "id": "fri_morning_window",
+    "day": "Friday",
+    "slot": "night",
+    "time_kst": "21:30",
+    "media_type": "video",
+    "media_file": "growth/schedule_assets/fri_morning_window.mp4",
+    "main_text": "friday morning breeze through the window... ready for a slow weekend in seoul 🕊️🤍",
+    "reply_text": "unlocked the full private video diaries and 1-on-1 chat for the weekend... come keep me company ✨ https://www.fanvue.com/syeon.hn?c=fv-4",
+    "label": "suggestive",
+    "status": "ready"
+  },
+  {
+    "id": "sat_lace_mirror",
+    "day": "Saturday",
+    "slot": "night",
+    "time_kst": "23:15",
+    "media_type": "image",
+    "media_file": "growth/schedule_assets/sat_lace_mirror.png",
+    "main_text": "trying on black lace before bed... how does it look? 🌙🖤",
+    "reply_text": "the full try-on set is waiting for you... plus answering all dms tonight on my page ✨ https://www.fanvue.com/syeon.hn?c=fv-4",
+    "label": "suggestive",
+    "status": "ready"
+  },
+  {
+    "id": "sun_sunday_bed",
+    "day": "Sunday",
+    "slot": "morning",
+    "time_kst": "10:30",
+    "media_type": "image",
+    "media_file": "growth/schedule_assets/sun_sunday_bed.png",
+    "main_text": "refusing to leave bed today. coffee first, decisions later ☕🤍",
+    "reply_text": "lazy sundays are better shared... chatting in my private inbox all afternoon 💬🖤 https://www.fanvue.com/syeon.hn?c=fv-4",
+    "label": "suggestive",
+    "status": "ready"
+  }
+]
