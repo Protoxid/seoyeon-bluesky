@@ -148,6 +148,17 @@ def upload_video_blob(vid_path: pathlib.Path, jwt: str, did: str) -> dict:
     raise TimeoutError("Video processing timed out on video.bsky.app")
 
 def dispatch_drop(drop: dict, dry_run: bool = False):
+    # Integrity Invariant: Never tease content on Bluesky that is not live on Fanvue!
+    fv_uuid = drop.get("fanvue_post_uuid")
+    if not fv_uuid and not dry_run:
+        sys.exit(
+            f"\n[BLOCKED BY CAMPAIGN POLICY] Drop '{drop.get('id')}' cannot be dispatched to Bluesky!\n"
+            f"  Reason: The corresponding Fanvue post does not exist yet (fanvue_post_uuid is null).\n"
+            f"  To maintain 100% truth in advertising, run:\n"
+            f"    python growth/campaign_orchestrator.py --sync-fanvue\n"
+            f"  This will publish the exclusive set to Fanvue first, then unlock Bluesky.\n"
+        )
+
     handle, app_pw = get_credentials()
     media_p = PROJECT_ROOT / drop["media_file"]
     if not media_p.exists():

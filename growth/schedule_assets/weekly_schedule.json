@@ -10,7 +10,11 @@
     "reply_text": "put together a quiet morning set + video for you on my private feed... come say hi 🖤☕ https://www.fanvue.com/syeon.hn?c=fv-4",
     "label": "suggestive",
     "status": "published",
-    "uri": "at://did:plc:qmzkrqxywyhq4ar4k3nxdbvg/app.bsky.feed.post/3musahzizcv2n"
+    "uri": "at://did:plc:qmzkrqxywyhq4ar4k3nxdbvg/app.bsky.feed.post/3musahzizcv2n",
+    "fanvue_post_uuid": "2e18ce9b-818c-4e17-b319-1690dc185cfc",
+    "fanvue_status": "published",
+    "fanvue_audience": "subscribers",
+    "fanvue_text": "woke up slow today. linen sheets and morning sun... felt like sharing this side of me with you ✨"
   },
   {
     "id": "tue_cozy_knit",
@@ -22,7 +26,11 @@
     "main_text": "rain in seongsu tonight. boiled water for barley tea, pulled on this knit. too warm for it now.",
     "reply_text": "slipped into something lighter once the room warmed up. the full set is on my private feed... come say hi 🖤 https://www.fanvue.com/syeon.hn?c=fv-4",
     "label": "suggestive",
-    "status": "ready"
+    "status": "ready",
+    "fanvue_post_uuid": null,
+    "fanvue_status": "ready",
+    "fanvue_audience": "subscribers",
+    "fanvue_text": "slipped into something lighter once the room warmed up. seongsu rainy nights... full cozy lounge set 🖤☕"
   },
   {
     "id": "wed_towel_steam",
@@ -34,7 +42,11 @@
     "main_text": "warm shower after a late night. steam still on the glass.",
     "reply_text": "shared the quiet morning moments on my private wall... don't be shy, link is here 🖤 https://www.fanvue.com/syeon.hn?c=fv-4",
     "label": "suggestive",
-    "status": "ready"
+    "status": "ready",
+    "fanvue_post_uuid": "c6896274-754f-40e6-8421-5d914aab126f",
+    "fanvue_status": "published",
+    "fanvue_audience": "subscribers",
+    "fanvue_text": "fresh out of the shower... steam still on the glass. wanted you to see this first 🤍🚿"
   },
   {
     "id": "thu_silk_slip",
@@ -46,7 +58,11 @@
     "main_text": "late sun in the flat. this slip is almost too light for late summer.",
     "reply_text": "took a few before changing. private camera roll is here 🍯 https://www.fanvue.com/syeon.hn?c=fv-4",
     "label": "suggestive",
-    "status": "ready"
+    "status": "ready",
+    "fanvue_post_uuid": null,
+    "fanvue_status": "ready",
+    "fanvue_audience": "subscribers",
+    "fanvue_text": "late sun in the flat. this slip is almost too light for late summer... private camera roll for you 🍯"
   },
   {
     "id": "fri_morning_window",
@@ -58,7 +74,11 @@
     "main_text": "friday morning breeze through the window. slow weekend ahead.",
     "reply_text": "unlocked the video diaries and answering dms all weekend... come keep me company ✨ https://www.fanvue.com/syeon.hn?c=fv-4",
     "label": "suggestive",
-    "status": "ready"
+    "status": "ready",
+    "fanvue_post_uuid": null,
+    "fanvue_status": "ready",
+    "fanvue_audience": "subscribers",
+    "fanvue_text": "friday morning breeze through the window... video diaries unlocked for the weekend. come keep me company ✨"
   },
   {
     "id": "sat_lace_mirror",
@@ -70,7 +90,11 @@
     "main_text": "trying on black lace before bed. how does it look.",
     "reply_text": "the full try-on set is waiting for you... answering all messages tonight on my page 🖤 https://www.fanvue.com/syeon.hn?c=fv-4",
     "label": "suggestive",
-    "status": "ready"
+    "status": "ready",
+    "fanvue_post_uuid": null,
+    "fanvue_status": "ready",
+    "fanvue_audience": "subscribers",
+    "fanvue_text": "trying on black lace before bed. how does it look? the full try-on set is here for you tonight 🖤🌙"
   },
   {
     "id": "sun_sunday_bed",
@@ -82,6 +106,10 @@
     "main_text": "sunday. coffee first. leaving bed later.",
     "reply_text": "lazy sundays are better shared... chatting in my private inbox all afternoon 🖤 https://www.fanvue.com/syeon.hn?c=fv-4",
     "label": "suggestive",
-    "status": "ready"
+    "status": "ready",
+    "fanvue_post_uuid": null,
+    "fanvue_status": "ready",
+    "fanvue_audience": "subscribers",
+    "fanvue_text": "sunday. coffee first. leaving bed later... lazy sundays are better shared. chatting in my inbox all afternoon 🖤"
   }
 ]
