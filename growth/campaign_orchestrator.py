@@ -123,18 +123,20 @@ def print_campaign_matrix() -> None:
 
 
 def sync_fanvue_drop(client: FanvueClient, drop: Dict[str, Any], dry_run: bool = False) -> str:
-    """Uploads media to Fanvue and creates the subscriber post for a drop."""
+    """Uploads media (single or multi-image full set gallery) to Fanvue and creates the subscriber post."""
     drop_id = drop["id"]
-    media_rel = drop.get("media_file", "")
-    media_path = (PROJECT_ROOT / media_rel if not pathlib.Path(media_rel).is_absolute() else pathlib.Path(media_rel)).resolve()
+    gallery_rel = drop.get("fanvue_gallery_files") or [drop.get("media_file", "")]
     
-    if not media_path.exists():
-        # Fallback check
-        alt_path = pathlib.Path(r"c:\AI-Project") / media_rel
-        if alt_path.exists():
-            media_path = alt_path
-        else:
-            raise FileNotFoundError(f"Media file not found for drop {drop_id}: {media_rel}")
+    media_paths = []
+    for rel in gallery_rel:
+        p = (PROJECT_ROOT / rel if not pathlib.Path(rel).is_absolute() else pathlib.Path(rel)).resolve()
+        if not p.exists():
+            alt_p = pathlib.Path(r"c:\AI-Project") / rel
+            if alt_p.exists():
+                p = alt_p
+            else:
+                raise FileNotFoundError(f"Media file not found for drop {drop_id}: {rel}")
+        media_paths.append(p)
 
     caption = drop.get("fanvue_text") or (
         f"something a little more private for you today... {drop.get('main_text', '')} 🖤"
@@ -142,24 +144,29 @@ def sync_fanvue_drop(client: FanvueClient, drop: Dict[str, Any], dry_run: bool =
     audience = drop.get("fanvue_audience", "subscribers")
     price_cents = drop.get("fanvue_price_cents")
 
-    print(f"\n[Fanvue Sync] Processing drop '{drop_id}' ({drop.get('day')})...")
-    print(f"  Media:    {media_path.name} ({media_path.stat().st_size // 1024} KB)")
+    print(f"\n[Fanvue Sync] Processing drop '{drop_id}' ({drop.get('day')}) — Full Set Gallery ({len(media_paths)} items)...")
+    for i, mp in enumerate(media_paths, 1):
+        print(f"  [{i}/{len(media_paths)}] {mp.name} ({mp.stat().st_size // 1024} KB)")
     print(f"  Audience: {audience}")
     print(f"  Caption:  \"{caption[:60]}...\"")
 
     if dry_run:
-        print("  [DRY-RUN] Would upload media to Fanvue and publish subscriber post.")
+        print(f"  [DRY-RUN] Would upload {len(media_paths)} media files and create 1 subscriber gallery post.")
         return "simulated-fanvue-uuid"
 
-    # 1. Upload media
-    media_uuid = client.upload_media(media_path, name=drop_id)
-    if not media_uuid:
-        raise RuntimeError(f"Failed to upload media to Fanvue for drop {drop_id}")
+    # 1. Upload all media files
+    media_uuids = []
+    for i, mp in enumerate(media_paths, 1):
+        print(f"  Uploading asset {i}/{len(media_paths)}: {mp.name}...")
+        muuid = client.upload_media(mp, name=f"{drop_id}_{i:02d}")
+        if not muuid:
+            raise RuntimeError(f"Failed to upload media {mp.name} to Fanvue for drop {drop_id}")
+        media_uuids.append(muuid)
 
-    # 2. Create post
+    # 2. Create multi-image post
     post_res = client.create_post(
         text=caption,
-        media_uuids=[media_uuid],
+        media_uuids=media_uuids,
         audience=audience,
         price_cents=price_cents,
         dry_run=dry_run
@@ -168,8 +175,8 @@ def sync_fanvue_drop(client: FanvueClient, drop: Dict[str, Any], dry_run: bool =
     if not post_uuid:
         raise RuntimeError(f"Post created but no UUID returned: {post_res}")
 
-    print(f"  [SUCCESS] Fanvue post published live! UUID: {post_uuid}")
-    log_ledger("fanvue_campaign_sync", drop_id, f"Published Fanvue post {post_uuid} for {drop.get('day')}")
+    print(f"  [SUCCESS] Fanvue full set gallery ({len(media_uuids)} items) published! UUID: {post_uuid}")
+    log_ledger("fanvue_campaign_sync", drop_id, f"Published Fanvue post {post_uuid} with {len(media_uuids)} media items")
     return post_uuid
 
 
@@ -247,12 +254,25 @@ def main():
     parser = argparse.ArgumentParser(description="Synchronized Fanvue <-> Bluesky Campaign Orchestrator")
     parser.add_argument("--status", action="store_true", help="Display cross-platform campaign coherence matrix")
     parser.add_argument("--sync-fanvue", action="store_true", help="Upload and publish all missing drops to Fanvue")
+    parser.add_argument("--sync-drop", type=str, help="Upload and publish a specific drop's full set to Fanvue")
     parser.add_argument("--dispatch", type=str, help="Dispatch a synchronized drop (Fanvue check -> Bluesky post)")
     parser.add_argument("--dry-run", action="store_true", help="Simulate actions without publishing")
 
     args = parser.parse_args()
 
-    if args.status or len(sys.argv) == 1:
+    if args.sync_drop:
+        schedule = load_schedule()
+        client = get_fanvue_client()
+        drop = next((d for d in schedule if d["id"] == args.sync_drop), None)
+        if not drop:
+            sys.exit(f"Drop '{args.sync_drop}' not found.")
+        post_uuid = sync_fanvue_drop(client, drop, dry_run=args.dry_run)
+        if not args.dry_run:
+            drop["fanvue_post_uuid"] = post_uuid
+            drop["fanvue_status"] = "published"
+            save_schedule(schedule)
+        print_campaign_matrix()
+    elif args.status or len(sys.argv) == 1:
         print_campaign_matrix()
     elif args.sync_fanvue:
         sync_all_fanvue(dry_run=args.dry_run)
