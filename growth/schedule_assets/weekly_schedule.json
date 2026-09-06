@@ -125,14 +125,12 @@
     "label": "suggestive",
     "status": "published",
     "uri": "at://did:plc:qmzkrqxywyhq4ar4k3nxdbvg/app.bsky.feed.post/3mussukzox22c",
-    "fanvue_post_uuid": "83bc0b2b-a24c-42b3-b542-24bd4b6981a9",
+    "fanvue_post_uuid": "75681e06-4ad6-4c6c-9d36-68fd6d349a45",
     "fanvue_status": "published",
     "fanvue_audience": "subscribers",
     "fanvue_text": "sunday. coffee first. leaving bed later... lazy sundays are better shared. chatting in my inbox all afternoon 🖤",
     "fanvue_gallery_files": [
-      "growth/schedule_assets/sun_sunday_bed.png",
-      "growth/schedule_assets/sets/sun_sunday_bed/02_livingroom_stretch.png",
-      "growth/schedule_assets/sets/sun_sunday_bed/03_balcony_coffee.png"
+      "growth/schedule_assets/sets/sun_sunday_bed/02_livingroom_stretch.png"
     ]
   }
 ]
