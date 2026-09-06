@@ -49,6 +49,7 @@ from kie_api import Kie, load_key
 
 MASTER_A1 = PERSONA_DIR / "master" / "a" / "a1_front.png"
 MASTER_C5 = PERSONA_DIR / "master" / "c" / "c5_relax_front.png"
+MASTER_TATTOO = PERSONA_DIR / "master" / "c" / "tattoo_crop.png"
 
 
 # ==============================================================================
@@ -135,9 +136,8 @@ SETS_CONFIG: Dict[str, Dict[str, Any]] = {
                     "An intimate candid photograph in a minimalist warm apartment dressing nook in Seongsu late on a Wednesday night. "
                     "A 26-year-old Korean woman seated comfortably on a low wooden vanity stool after a long warm shower. "
                     "Her honey-balayage hair is damp and gently slicked back, with delicate wisps framing her jaw and dewy collarbones. "
-                    "Her plush white bath towel has loosened and dropped to her lap, showing bare relaxed shoulders, "
-                    "natural clavicles, and soft authentic Pilates athletic muscle tone with zero strained cords or artificial waist pinch. "
-                    "Her botanical sprig tattoo is clearly visible on her left ribcage. "
+                    "Her plush white bath towel has loosened completely and is gathered down in her lap around her hips and thighs, leaving her upper body, bare shoulders, breasts, waist, and entire ribcage completely bare. "
+                    "On her left ribcage, running vertically on bare skin, is the delicate fine-line botanical sprig tattoo shown in the reference. "
                     "She is looking toward the wooden-framed vanity mirror with a soft, introspective half-smile. "
                     "One hand rests naturally on the smooth wooden vanity edge with five clean relaxed fingers; her other hand rests on the towel on her lap. "
                     "Warm diffused ambient light from a globe table lamp casts gentle shadows on the neutral lime-wash wall. "
@@ -191,7 +191,8 @@ SETS_CONFIG: Dict[str, Dict[str, Any]] = {
                     "A 26-year-old Korean woman with a healthy natural athletic Pilates physique, relaxed spine and smooth natural shoulders. "
                     "Her honey-balayage hair is swept up in a casual messy high updo secured with a tortoiseshell claw clip, "
                     "with soft loose tendrils framing her cheekbones and gently moving in the late-summer warm evening breeze. "
-                    "She is wearing a delicate champagne silk slip dress with thin straps, softly backlit by the warm setting sun. "
+                    "She is wearing a delicate solid plain champagne silk slip dress with thin straps, softly backlit by the warm setting sun. "
+                    "The dress is tailored from pure smooth solid champagne satin silk with a completely plain, clean, unprinted surface with zero designs, zero graphics, and zero markings on the solid silk fabric. "
                     "Her head is turned slightly toward the skyline with a calm, amused half-smile and relaxed eyes. "
                     "Both hands rest naturally and comfortably on the smooth wooden terrace railing with exactly five clean relaxed fingers each. "
                     "The background shows the soft-focus expanse of Seongsu rooftops and the warm orange and lavender twilight sky. "
@@ -199,7 +200,8 @@ SETS_CONFIG: Dict[str, Dict[str, Any]] = {
                     "zero artificial CGI sheen, authentic candid filmic snapshot."
                 ),
                 "aspect": "3:4",
-                "tier": "1k"
+                "tier": "1k",
+                "exclude_body_ref": True
             },
             {
                 "filename": "03_terrace_twilight.png",
@@ -210,11 +212,10 @@ SETS_CONFIG: Dict[str, Dict[str, Any]] = {
                 "camera_logic": "Self-timer on low side table beside a glass of iced herbal tea, one arm resting across knee",
                 "prompt": (
                     "An alluring candid twilight photograph on a private outdoor terrace lounge at blue hour. "
-                    "A 26-year-old Korean woman lounging comfortably on a low charcoal linen outdoor cushion. "
-                    "Her honey-balayage hair is loose in wind-tumbled textured waves draped over one bare shoulder. "
-                    "She has slipped out of the silk dress into delicate champagne-nude lace loungewear, "
-                    "revealing her natural athletic Pilates proportions, healthy natural relaxed waist, and smooth abdomen. "
-                    "A tiny minimalist botanical sprig tattoo is visible on her left ribcage. "
+                    "A 26-year-old Korean woman lounging comfortably on a low charcoal linen outdoor cushion, body angled so her left side faces the camera. "
+                    "Her honey-balayage hair is loose in wind-tumbled textured waves draped over one bare shoulder and breast. "
+                    "She has slipped out of the silk dress, revealing her natural athletic Pilates proportions, healthy natural relaxed waist, and smooth abdomen. "
+                    "On her left ribcage, running vertically just below the breast line, is the small, delicate fine-line botanical sprig tattoo shown in the reference. "
                     "She looks toward the camera with a subtle playful side-eye and relaxed parted lips. "
                     "One hand rests casually on the cushion supporting her posture with clean natural fingers; "
                     "her other arm rests across her knee. A soft warm glow from a small cordless lantern illuminates her face against the deep indigo evening sky. "
@@ -386,7 +387,8 @@ SETS_CONFIG: Dict[str, Dict[str, Any]] = {
                     "Shot on iPhone 15 Pro: clean morning light, authentic filmic grain, natural matte skin with visible pores, zero CGI sheen."
                 ),
                 "aspect": "3:4",
-                "tier": "1k"
+                "tier": "1k",
+                "exclude_body_ref": True
             }
         ]
     }
@@ -397,7 +399,7 @@ SETS_CONFIG: Dict[str, Dict[str, Any]] = {
 # EXECUTION ENGINE
 # ==============================================================================
 
-def generate_set(day_key: str, force: bool = False, dry_run: bool = False) -> None:
+def generate_set(day_key: str, force: bool = False, dry_run: bool = False, shot_filter: str = "all") -> None:
     config = SETS_CONFIG.get(day_key.lower())
     if not config:
         print(f"Error: Unknown day key '{day_key}'. Available: {list(SETS_CONFIG.keys())}")
@@ -426,10 +428,13 @@ def generate_set(day_key: str, force: bool = False, dry_run: bool = False) -> No
         print(f"[*] Uploading/caching reference masters...")
         a1_url = kie.upload(MASTER_A1.resolve())
         c5_url = kie.upload(MASTER_C5.resolve()) if MASTER_C5.exists() else None
+        tattoo_url = kie.upload(MASTER_TATTOO.resolve()) if MASTER_TATTOO.exists() else None
         refs = [a1_url]
         if c5_url:
             refs.append(c5_url)
-        print(f"[+] Active references: {len(refs)} master images (c5_relax_front, a1_front)")
+        if tattoo_url:
+            refs.append(tattoo_url)
+        print(f"[+] Active references: {len(refs)} master images (c5_relax_front, a1_front, tattoo_crop)")
 
     gallery_files = [config["teaser_file"]]
 
@@ -438,6 +443,10 @@ def generate_set(day_key: str, force: bool = False, dry_run: bool = False) -> No
         out_path = out_dir / filename
         gallery_rel = f"growth/schedule_assets/sets/{drop_id}/{filename}"
         gallery_files.append(gallery_rel)
+
+        # Filter specific shot if requested
+        if shot_filter != "all" and shot_filter not in filename:
+            continue
 
         print(f"\n--- Shot {i:02d}: {shot['title']} ---")
         print(f"  File:        {filename}")
@@ -456,13 +465,19 @@ def generate_set(day_key: str, force: bool = False, dry_run: bool = False) -> No
             print(f"  [DRY-RUN] Would submit prompt to Kie with {tier.upper()} resolution.", flush=True)
             continue
 
+        active_refs = [a1_url] if shot.get("exclude_body_ref", False) else refs
+        if shot.get("exclude_body_ref", False):
+            print(f"  [*] Clothed torso: Using face master only ({len(active_refs)} ref) to prevent tattoo bleeding onto fabric.", flush=True)
+        else:
+            print(f"  [*] Using {len(active_refs)} references (face + relaxed body with rib tattoo).", flush=True)
+
         print(f"  Submitting generation to Kie (Seedream 5 Pro, {tier.upper()})...", flush=True)
         t0 = time.time()
         urls = kie.generate(
             prompt=shot["prompt"],
             aspect=shot.get("aspect", "3:4"),
             tier=tier,
-            image_urls=refs,
+            image_urls=active_refs,
             model="seedream/5-pro-image-to-image"
         )
         if not urls:
@@ -490,14 +505,17 @@ def main():
     parser = argparse.ArgumentParser(description="Generate Fanvue Companion Reveal Shots for Weekly Drops")
     parser.add_argument("--day", type=str, choices=["tue", "wed", "thu", "fri", "sat", "sun", "all"], default="thu",
                         help="Which day to process (tue, wed, thu, fri, sat, sun, or all)")
+    parser.add_argument("--shot", type=str, choices=["02", "03", "all"], default="all",
+                        help="Only process shot '02', '03', or 'all'")
     parser.add_argument("--force", action="store_true", help="Force regenerate existing images")
     parser.add_argument("--dry-run", action="store_true", help="Preview prompts and config without spending Kie credits")
     args = parser.parse_args()
 
     targets = ["tue", "wed", "thu", "fri", "sat", "sun"] if args.day == "all" else [args.day]
     for target in targets:
-        generate_set(target, force=args.force, dry_run=args.dry_run)
+        generate_set(target, force=args.force, dry_run=args.dry_run, shot_filter=args.shot)
 
 
 if __name__ == "__main__":
     main()
+

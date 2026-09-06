@@ -51,7 +51,12 @@
     "fanvue_post_uuid": "c6896274-754f-40e6-8421-5d914aab126f",
     "fanvue_status": "published",
     "fanvue_audience": "subscribers",
-    "fanvue_text": "fresh out of the shower... steam still on the glass. wanted you to see this first 🤍🚿"
+    "fanvue_text": "fresh out of the shower... steam still on the glass. wanted you to see this first 🤍🚿",
+    "fanvue_gallery_files": [
+      "growth/schedule_assets/wed_towel_steam.png",
+      "growth/schedule_assets/sets/wed_towel_steam/02_vanity_towel_drop.png",
+      "growth/schedule_assets/sets/wed_towel_steam/03_silk_robe_midnight.png"
+    ]
   },
   {
     "id": "thu_silk_slip",
@@ -67,7 +72,12 @@
     "fanvue_post_uuid": null,
     "fanvue_status": "ready",
     "fanvue_audience": "subscribers",
-    "fanvue_text": "late sun in the flat. this slip is almost too light for late summer... private camera roll for you 🍯"
+    "fanvue_text": "late sun in the flat. this slip is almost too light for late summer... private camera roll for you 🍯",
+    "fanvue_gallery_files": [
+      "growth/schedule_assets/thu_silk_slip.png",
+      "growth/schedule_assets/sets/thu_silk_slip/02_rooftop_sunset.png",
+      "growth/schedule_assets/sets/thu_silk_slip/03_terrace_twilight.png"
+    ]
   },
   {
     "id": "fri_morning_window",
