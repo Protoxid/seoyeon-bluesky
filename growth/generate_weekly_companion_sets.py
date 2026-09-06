@@ -58,6 +58,119 @@ MASTER_C5 = PERSONA_DIR / "master" / "c" / "c5_relax_front.png"
 SETS_CONFIG: Dict[str, Dict[str, Any]] = {
 
     # --------------------------------------------------------------------------
+    # TUESDAY: tue_cozy_knit (Teaser: Chunky oatmeal knit sweater in the flat)
+    # --------------------------------------------------------------------------
+    "tue": {
+        "drop_id": "tue_cozy_knit",
+        "day": "Tuesday",
+        "folder": GROWTH_DIR / "schedule_assets" / "sets" / "tue_cozy_knit",
+        "teaser_file": "growth/schedule_assets/sets/tue_cozy_knit/01_knit_cozy.png",
+        "shots": [
+            {
+                "filename": "02_knit_slide.png",
+                "title": "Knit Sliding Off Shoulders (Living Room Couch)",
+                "hairstyle": "Loose slept-in honey-balayage waves falling over one shoulder",
+                "expression": "Warm candid amused smile looking slightly downward",
+                "setting": "Minimalist warm Seongsu apartment on a rainy evening, warm floor lamp light, rain on dark window",
+                "camera_logic": "Propped on coffee table self-timer, one hand resting on couch cushion, other on lap holding white iPhone 15 Pro",
+                "prompt": (
+                    "An authentic candid evening photograph in a minimalist warm Seongsu apartment. "
+                    "A 26-year-old Korean woman sitting on a low modern linen couch on a rainy evening. "
+                    "The room has warmed up and she has slid her oversized chunky oatmeal knit sweater down off both shoulders, "
+                    "draping loosely around her upper arms, revealing a delicate black floral lace bralette underneath, "
+                    "bare shoulders, and soft natural clavicles with zero strained cords or physical tension. "
+                    "Her honey-balayage hair falls in loose slept-in waves over one shoulder. "
+                    "One hand rests naturally on the couch cushion with exactly five clean relaxed fingers; "
+                    "her other hand rests loosely on her lap holding her white iPhone 15 Pro with a plain clear transparent case. "
+                    "The background is softly out of focus: warm indirect amber light from a floor lamp, neutral plaster walls, "
+                    "and soft rain streaks on the dark window in the distance. "
+                    "Shot on iPhone 15 Pro: flat natural contrast, low saturation, fine filmic shadow noise, "
+                    "natural matte skin texture with visible real pores and faint freckles over the nose bridge, zero CGI plastic, authentic candid snapshot."
+                ),
+                "aspect": "3:4",
+                "tier": "1k"
+            },
+            {
+                "filename": "03_lace_lounge.png",
+                "title": "Black Lace Lingerie Lounge (Rug & Couch)",
+                "hairstyle": "Messy textured waves draped over back",
+                "expression": "Subtle, quiet, intimate half-smile looking directly at the viewer",
+                "setting": "Cozy Seongsu flat late at night, neutral wool floor rug, oatmeal knit draped on couch behind her",
+                "camera_logic": "Phone resting face-up on low table beside glass of water, self-timer snapshot",
+                "prompt": (
+                    "An alluring candid low-light photograph in a cozy modern Seongsu flat late at night. "
+                    "A 26-year-old Korean woman seated comfortably on a neutral wool floor rug with legs curled loosely to one side. "
+                    "She has completely slipped out of her sweater; the oatmeal knit is draped casually on the couch behind her. "
+                    "She is wearing a delicate black French lace bralette and matching lace boy-shorts. "
+                    "A delicate minimalist botanical sprig tattoo is visible on her left ribcage. "
+                    "Relaxed neck and soft natural shoulders with zero tension. "
+                    "One hand rests on the floor beside her supporting her relaxed posture with five clean natural fingers; "
+                    "her other arm rests casually across her knee. Her phone—a white iPhone 15 Pro with clear case—rests face-up on the low table beside a glass of water. "
+                    "The background is an unrecognizable, soft-focus wash of warm amber lamplight, cream linen, and quiet midnight atmosphere. "
+                    "Shot on iPhone 15 Pro: natural low-light sensor grain, organic tones, authentic matte skin with visible natural pores, zero 3D gloss, candid unedited photograph."
+                ),
+                "aspect": "3:4",
+                "tier": "1k"
+            }
+        ]
+    },
+
+    # --------------------------------------------------------------------------
+    # WEDNESDAY: wed_towel_steam (Teaser: Post-shower towel mirror in steamy bath)
+    # --------------------------------------------------------------------------
+    "wed": {
+        "drop_id": "wed_towel_steam",
+        "day": "Wednesday",
+        "folder": GROWTH_DIR / "schedule_assets" / "sets" / "wed_towel_steam",
+        "teaser_file": "growth/schedule_assets/wed_towel_steam.png",
+        "shots": [
+            {
+                "filename": "02_vanity_towel_drop.png",
+                "title": "Dressing Vanity Towel Loosened (Post-Bath Sanctuary)",
+                "hairstyle": "Damp hair combed back with water droplets glinting, loose soft strands at nape",
+                "expression": "Thoughtful, relaxed glance toward the vanity mirror reflection with a faint amused smirk",
+                "setting": "Warm minimalist dressing nook with blonde oak vanity table, soft warm glow from frosted globe lamp, clean waffle cotton robe nearby",
+                "camera_logic": "Propped on vanity shelf next to amber glass skincare bottles on self-timer",
+                "prompt": (
+                    "An intimate candid photograph in a minimalist warm apartment dressing nook in Seongsu late on a Wednesday night. "
+                    "A 26-year-old Korean woman seated comfortably on a low wooden vanity stool after a long warm shower. "
+                    "Her honey-balayage hair is damp and gently slicked back, with delicate wisps framing her jaw and dewy collarbones. "
+                    "Her plush white bath towel has loosened and dropped to her lap, showing bare relaxed shoulders, "
+                    "natural clavicles, and soft authentic Pilates athletic muscle tone with zero strained cords or artificial waist pinch. "
+                    "Her botanical sprig tattoo is clearly visible on her left ribcage. "
+                    "She is looking toward the wooden-framed vanity mirror with a soft, introspective half-smile. "
+                    "One hand rests naturally on the smooth wooden vanity edge with five clean relaxed fingers; her other hand rests on the towel on her lap. "
+                    "Warm diffused ambient light from a globe table lamp casts gentle shadows on the neutral lime-wash wall. "
+                    "Shot on iPhone 15 Pro: natural low-light sensor noise, authentic matte skin texture with visible real pores, zero CGI airbrushing."
+                ),
+                "aspect": "3:4",
+                "tier": "1k"
+            },
+            {
+                "filename": "03_silk_robe_midnight.png",
+                "title": "Silk Robe by Night Window (Balcony Breezeway)",
+                "hairstyle": "Air-drying loose waves tumbling naturally over bare shoulder",
+                "expression": "Looking back over her shoulder with an intimate, drowsy, knowing gaze and softly parted lips",
+                "setting": "Dim bedroom near open balcony door, sheer curtain swaying in the midnight Seoul breeze, city lights glittering faintly outside",
+                "camera_logic": "Self-timer propped on bedroom credenza, 28mm candid lens",
+                "prompt": (
+                    "An alluring candid late-night photograph in a dark Seongsu bedroom with the balcony door cracked open. "
+                    "A 26-year-old Korean woman standing in the soft midnight breeze, holding a lightweight dark slate-silk kimono robe loosely around her frame. "
+                    "One side of the silk robe has casually fallen off her shoulder, revealing her bare back and side, her natural Pilates waist, "
+                    "and the delicate botanical sprig tattoo on her left ribcage. "
+                    "Her honey-balayage hair is air-drying in loose, textured, damp waves falling over one shoulder. "
+                    "She looks back over her shoulder toward the camera with soft, drowsy, playful eyes and parted lips. "
+                    "Her hands are loosely holding the silk belt ties at her waist with natural relaxed fingers. "
+                    "The sheer white curtain sways gently behind her, framing the soft distant city lights of nocturnal Seoul. "
+                    "Shot on iPhone 15 Pro: authentic low-light texture, rich organic midnight tones, real skin with visible pores, candid unedited photograph."
+                ),
+                "aspect": "3:4",
+                "tier": "1k"
+            }
+        ]
+    },
+
+    # --------------------------------------------------------------------------
     # THURSDAY: thu_silk_slip (Teaser: Champagne silk slip in the flat at golden hour)
     # --------------------------------------------------------------------------
     "thu": {
@@ -86,7 +199,7 @@ SETS_CONFIG: Dict[str, Dict[str, Any]] = {
                     "zero artificial CGI sheen, authentic candid filmic snapshot."
                 ),
                 "aspect": "3:4",
-                "tier": "2k"
+                "tier": "1k"
             },
             {
                 "filename": "03_terrace_twilight.png",
@@ -108,7 +221,7 @@ SETS_CONFIG: Dict[str, Dict[str, Any]] = {
                     "Shot on iPhone 15 Pro: natural low-light grain, authentic organic skin texture with real pores, zero 3D plastic gloss."
                 ),
                 "aspect": "3:4",
-                "tier": "2k"
+                "tier": "1k"
             }
         ]
     },
@@ -133,8 +246,8 @@ SETS_CONFIG: Dict[str, Dict[str, Any]] = {
                     "A stunning candid morning photograph in a bright minimalist apartment kitchen in Seongsu. "
                     "A 26-year-old Korean woman with a healthy natural athletic posture sitting on a high wooden barstool at an island counter. "
                     "Her honey-balayage hair is tied back in a neat low ponytail with a simple black ribbon, a few loose strands tucked behind her ear. "
-                    "She is wearing an oversized unbuttoned crisp white cotton shirt draping loosely off one shoulder, "
-                    "over an ivory ribbed cotton bralette and matching boy-shorts. "
+                    "She is wearing an oversized unbuttoned crisp white cotton shirt draping loosely off one shoulder, showing her breast, "
+                    "and matching boy-shorts. "
                     "Natural smooth neck and clavicles without tension. "
                     "One elbow rests on the matte terrazzo counter with her chin resting in her hand, smiling with a dry playful smirk directly at the viewer; "
                     "her other hand rests on her lap with five clean relaxed fingers. "
@@ -142,7 +255,7 @@ SETS_CONFIG: Dict[str, Dict[str, Any]] = {
                     "Shot on iPhone 15 Pro: crisp natural sharpness, matte skin texture with visible real pores, zero airbrushing or plastic CGI."
                 ),
                 "aspect": "3:4",
-                "tier": "2k"
+                "tier": "1k"
             },
             {
                 "filename": "03_balcony_greenery.png",
@@ -156,7 +269,7 @@ SETS_CONFIG: Dict[str, Dict[str, Any]] = {
                     "A 26-year-old Korean woman with natural human proportions and a relaxed Pilates posture leaning gently against a black metal balcony railing. "
                     "Surrounded by lush green potted tropical plants in terracotta pots. "
                     "Her honey-balayage hair is loose and airy, catching the morning breeze. "
-                    "The unbuttoned white shirt has slipped down her arms in the morning warmth, showing her shoulders and delicate ribbed undergarment. "
+                    "The unbuttoned white shirt has slipped down her arms in the morning warmth, showing her shoulders and breasts. "
                     "Her head is tilted up toward the warm morning sun with eyes softly closed and a genuine relaxed smile on her lips. "
                     "Her botanical sprig ribcage tattoo is subtly visible. "
                     "She holds her white iPhone 15 Pro with clear case in one extended arm taking an authentic high-angle front selfie, "
@@ -164,7 +277,7 @@ SETS_CONFIG: Dict[str, Dict[str, Any]] = {
                     "Shot on iPhone 15 Pro: bright natural daylight, rich organic tones, real skin texture with visible pores and faint freckles."
                 ),
                 "aspect": "3:4",
-                "tier": "2k"
+                "tier": "1k"
             }
         ]
     },
@@ -189,7 +302,7 @@ SETS_CONFIG: Dict[str, Dict[str, Any]] = {
                     "An authentic candid mirror selfie in a luxury minimalist stone bathroom late on a Saturday night. "
                     "A 26-year-old Korean woman with an authentic natural Pilates physique, standing tall with natural posture in front of a wide illuminated bathroom mirror. "
                     "Her honey-balayage hair is gathered in a messy high topknot bun with delicate stray wisps around her neck. "
-                    "She is trying on a delicate black French floral lace lingerie set with natural relaxed straps. "
+                    "She is trying on a delicate black French floral lace lingerie set with natural relaxed straps. Her free hand is holding the left side of the bra up, showing her breast. "
                     "Natural athletic waist and smooth abdomen with zero unnatural hourglass pinch or exaggerated curves. "
                     "She is holding her white iPhone 15 Pro with a plain clear transparent case with both hands at chest level to photograph her reflection in the glass, "
                     "with all fingers naturally wrapped around the phone body. "
@@ -198,7 +311,7 @@ SETS_CONFIG: Dict[str, Dict[str, Any]] = {
                     "Shot on iPhone 15 Pro: natural low-light sensor noise, authentic matte skin with visible real pores, zero CGI rendering."
                 ),
                 "aspect": "3:4",
-                "tier": "2k"
+                "tier": "1k"
             },
             {
                 "filename": "03_midnight_linen.png",
@@ -213,13 +326,13 @@ SETS_CONFIG: Dict[str, Dict[str, Any]] = {
                     "Her honey-balayage hair is loose in textured, disheveled bedhead waves framing her face. "
                     "She has her elbows propped up on the mattress, resting her chin in both open hands, "
                     "smiling warmly and teasingly right into the lens with soft relaxed eyes and parted lips. "
-                    "She is wearing a sheer black lace bralette; her bare shoulders and clavicles are relaxed and free of tension. "
+                    "She is completely naked; her bare shoulders and clavicles are relaxed and free of tension. Her legs are spread apart, showing her vagina. "
                     "Her delicate botanical sprig tattoo is visible on her left side. "
                     "The background is a soft, dark amber blur from a single ceramic bedside lamp, creating a quiet confidential atmosphere. "
                     "Shot on iPhone 15 Pro: organic night tones, natural skin texture with visible pores, zero 3D plastic gloss, candid snapshot."
                 ),
                 "aspect": "3:4",
-                "tier": "2k"
+                "tier": "1k"
             }
         ]
     },
@@ -244,7 +357,7 @@ SETS_CONFIG: Dict[str, Dict[str, Any]] = {
                     "A joyful candid morning photograph on a sun-drenched blonde wood living room floor in Seongsu. "
                     "A 26-year-old Korean woman with a healthy, natural Pilates-toned physique seated in an easy relaxed floor stretch with legs extended casually on a cream wool rug. "
                     "Her honey-balayage hair is woven into a loose side braid resting over her left shoulder, with wispy strands framing her smiling face. "
-                    "She is wearing a soft ribbed heather-gray cotton camisole and matching boy-shorts. "
+                    "She is wearing a tiny bra and matching boy-shorts. "
                     "Natural athletic waist and long relaxed spine. "
                     "She is laughing candidly looking slightly off-camera as if reacting to someone speaking, with natural eye crinkles and genuine joy. "
                     "One hand rests flat on the wooden floor beside her with five clean relaxed fingers; the other rests comfortably on her knee. "
@@ -252,7 +365,7 @@ SETS_CONFIG: Dict[str, Dict[str, Any]] = {
                     "Shot on iPhone 15 Pro: bright daylight, natural colors, authentic matte skin with visible real pores and faint freckles."
                 ),
                 "aspect": "3:4",
-                "tier": "2k"
+                "tier": "1k"
             },
             {
                 "filename": "03_balcony_coffee.png",
@@ -265,7 +378,7 @@ SETS_CONFIG: Dict[str, Dict[str, Any]] = {
                     "An authentic candid outdoor photograph on a bright morning balcony in Seongsu. "
                     "A 26-year-old Korean woman standing by the glass balcony railing looking out over the city under a clear September sky. "
                     "Her honey-balayage hair is pinned half-up with a small clip, the rest falling loosely down her back. "
-                    "She is wearing her heather-gray camisole; one strap has casually slipped down her shoulder. "
+                    "She is wearing her heather-gray camisole; one strap has casually slipped down her shoulder, showing her breasts. "
                     "She holds her favorite chipped ceramic coffee mug with both hands near her lips with clean natural fingers, "
                     "wisps of steam rising into the crisp morning air. "
                     "A tranquil, thoughtful half-smile on her face as she watches the street below. "
@@ -273,7 +386,7 @@ SETS_CONFIG: Dict[str, Dict[str, Any]] = {
                     "Shot on iPhone 15 Pro: clean morning light, authentic filmic grain, natural matte skin with visible pores, zero CGI sheen."
                 ),
                 "aspect": "3:4",
-                "tier": "2k"
+                "tier": "1k"
             }
         ]
     }
@@ -338,23 +451,26 @@ def generate_set(day_key: str, force: bool = False, dry_run: bool = False) -> No
             print(f"  [EXISTS] File already rendered at {out_path.name} (use --force to regenerate)")
             continue
 
+        tier = shot.get("tier", "1k")
         if dry_run:
-            print("  [DRY-RUN] Would submit prompt to Kie with 2K resolution.")
+            print(f"  [DRY-RUN] Would submit prompt to Kie with {tier.upper()} resolution.", flush=True)
             continue
 
-        print("  Submitting generation to Kie...")
+        print(f"  Submitting generation to Kie (Seedream 5 Pro, {tier.upper()})...", flush=True)
         t0 = time.time()
-        job = kie.generate(
+        urls = kie.generate(
             prompt=shot["prompt"],
             aspect=shot.get("aspect", "3:4"),
-            tier=shot.get("tier", "2k"),
+            tier=tier,
             image_urls=refs,
-            poll_secs=5
+            model="seedream/5-pro-image-to-image"
         )
-        data = job.data()
-        out_path.write_bytes(data)
+        if not urls:
+            print(f"  [ERROR] No URL returned for {shot['filename']}", flush=True)
+            continue
+        n_bytes = kie.download(urls[0], out_path)
         elapsed = time.time() - t0
-        print(f"  [SUCCESS] Rendered {out_path.name} in {elapsed:.1f}s ({len(data) // 1024} KB)")
+        print(f"  [SUCCESS] Rendered and downloaded {out_path.name} in {elapsed:.1f}s ({n_bytes // 1024} KB)", flush=True)
 
     # Update weekly_schedule.json to register the 3-shot gallery files
     if not dry_run and SCHEDULE_FILE.exists():
@@ -372,13 +488,13 @@ def generate_set(day_key: str, force: bool = False, dry_run: bool = False) -> No
 
 def main():
     parser = argparse.ArgumentParser(description="Generate Fanvue Companion Reveal Shots for Weekly Drops")
-    parser.add_argument("--day", type=str, choices=["thu", "fri", "sat", "sun", "all"], default="thu",
-                        help="Which day to process (thu, fri, sat, sun, or all)")
+    parser.add_argument("--day", type=str, choices=["tue", "wed", "thu", "fri", "sat", "sun", "all"], default="thu",
+                        help="Which day to process (tue, wed, thu, fri, sat, sun, or all)")
     parser.add_argument("--force", action="store_true", help="Force regenerate existing images")
     parser.add_argument("--dry-run", action="store_true", help="Preview prompts and config without spending Kie credits")
     args = parser.parse_args()
 
-    targets = ["thu", "fri", "sat", "sun"] if args.day == "all" else [args.day]
+    targets = ["tue", "wed", "thu", "fri", "sat", "sun"] if args.day == "all" else [args.day]
     for target in targets:
         generate_set(target, force=args.force, dry_run=args.dry_run)
 
