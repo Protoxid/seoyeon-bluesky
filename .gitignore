@@ -53,6 +53,7 @@ manifest.jsonl
 !growth/schedule_assets/*.png
 !growth/schedule_assets/*.mp4
 !growth/schedule_assets/*.json
+!growth/schedule_assets/*.jpg
 growth/schedule_assets/sets/
 
 

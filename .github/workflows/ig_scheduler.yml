@@ -1,0 +1,116 @@
+name: Instagram Tier-1 Scheduler
+
+# Meta exposes no scheduling API for Instagram (the Content Publishing flow
+# is immediate-only; scheduled_publish_time is whitelist-gated). This workflow
+# IS the scheduler: it fires near the planned minutes, calls
+# growth/ig_schedule_worker.py, which publishes due `ready` rows from
+# weekly_schedule.json and records permalinks. Idempotent by row status.
+
+on:
+  schedule:
+    # KST 07:00-08:59 (covers 07:55 / 08:05 morning slots)
+    - cron: '*/20 22-23 * * *'
+    # KST 09:00-23:59 (covers 10:15 / 13:20 / 15:10 / 20:40 / 21:05 slots)
+    - cron: '*/20 0-14 * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run (gates + token GET, nothing published)'
+        required: false
+        type: boolean
+        default: true
+      force_id:
+        description: 'One entry id regardless of due time (dry_run first!)'
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+# Never overlap two publishing runs: double-publish is the failure this
+# exists to prevent. A slow run delays the next instead of racing it.
+concurrency:
+  group: instagram-scheduler
+  cancel-in-progress: false
+
+jobs:
+  publish_due:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      # Credentials are materialized from Actions secrets into the four
+      # gitignored files ig_publish.py reads. Nothing is echoed; the files are
+      # deleted in a later `always()` step, and they are gitignored so the
+      # commit-back below cannot pick them up even by accident.
+      - name: Materialize credentials
+        id: creds
+        env:
+          IG_TOKEN: ${{ secrets.IG_TOKEN }}
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+          FTP_HOST: ${{ secrets.FTP_HOST }}
+          FTP_USER: ${{ secrets.FTP_USER }}
+          FTP_PASS: ${{ secrets.FTP_PASS }}
+          FTP_PUBLIC_URL: ${{ secrets.FTP_PUBLIC_URL }}
+        run: |
+          set -eu
+          if [ -z "$IG_TOKEN" ] || [ -z "$IG_USER_ID" ] || [ -z "$FTP_HOST" ] \
+             || [ -z "$FTP_USER" ] || [ -z "$FTP_PASS" ] || [ -z "$FTP_PUBLIC_URL" ]; then
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::Instagram secrets not fully configured - nothing can publish. Skipping."
+          else
+            printf '%s\n' "$IG_TOKEN"    > personas/seoyeon/ig_token.txt
+            printf '%s\n' "$IG_USER_ID" > personas/seoyeon/ig_user_id.txt
+            printf '%s\n%s\n%s\n' "$FTP_HOST" "$FTP_USER" "$FTP_PASS" > personas/seoyeon/ftp_host.txt
+            printf '%s\n' "$FTP_PUBLIC_URL" > personas/seoyeon/ftp_public.txt
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      # Inputs are passed via env and validated in shell, never interpolated
+      # into the script body (workflow-injection hygiene).
+      - name: Publish due tier-1 entries
+        if: steps.creds.outputs.configured == 'true'
+        env:
+          DRY_INPUT: ${{ github.event.inputs.dry_run }}
+          FORCE_ID: ${{ github.event.inputs.force_id }}
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          set -eu
+          ARGS="--auto"
+          if [ "$EVENT_NAME" = "workflow_dispatch" ] && [ "$DRY_INPUT" != "false" ]; then
+            ARGS="$ARGS --dry-run"
+          fi
+          case "$FORCE_ID" in
+            ""|*[A-Za-z0-9_-]*) ;;
+            *) echo "invalid force_id"; exit 1 ;;
+          esac
+          if [ -n "$FORCE_ID" ]; then
+            ARGS="$ARGS --force-id $FORCE_ID"
+          fi
+          python growth/ig_schedule_worker.py $ARGS
+
+      - name: Remove credentials
+        if: always()
+        run: |
+          rm -f personas/seoyeon/ig_token.txt \
+                personas/seoyeon/ig_user_id.txt \
+                personas/seoyeon/ftp_host.txt \
+                personas/seoyeon/ftp_public.txt
+
+      - name: Commit schedule, ledger and status
+        if: success() && github.event.inputs.dry_run != 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add growth/schedule_assets/weekly_schedule.json growth/ledger.jsonl growth/STATUS.md
+          git diff --staged --quiet || (git commit -m "chore(ig-scheduler): record tier-1 publishes and missed slots [skip ci]" && git push origin main)

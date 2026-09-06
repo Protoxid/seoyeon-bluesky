@@ -14,7 +14,13 @@
     "fanvue_post_uuid": "2e18ce9b-818c-4e17-b319-1690dc185cfc",
     "fanvue_status": "published",
     "fanvue_audience": "subscribers",
-    "fanvue_text": "woke up slow today. linen sheets and morning sun... felt like sharing this side of me with you ✨"
+    "fanvue_text": "woke up slow today. linen sheets and morning sun... felt like sharing this side of me with you ✨",
+    "tier": 2,
+    "fanvue_tier": 3,
+    "platforms": [
+      "bluesky",
+      "fanvue"
+    ]
   },
   {
     "id": "tue_cozy_knit",
@@ -35,6 +41,12 @@
       "growth/schedule_assets/sets/tue_cozy_knit/01_knit_cozy.png",
       "growth/schedule_assets/sets/tue_cozy_knit/02_knit_slide.png",
       "growth/schedule_assets/sets/tue_cozy_knit/03_lace_lounge.png"
+    ],
+    "tier": 2,
+    "fanvue_tier": 3,
+    "platforms": [
+      "bluesky",
+      "fanvue"
     ]
   },
   {
@@ -57,7 +69,13 @@
       "growth/schedule_assets/sets/wed_towel_steam/02_vanity_towel_drop.png",
       "growth/schedule_assets/sets/wed_towel_steam/03_silk_robe_midnight.png"
     ],
-    "fanvue_publish_at": "2026-09-09T13:30:00.000Z"
+    "fanvue_publish_at": "2026-09-09T13:30:00.000Z",
+    "tier": 2,
+    "fanvue_tier": 3,
+    "platforms": [
+      "bluesky",
+      "fanvue"
+    ]
   },
   {
     "id": "thu_silk_slip",
@@ -79,7 +97,13 @@
       "growth/schedule_assets/sets/thu_silk_slip/02_rooftop_sunset.png",
       "growth/schedule_assets/sets/thu_silk_slip/03_terrace_twilight.png"
     ],
-    "fanvue_publish_at": "2026-09-10T09:15:00.000Z"
+    "fanvue_publish_at": "2026-09-10T09:15:00.000Z",
+    "tier": 2,
+    "fanvue_tier": 3,
+    "platforms": [
+      "bluesky",
+      "fanvue"
+    ]
   },
   {
     "id": "fri_morning_window",
@@ -95,7 +119,13 @@
     "fanvue_post_uuid": null,
     "fanvue_status": "ready",
     "fanvue_audience": "subscribers",
-    "fanvue_text": "friday morning breeze through the window... video diaries unlocked for the weekend. come keep me company ✨"
+    "fanvue_text": "friday morning breeze through the window... video diaries unlocked for the weekend. come keep me company ✨",
+    "tier": 2,
+    "fanvue_tier": 3,
+    "platforms": [
+      "bluesky",
+      "fanvue"
+    ]
   },
   {
     "id": "sat_lace_mirror",
@@ -111,7 +141,13 @@
     "fanvue_post_uuid": null,
     "fanvue_status": "ready",
     "fanvue_audience": "subscribers",
-    "fanvue_text": "trying on black lace before bed. how does it look? the full try-on set is here for you tonight 🖤🌙"
+    "fanvue_text": "trying on black lace before bed. how does it look? the full try-on set is here for you tonight 🖤🌙",
+    "tier": 2,
+    "fanvue_tier": 3,
+    "platforms": [
+      "bluesky",
+      "fanvue"
+    ]
   },
   {
     "id": "sun_sunday_bed",
@@ -131,6 +167,133 @@
     "fanvue_text": "sunday. coffee first. leaving bed later... lazy sundays are better shared. chatting in my inbox all afternoon 🖤",
     "fanvue_gallery_files": [
       "growth/schedule_assets/sets/sun_sunday_bed/02_livingroom_stretch.png"
+    ],
+    "tier": 2,
+    "fanvue_tier": 3,
+    "platforms": [
+      "bluesky",
+      "fanvue"
+    ]
+  },
+  {
+    "id": "ig_w2_river_steps",
+    "day": null,
+    "slot": "feed",
+    "time_kst": null,
+    "tier": 1,
+    "media_type": "image",
+    "media_file": "personas/seoyeon/content/week2/w2_river_steps_d8beb5_1.png",
+    "caption_file": "caps/w2_river_steps.txt",
+    "trial": true,
+    "status": "pending",
+    "note": "migrated from the retired queue.jsonl, 6 Sep 2026",
+    "platforms": [
+      "instagram"
+    ]
+  },
+  {
+    "id": "w37_class_bad",
+    "tier": 1,
+    "lanes": [
+      "instagram"
+    ],
+    "media_type": "image",
+    "media_file": "personas/seoyeon/content/w37_2026-09-07/w37_class_bad_250655_1.png",
+    "caption_file": "personas/seoyeon/caps/w37_class_bad.txt",
+    "publish_at": "2026-09-07T07:55+09:00",
+    "status": "ready",
+    "platforms": [
+      "instagram"
+    ]
+  },
+  {
+    "id": "w37_gimbap",
+    "tier": 1,
+    "lanes": [
+      "instagram"
+    ],
+    "media_type": "image",
+    "media_file": "personas/seoyeon/content/w37_2026-09-07/w37_gimbap_c3c9f3_1.png",
+    "caption_file": "personas/seoyeon/caps/w37_gimbap.txt",
+    "publish_at": "2026-09-08T13:20+09:00",
+    "status": "ready",
+    "platforms": [
+      "instagram"
+    ]
+  },
+  {
+    "id": "w37_fan",
+    "tier": 1,
+    "lanes": [
+      "instagram"
+    ],
+    "media_type": "image",
+    "media_file": "personas/seoyeon/content/w37_2026-09-07/w37_fan_5c020b_1.png",
+    "caption_file": "personas/seoyeon/caps/w37_fan.txt",
+    "publish_at": "2026-09-08T15:10+09:00",
+    "status": "ready",
+    "platforms": [
+      "instagram"
+    ]
+  },
+  {
+    "id": "w37_studio_after",
+    "tier": 1,
+    "lanes": [
+      "instagram"
+    ],
+    "media_type": "image",
+    "media_file": "personas/seoyeon/content/w37_2026-09-07/w37_studio_after_e29b43_1.png",
+    "caption_file": "personas/seoyeon/caps/w37_studio_after.txt",
+    "publish_at": "2026-09-09T08:05+09:00",
+    "status": "ready",
+    "platforms": [
+      "instagram"
+    ]
+  },
+  {
+    "id": "w37_jieun_roof",
+    "tier": 1,
+    "lanes": [
+      "instagram"
+    ],
+    "media_type": "image",
+    "media_file": "personas/seoyeon/content/w37_2026-09-07/w37_jieun_roof_7a5af3_1.png",
+    "caption_file": "personas/seoyeon/caps/w37_jieun_roof.txt",
+    "publish_at": "2026-09-10T20:40+09:00",
+    "status": "ready",
+    "platforms": [
+      "instagram"
+    ]
+  },
+  {
+    "id": "w37_market_peaches",
+    "tier": 1,
+    "lanes": [
+      "instagram"
+    ],
+    "media_type": "image",
+    "media_file": "personas/seoyeon/content/w37_2026-09-07/w37_market_peaches_e298db_1.png",
+    "caption_file": "personas/seoyeon/caps/w37_market_peaches.txt",
+    "publish_at": "2026-09-12T10:15+09:00",
+    "status": "ready",
+    "platforms": [
+      "instagram"
+    ]
+  },
+  {
+    "id": "w37_table_sunday",
+    "tier": 1,
+    "lanes": [
+      "instagram"
+    ],
+    "media_type": "image",
+    "media_file": "personas/seoyeon/content/w37_2026-09-07/w37_table_sunday_1d4ac8_1.png",
+    "caption_file": "personas/seoyeon/caps/w37_table_sunday.txt",
+    "publish_at": "2026-09-13T21:05+09:00",
+    "status": "ready",
+    "platforms": [
+      "instagram"
     ]
   }
 ]

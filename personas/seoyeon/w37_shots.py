@@ -11,7 +11,7 @@ Season: the heat came BACK after the week-2 turn. The fan is on again and the
 window is shut, which is the reversal of last week's story and the thread that
 runs under Tuesday, Thursday and Sunday.
 
-MIX: 1 selfie (face in) · 6 noface. Caption age 25 (CANON §2, birthday 23 Oct).
+MIX (rebalanced 7 Sep, owner ruling — 3 face frames, not 1): 1 selfie (class_bad) · 1 friend-taken (jieun_roof — Jieun holds the camera, is never rendered, exactly the shipped n_cafe_jieun precedent) · 1 selfie (table_sunday) · 4 noface. Caption age 25 (CANON §2, birthday 23 Oct).
 No men in any frame, including backgrounds. Clothedy torso shots set NEITHER
 body=True NOR limb=True, so master/c/c5_relax_front.png never attaches and the
 word "tattoo" never appears in the prompt.
@@ -119,24 +119,52 @@ dict(id="w37_studio_after", day="wed", tier="2k", aspect="3:4", noface=True,
  "chest height, slightly crooked, nothing tidied for the camera. Everything "
  "sharp. Warm morning light mixed with cool shade, low contrast, fine noise."),
 
-# ---- THU 10 SEP · 20:40 --------------------------------------------- noface --
-dict(id="w37_jieun_roof", day="thu", tier="2k", aspect="3:4", noface=True,
-     plate="plate_rooftop",
+# ---- THU 10 SEP · 20:40 ---------------------------------------------- face --
+# REBALANCED 7 Sep (owner 3-faces ruling). Was noface (cups only) — that render
+# (w37_jieun_roof_bd67ba_1.png) was deleted as spec-superseded: it cannot carry
+# her face. Jieun is the CAMERA, never a face in frame — the n_cafe_jieun
+# precedent, where the second glass nearest the lens is where Jieun sits.
+# Do not describe her, do not name her in the text; the second cup is her.
+dict(id="w37_jieun_roof", day="thu", tier="2k", aspect="3:4", safe=True,
+     # PLATE RESOLVED AS ONE-OFF (batch 5, by eye). There is NO valid empty
+     # rooftop plate anywhere in this repo. plate_rooftop -> locations/rooftop.png
+     # is an interior living room, AND locations/rooftop/rooftop_0[123].png are
+     # ALSO interior living rooms — the batch-4 claim that they are the real
+     # roofs is FALSE (verified by eye on all four). The account's real roof
+     # only exists in published grid shots WITH her in them (n_roof_posed,
+     # n_rooftop_posed), which cannot serve as an empty Image-1 room (ROLE_PLATE
+     # forbids a person in Image 1, and her dress/pose would bleed into the
+     # frame). So this renders plate-less, exactly like market_peaches and
+     # w37_gimbap, with the dusk roof carried fully by the text below (gravel
+     # underfoot, low concrete parapet, water tanks, metal stairwell door,
+     # washing line, skyline at dusk) so it matches the grid roof. No shared
+     # code edited. Latent bug flagged to the owner: a real empty roof plate
+     # must be generated before any future week uses plate_rooftop.
+     plate=None,
  story="THU 10. Jieun brings something her mother made. They eat it at the "
        "table, then carry it up to the roof because the flat is warmer than "
-       "outside. Jieun leaves before nine for work. Two cups stay behind.",
+       "outside. While they are up there, Seoyeon telling her about the "
+       "fourth slot, Jieun picks up the phone without warning — the n_cafe_jieun "
+       "move. Jieun leaves before nine for work. Two cups come back down.",
  text=
- "A residential rooftop in Seoul at dusk, photographed from the stairwell "
- "door with the phone held at chest height. Nobody is in the frame and no "
- "second person is anywhere in it. On the low concrete parapet wall two cups "
- "and a round plastic food container with the lid resting beside it, a pair "
- "of chopsticks laid across the container, a crumpled napkin. Beyond the "
- "wall the skyline and a water tower on the neighbouring roof, the sky going "
- "from pale warm at the horizon to grey-blue above, a few windows lit in the "
- "blocks opposite. Rooftop clutter kept honest: a washing line with nothing "
- "on it, water tanks, a metal door, gravel underfoot. Late evening light, "
- "soft, no flash, everything a little flat and slightly underexposed, fine "
- "grain, the horizon a few degrees off level."),
+ "A woman sitting sideways on the low concrete parapet wall of a residential "
+ "rooftop in Seoul at dusk, photographed from a step or two away with the "
+ "phone held low at chest height, slightly off-centre and a degree off "
+ "level. She is mid-turn back toward the camera, having just been looking "
+ "out at the skyline, mouth closed with the last of a smile going, eyes "
+ "coming back to the lens, one hand resting flat on the wall beside her. An "
+ "oversized grey cotton t-shirt, her hair clipped up off her neck with "
+ "strands loose at the sides, moving a little in the evening air. On the "
+ "wall near her: a round plastic food container with the lid off and "
+ "chopsticks laid across it, a crumpled napkin, and two paper cups — hers, "
+ "and a second one close to the camera, low and half out of focus along the "
+ "bottom edge of the frame. Beyond the wall the rooftops and low blocks of "
+ "the neighbourhood, a water tower on the neighbouring roof, a few windows "
+ "lit, the sky going from pale warm at the horizon to grey-blue above. "
+ "Nobody else on the roof. Rooftop clutter kept honest: a washing line "
+ "with nothing on it, water tanks, a metal stairwell door, gravel "
+ "underfoot. Late evening light, soft, no flash, a little flat and "
+ "slightly underexposed, fine grain, the horizon a few degrees off level."),
 
 # ---- SAT 12 SEP · 10:15 --------------------------------------------- noface --
 dict(id="w37_market_peaches", day="sat", tier="2k", aspect="3:4", noface=True,
@@ -148,30 +176,47 @@ dict(id="w37_market_peaches", day="sat", tier="2k", aspect="3:4", noface=True,
  "the queue with the phone held low and close, the frame crooked and blocked "
  "along one edge by the corner of the stall. The tray in front is late-season "
  "peaches in shallow cardboard, some wrapped in pale foam netting, a few soft "
- "at the shoulder, one open box with the fruit loose in it. Behind the tray "
- "more crates stacked at angles and a small handwritten Korean price card on "
- "a clothespin line, a plastic bag hanging ready, the awning above throwing "
- "flat shade. Two women further along the row of stalls, seen from behind, "
- "out of focus. Nothing in the foreground is held or touched. Daylight under "
- "the awning, warm and flat, deep shadows behind, fine noise."),
+ "at the shoulder, one open box with the fruit loose in it. The cardboard is "
+ "plain and unmarked, the printed writing on it turned away and out of focus "
+ "so nothing on it can be read. Behind the tray more crates stacked at "
+ "angles and a small handwritten Korean price card on a clothespin line, "
+ "turned edge-on to the lens so only its blank back shows, a plastic bag "
+ "hanging ready, the awning above throwing flat shade. Two women further "
+ "along the row of stalls, seen from behind, both with long dark hair and "
+ "light summer dresses, out of focus. Nothing in the foreground is held or "
+ "touched. Daylight under the awning, warm and flat, deep shadows behind, "
+ "fine noise."),
 
-# ---- SUN 13 SEP · 21:05 --------------------------------------------- noface --
-dict(id="w37_table_sunday", day="sun", tier="2k", aspect="3:4", noface=True,
-     plate="plate_room",
- story="SUN 21.05. The money post. She sits at the table with the laptop and "
+# ---- SUN 13 SEP · 21:05 ---------------------------------------------- face --
+# REBALANCED 7 Sep (owner 3-faces ruling): the week's payoff ends on her face.
+# NOT studio_after — a second studio face in the same week as class_bad is the
+# content-account tell. Gates are absolute and must be checked by eye before
+# approval: laptop screen turned away from the lens (only its back and a thin
+# glow in frame), the single pencil line too faint to read, no readable
+# numerals anywhere, lamp on, night outside the window.
+dict(id="w37_table_sunday", day="sun", tier="2k", aspect="3:4", selfie=True,
+     safe=True, plate="plate_room",
+ story="SUN 21:05. The money post. She sits at the table with the laptop and "
        "the bank app and writes down the date the savings run out, which she "
-       "has known since June. She does not post the number. The fourth slot, "
-       "she is going to say yes.",
+       "has known since June. She does not post the number. She takes one of "
+       "herself first — flat, not sad — because she is about to say yes to the "
+       "fourth slot and wants it recorded without saying it.",
  text=
- "A small table in a one-room flat in Seoul late at night, photographed from "
- "the far side of the table with the phone resting low. Nobody is in the "
- "frame. A lamp on at one end throwing warm light across the wood and leaving "
- "the rest of the room in shade. On the table: an open laptop turned so the "
- "screen faces away from the lens and shows nothing but a pale glow, a pen "
- "lying loose, and a small notebook open with one short line of pencil on it "
- "so faint it cannot be read. In the background, out of focus, the standing "
- "fan is still running at the bed and the window is dark. A glass of water "
- "and a coaster. Everything on the table sharp, the room behind falling "
- "soft. Warm lamp light against cold dark, low contrast, heavy fine noise in "
- "the shadows, the frame slightly off level."),
+ "A woman takes a front-camera selfie at arm's length, sitting at the small "
+ "table in her one-room flat in Seongsu, Seoul, late at night: her extended "
+ "arm cuts into the lower corner of the frame and is holding the only phone "
+ "in the picture. She has just stopped writing: mouth closed, eyes level and "
+ "straight into the lens, the flat look of someone who has just written a "
+ "date down and is not going to say it out loud. An oversized grey t-shirt, "
+ "hair down and gone flat with the day, tucked behind one ear. A lamp on at "
+ "one end of the table throwing warm light across the wood and across her "
+ "face, the rest of the room behind her in shade: the standing fan still "
+ "running at the bed, the window black with night. Low in the frame between "
+ "the camera and her, the back of her open laptop standing on the table, "
+ "its screen facing her and turned away from the lens with only a thin pale "
+ "glow at its edge, and beside it an open notebook with a pen lying loose, "
+ "the single short pencil line in it angled away and too faint to read at "
+ "this distance. A glass of water and a coaster. Warm lamp light against "
+ "cold dark, low contrast, heavy fine noise in the shadows, the frame "
+ "slightly off level."),
 ]
