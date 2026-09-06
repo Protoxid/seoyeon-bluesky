@@ -90,12 +90,12 @@ jobs:
           if [ "$EVENT_NAME" = "workflow_dispatch" ] && [ "$DRY_INPUT" != "false" ]; then
             ARGS="$ARGS --dry-run"
           fi
-          case "$FORCE_ID" in
-            ""|*[A-Za-z0-9_-]*) ;;
-            *) echo "invalid force_id"; exit 1 ;;
-          esac
           if [ -n "$FORCE_ID" ]; then
-            ARGS="$ARGS --force-id $FORCE_ID"
+            if [[ "$FORCE_ID" =~ ^[A-Za-z0-9_-]+$ ]]; then
+              ARGS="$ARGS --force-id $FORCE_ID"
+            else
+              echo "invalid force_id"; exit 1
+            fi
           fi
           python growth/ig_schedule_worker.py $ARGS
 
