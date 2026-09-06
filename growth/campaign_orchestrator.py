@@ -56,13 +56,53 @@ def save_schedule(schedule: List[Dict[str, Any]]) -> None:
             pass
 
 
-def get_fanvue_client() -> FanvueClient:
-    key = load_key()
-    return FanvueClient(key)
+def calculate_target_publish_at(day_name: str, time_kst_str: str, ref_now: Optional[dt.datetime] = None) -> str:
+    """
+    Computes the upcoming ISO 8601 UTC timestamp for a given day of the week and KST time.
+    e.g., 'Tuesday' + '20:00' -> '2026-09-08T11:00:00.000Z'
+    """
+    kst_tz = dt.timezone(dt.timedelta(hours=9))
+    now_kst = (ref_now or dt.datetime.now(dt.timezone.utc)).astimezone(kst_tz)
+    
+    days_map = {
+        "monday": 0, "tuesday": 1, "wednesday": 2, "thursday": 3,
+        "friday": 4, "saturday": 5, "sunday": 6
+    }
+    target_weekday = days_map.get(day_name.lower().strip())
+    if target_weekday is None:
+        return ""
+
+    try:
+        parts = time_kst_str.strip().split(":", 1)
+        hour, minute = int(parts[0]), int(parts[1])
+    except Exception:
+        hour, minute = 20, 0
+
+    days_ahead = (target_weekday - now_kst.weekday()) % 7
+    target_dt_kst = now_kst.replace(hour=hour, minute=minute, second=0, microsecond=0) + dt.timedelta(days=days_ahead)
+    
+    # If the slot is in the past or within 10 minutes, schedule for next week's occurrence
+    if target_dt_kst <= now_kst + dt.timedelta(minutes=10):
+        target_dt_kst += dt.timedelta(days=7)
+        
+    target_utc = target_dt_kst.astimezone(dt.timezone.utc)
+    return target_utc.strftime("%Y-%m-%dT%H:%M:%S.000Z")
 
 
-def get_fanvue_live_posts(client: FanvueClient) -> Dict[str, Dict[str, Any]]:
-    """Retrieves all published posts from Fanvue and indexes by UUID."""
+def get_fanvue_client() -> Optional[FanvueClient]:
+    try:
+        key = load_key()
+        return FanvueClient(key)
+    except SystemExit:
+        return None
+    except Exception:
+        return None
+
+
+def get_fanvue_live_posts(client: Optional[FanvueClient]) -> Dict[str, Dict[str, Any]]:
+    """Retrieves all published/scheduled posts from Fanvue and indexes by UUID."""
+    if not client:
+        return {}
     try:
         res = client.request("GET", "/posts")
         posts = res.get("data", []) if isinstance(res, dict) else []
@@ -91,12 +131,21 @@ def print_campaign_matrix() -> None:
         fv_status = drop.get("fanvue_status", "ready")
         bsky_status = drop.get("status", "ready")
 
-        # Verify against live Fanvue API
+        # Verify against live Fanvue API or local scheduled record
         is_live_on_fanvue = fv_uuid in live_fanvue_posts if fv_uuid else False
         if is_live_on_fanvue:
-            fv_display = f"LIVE ({fv_uuid[:8]}...)"
+            p_data = live_fanvue_posts[fv_uuid]
+            p_pub = p_data.get("publishAt")
+            if p_pub and not p_data.get("publishedAt"):
+                fv_display = f"SCHEDULED ({fv_uuid[:8]}... @ {p_pub[5:16]})"
+            else:
+                fv_display = f"LIVE ({fv_uuid[:8]}...)"
         elif fv_uuid:
-            fv_display = f"RECORDED ({fv_uuid[:8]}...)"
+            fv_pub = drop.get("fanvue_publish_at", "")
+            if fv_pub:
+                fv_display = f"SCHEDULED ({fv_uuid[:8]}... @ {fv_pub[5:16]})"
+            else:
+                fv_display = f"RECORDED ({fv_uuid[:8]}...)"
         else:
             fv_display = "PENDING UPLOAD"
 
@@ -122,8 +171,8 @@ def print_campaign_matrix() -> None:
     print("  Rule: Bluesky teasers are locked until the matching Fanvue post is live.\n")
 
 
-def sync_fanvue_drop(client: FanvueClient, drop: Dict[str, Any], dry_run: bool = False) -> str:
-    """Uploads media (single or multi-image full set gallery) to Fanvue and creates the subscriber post."""
+def sync_fanvue_drop(client: FanvueClient, drop: Dict[str, Any], dry_run: bool = False, schedule_future: bool = True) -> str:
+    """Uploads media (single or multi-image full set gallery) to Fanvue and creates/schedules the subscriber post."""
     drop_id = drop["id"]
     gallery_rel = drop.get("fanvue_gallery_files") or [drop.get("media_file", "")]
     
@@ -144,11 +193,19 @@ def sync_fanvue_drop(client: FanvueClient, drop: Dict[str, Any], dry_run: bool =
     audience = drop.get("fanvue_audience", "subscribers")
     price_cents = drop.get("fanvue_price_cents")
 
+    # Determine server-side scheduling target (publishAt)
+    publish_at = None
+    if schedule_future:
+        publish_at = drop.get("fanvue_publish_at")
+        if not publish_at and drop.get("day") and drop.get("time_kst"):
+            publish_at = calculate_target_publish_at(drop["day"], drop["time_kst"])
+
     print(f"\n[Fanvue Sync] Processing drop '{drop_id}' ({drop.get('day')}) — Full Set Gallery ({len(media_paths)} items)...")
     for i, mp in enumerate(media_paths, 1):
         print(f"  [{i}/{len(media_paths)}] {mp.name} ({mp.stat().st_size // 1024} KB)")
-    print(f"  Audience: {audience}")
-    print(f"  Caption:  \"{caption[:60]}...\"")
+    print(f"  Audience:    {audience}")
+    print(f"  Target Post: {'SCHEDULED for ' + publish_at if publish_at else 'IMMEDIATE PUBLISH'}")
+    print(f"  Caption:     \"{caption[:60]}...\"")
 
     if dry_run:
         print(f"  [DRY-RUN] Would upload {len(media_paths)} media files and create 1 subscriber gallery post.")
@@ -163,27 +220,37 @@ def sync_fanvue_drop(client: FanvueClient, drop: Dict[str, Any], dry_run: bool =
             raise RuntimeError(f"Failed to upload media {mp.name} to Fanvue for drop {drop_id}")
         media_uuids.append(muuid)
 
-    # 2. Create multi-image post
+    # 2. Create multi-image post (with native publishAt if scheduled)
     post_res = client.create_post(
         text=caption,
         media_uuids=media_uuids,
         audience=audience,
         price_cents=price_cents,
+        publish_at=publish_at,
         dry_run=dry_run
     )
     post_uuid = post_res.get("id") or post_res.get("uuid") or post_res.get("data", {}).get("id")
     if not post_uuid:
         raise RuntimeError(f"Post created but no UUID returned: {post_res}")
 
-    print(f"  [SUCCESS] Fanvue full set gallery ({len(media_uuids)} items) published! UUID: {post_uuid}")
-    log_ledger("fanvue_campaign_sync", drop_id, f"Published Fanvue post {post_uuid} with {len(media_uuids)} media items")
+    if publish_at:
+        drop["fanvue_publish_at"] = publish_at
+        drop["fanvue_status"] = "scheduled"
+        print(f"  [SUCCESS] Fanvue full set gallery ({len(media_uuids)} items) SCHEDULED! UUID: {post_uuid} (Release: {publish_at})")
+    else:
+        drop["fanvue_status"] = "published"
+        print(f"  [SUCCESS] Fanvue full set gallery ({len(media_uuids)} items) published! UUID: {post_uuid}")
+
+    log_ledger("fanvue_campaign_sync", drop_id, f"Post {post_uuid} with {len(media_uuids)} media items (publishAt={publish_at})")
     return post_uuid
 
 
-def sync_all_fanvue(dry_run: bool = False) -> None:
+def sync_all_fanvue(dry_run: bool = False, schedule_future: bool = True) -> None:
     """Ensures all 7 days of scheduled content exist on Fanvue before Bluesky drops."""
     schedule = load_schedule()
     client = get_fanvue_client()
+    if not client:
+        sys.exit("  ! Fanvue credentials not available. Run: python growth/fanvue_auth.py --start")
     live_posts = get_fanvue_live_posts(client)
     updated = False
 
@@ -191,15 +258,14 @@ def sync_all_fanvue(dry_run: bool = False) -> None:
         drop_id = drop["id"]
         current_uuid = drop.get("fanvue_post_uuid")
 
-        # If already recorded and verified live, skip
+        # If already recorded and verified live/scheduled, skip
         if current_uuid and current_uuid in live_posts:
             continue
 
-        # If not on Fanvue, upload and publish now
+        # If not on Fanvue, upload and schedule/publish now
         try:
-            new_uuid = sync_fanvue_drop(client, drop, dry_run=dry_run)
+            new_uuid = sync_fanvue_drop(client, drop, dry_run=dry_run, schedule_future=schedule_future)
             drop["fanvue_post_uuid"] = new_uuid
-            drop["fanvue_status"] = "published"
             updated = True
             time.sleep(2)  # Respect rate limits
         except Exception as e:
@@ -213,7 +279,6 @@ def sync_all_fanvue(dry_run: bool = False) -> None:
 def dispatch_drop(drop_id: str, dry_run: bool = False) -> None:
     """Dispatches a synchronized drop: guarantees Fanvue existence, then posts to Bluesky."""
     schedule = load_schedule()
-    client = get_fanvue_client()
     
     target_drop = None
     for d in schedule:
@@ -224,17 +289,22 @@ def dispatch_drop(drop_id: str, dry_run: bool = False) -> None:
     if not target_drop:
         sys.exit(f"Drop ID '{drop_id}' not found in schedule.")
 
-    # 1. Guarantee Fanvue existence
+    # 1. Guarantee Fanvue existence (either pre-scheduled or already live)
     fv_uuid = target_drop.get("fanvue_post_uuid")
     if not fv_uuid:
         print(f"\n[Pre-flight Check] Fanvue post does not exist yet for drop '{drop_id}'.")
-        print("  -> Uploading and publishing to Fanvue FIRST to maintain truth in advertising...")
-        new_uuid = sync_fanvue_drop(client, target_drop, dry_run=dry_run)
+        client = get_fanvue_client()
+        if not client:
+            print("  [ERROR] Cannot sync to Fanvue: No active Fanvue OAuth session on this runner.")
+            print("  [BLOCKED] In automated cloud runners, Fanvue posts must be pre-scheduled in advance!")
+            sys.exit(1)
+        print("  -> Uploading and scheduling on Fanvue FIRST to maintain truth in advertising...")
+        new_uuid = sync_fanvue_drop(client, target_drop, dry_run=dry_run, schedule_future=False)
         target_drop["fanvue_post_uuid"] = new_uuid
         target_drop["fanvue_status"] = "published"
         save_schedule(schedule)
     else:
-        print(f"\n[Pre-flight Check] Fanvue post verified live ({fv_uuid}). Ready for Bluesky teaser.")
+        print(f"\n[Pre-flight Check] Fanvue post verified in schedule ({fv_uuid}). Ready for Bluesky teaser.")
 
     # 2. Dispatch to Bluesky using the existing schedule worker
     print(f"\n[Bluesky Dispatch] Launching Bluesky teaser for '{drop_id}'...")

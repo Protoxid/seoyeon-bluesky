@@ -462,12 +462,14 @@ class FanvueClient:
         media_uuids: Optional[list[str]] = None,
         audience: str = "subscribers",
         price_cents: Optional[int] = None,
+        publish_at: Optional[str] = None,
         dry_run: bool = False,
     ) -> Dict[str, Any]:
         """
         Creates a new post on Fanvue (POST /posts).
         Audience can be 'subscribers' or 'followers-and-subscribers'.
         If price_cents is set (>=300), post is Pay-Per-View.
+        If publish_at is set (ISO 8601 string, e.g. '2026-09-08T11:00:00.000Z'), Fanvue schedules the post.
         """
         payload: Dict[str, Any] = {
             "text": text,
@@ -477,21 +479,32 @@ class FanvueClient:
             payload["mediaUuids"] = media_uuids
         if price_cents:
             payload["price"] = price_cents
+        if publish_at:
+            payload["publishAt"] = publish_at
 
         if dry_run:
             print(f"  [DRY-RUN] POST /posts")
-            print(f"            audience: {audience}")
+            print(f"            audience:  {audience}")
             if price_cents:
-                print(f"            price:    €{price_cents / 100:.2f}")
-            print(f"            media:    {media_uuids or 'none'}")
-            print(f"            text:     {repr(text)}")
+                print(f"            price:     €{price_cents / 100:.2f}")
+            if publish_at:
+                print(f"            publishAt: {publish_at}")
+            print(f"            media:     {media_uuids or 'none'}")
+            print(f"            text:      {repr(text)}")
             return {"dry_run": True, "status": "simulated"}
 
-        print(f"  Publishing post to Fanvue ({audience})...")
+        if publish_at:
+            print(f"  Scheduling post on Fanvue ({audience}) for {publish_at}...")
+        else:
+            print(f"  Publishing post to Fanvue ({audience})...")
         res = self.request("POST", "/posts", data=payload)
         post_uuid = res.get("id") or res.get("uuid") or res.get("data", {}).get("id") or "ok"
-        log_ledger("create_post", "fanvue", f"Created post {post_uuid} ({audience})")
-        print(f"  Post published! ID: {post_uuid}")
+        log_action = "schedule_post" if publish_at else "create_post"
+        log_ledger(log_action, "fanvue", f"Post {post_uuid} ({audience}, publishAt={publish_at})")
+        if publish_at:
+            print(f"  Post scheduled on Fanvue server! ID: {post_uuid} (Release: {publish_at})")
+        else:
+            print(f"  Post published! ID: {post_uuid}")
         return res
 
     def set_subscription_price(

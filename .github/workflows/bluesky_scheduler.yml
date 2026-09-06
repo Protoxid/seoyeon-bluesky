@@ -39,10 +39,11 @@ jobs:
           pip install -r requirements.txt
 
       - name: Execute Synchronized Campaign Dispatch
+        # Fanvue sets are pre-scheduled natively on Fanvue servers with publishAt.
+        # GitHub Actions only needs Bluesky credentials to trigger the matching teaser.
         env:
           BSKY_HANDLE: ${{ secrets.BSKY_HANDLE }}
           BSKY_APP_PASSWORD: ${{ secrets.BSKY_APP_PASSWORD }}
-          FANVUE_API_KEY: ${{ secrets.FANVUE_API_KEY }}
         run: |
           EXTRA_FLAGS=""
           if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
