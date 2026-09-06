@@ -213,7 +213,7 @@ SETS_CONFIG: Dict[str, Dict[str, Any]] = {
                 "prompt": (
                     "An alluring candid twilight photograph on a private outdoor terrace lounge at blue hour. "
                     "A 26-year-old Korean woman lounging comfortably on a low charcoal linen outdoor cushion, body angled so her left side faces the camera. "
-                    "Her honey-balayage hair is loose in wind-tumbled textured waves draped over one bare shoulder and breast. "
+                    "Her honey-balayage hair is loose in wind-tumbled textured waves draped over one bare shoulder and nude breast. "
                     "She has slipped out of the silk dress, revealing her natural athletic Pilates proportions, healthy natural relaxed waist, and smooth abdomen. "
                     "On her left ribcage, running vertically just below the breast line, is the small, delicate fine-line botanical sprig tattoo shown in the reference. "
                     "She looks toward the camera with a subtle playful side-eye and relaxed parted lips. "
@@ -349,47 +349,47 @@ SETS_CONFIG: Dict[str, Dict[str, Any]] = {
         "shots": [
             {
                 "filename": "02_livingroom_stretch.png",
-                "title": "Morning Floor Stretch in Sunlit Living Room (Floor / Sunlight)",
-                "hairstyle": "Low loose side-braid resting over left collarbone, soft wispy bangs",
-                "expression": "Laughing candidly looking slightly off-camera with genuine crinkling around eyes, warm natural joy",
-                "setting": "Sun-drenched blonde oak living room floor, bright morning daylight streaming across a woven beige wool rug, mid-century sideboard",
-                "camera_logic": "Phone resting on coffee table baseboard, wide 24mm candid angle",
+                "title": "Morning Bed Linen Arch (Tangled White Linens)",
+                "hairstyle": "Delightfully disheveled honey-balayage morning bedhead waves splayed over white pillows",
+                "expression": "Drowsy, seductive gaze looking directly into lens with softly parted lips, gently biting lower lip with quiet morning intimacy",
+                "setting": "Sunlit modern Seongsu apartment bedroom, rumpled white washed linen sheets, warm golden morning sunbeams",
+                "camera_logic": "Propped on bedside table on self-timer, intimate eye-level angle",
                 "prompt": (
-                    "A joyful candid morning photograph on a sun-drenched blonde wood living room floor in Seongsu. "
-                    "A 26-year-old Korean woman with a healthy, natural Pilates-toned physique seated in an easy relaxed floor stretch with legs extended casually on a cream wool rug. "
-                    "Her honey-balayage hair is woven into a loose side braid resting over her left shoulder, with wispy strands framing her smiling face. "
-                    "She is wearing a plain heather-gray soft cotton bralette top and matching white cotton sleep shorts tailored from completely plain, solid, unprinted fabric with zero graphics, zero markings, and zero patterns. "
-                    "Natural athletic waist and long relaxed spine. "
-                    "She is laughing candidly looking slightly off-camera as if reacting to someone speaking, with natural eye crinkles and genuine joy. "
-                    "One hand rests flat on the wooden floor beside her with five clean relaxed fingers; the other rests comfortably on her knee. "
-                    "Bright morning sunbeams stream across the wooden floor and cast soft warm light through the room. "
-                    "Shot on iPhone 15 Pro: bright daylight, natural colors, authentic matte skin with visible real pores and faint freckles."
+                    "An alluring, deeply intimate candid morning photograph in a sunlit modern apartment bedroom in Seongsu. "
+                    "A 26-year-old Korean woman with a toned natural athletic Pilates physique reclining back across rumpled white washed linen sheets. "
+                    "Her honey-balayage hair is delightfully disheveled in textured, messy morning bedhead waves splayed over the pillows. "
+                    "She has playfully pulled up her heather-gray cropped top, leaving her bare breasts, smooth toned abdomen, and natural waist completely bare. "
+                    "On her bare left ribcage, running vertically just below the breast line, is the delicate fine-line botanical sprig tattoo shown in the reference. "
+                    "She is propped up on her elbows with knees bent loosely, looking directly into the camera lens with a drowsy, seductive gaze and soft parted lips, gently biting her lower lip with quiet morning intimacy. "
+                    "Her hands rest naturally on the duvet with clean relaxed fingers. "
+                    "Warm golden morning sunlight streams through the bedroom window, casting soft warm light and long gentle shadows across her bare skin and the white bedsheets. "
+                    "Shot on iPhone 15 Pro: natural morning daylight, authentic matte skin with visible delicate pores and faint freckles, zero 3D plastic gloss, raw seductive candid snapshot."
                 ),
                 "aspect": "3:4",
                 "tier": "1k",
-                "exclude_body_ref": True
+                "exclude_body_ref": False
             },
             {
                 "filename": "03_balcony_coffee.png",
-                "title": "Morning Coffee on Sunlit Balcony (Outdoor)",
-                "hairstyle": "Half-up half-down twist with small tortoiseshell clip",
-                "expression": "Sipping coffee looking out over morning Seoul with peaceful, contented early-autumn morning gaze",
-                "setting": "Outdoor balcony overlooking Seoul, bright blue sky, holding a warm chipped ceramic coffee mug",
-                "camera_logic": "Propped on small round outdoor metal bistro table, candid snapshot",
+                "title": "Sunlit Bedhead Lounge on White Linens (Topless Bed Lounge)",
+                "hairstyle": "Loose messy bedhead waves tumbling naturally over bare shoulders",
+                "expression": "Resting chin in palms, looking right into camera with heavy-lidded bedroom eyes, a slow teasing conspiratorial half-smile, and parted lips",
+                "setting": "Sun-drenched morning bedroom, white linen mattress, glowing sheer curtains in the background",
+                "camera_logic": "Propped on headboard shelf on self-timer, 28mm intimate candid snapshot",
                 "prompt": (
-                    "An authentic candid outdoor photograph on a bright morning balcony in Seongsu. "
-                    "A 26-year-old Korean woman standing by the glass balcony railing looking out over the city under a clear September sky. "
-                    "Her honey-balayage hair is pinned half-up with a small clip, the rest falling loosely down her back. "
-                    "She is wearing her heather-gray camisole; one strap has casually slipped down her shoulder, showing her breasts. "
-                    "She holds her favorite chipped ceramic coffee mug with both hands near her lips with clean natural fingers, "
-                    "wisps of steam rising into the crisp morning air. "
-                    "A tranquil, thoughtful half-smile on her face as she watches the street below. "
-                    "The background shows distant Seoul skyline and leafy green trees under bright daylight. "
-                    "Shot on iPhone 15 Pro: clean morning light, authentic filmic grain, natural matte skin with visible pores, zero CGI sheen."
+                    "A sensual, intoxicating candid morning photograph in a sunlit Seongsu bedroom. "
+                    "A 26-year-old Korean woman with a healthy natural athletic Pilates physique lying on her stomach across the white linen mattress, body angled toward the camera. "
+                    "Her honey-balayage hair falls in loose, messy bedhead waves framing her glowing face and bare shoulders. "
+                    "She has slipped out of her top completely; the crisp white linen sheet is pulled low across her hips, leaving her bare back, shoulders, and the soft curve of her bare breasts visible. "
+                    "On her left ribcage on bare skin is the delicate fine-line botanical sprig tattoo shown in the reference. "
+                    "Her elbows are propped on the soft duvet with her chin resting in both open palms, looking right into the lens with bedroom eyes, a slow teasing conspiratorial half-smile, and relaxed parted lips. "
+                    "Both hands have clean natural fingers gently cradling her chin and jawline. "
+                    "Bright morning daylight illuminates the room, creating a glowing, intimate, private sanctuary. "
+                    "Shot on iPhone 15 Pro: authentic daylight texture, organic skin tones with visible real pores, zero CGI airbrushing, stunning seductive private photograph."
                 ),
                 "aspect": "3:4",
                 "tier": "1k",
-                "exclude_body_ref": True
+                "exclude_body_ref": False
             }
         ]
     }
