@@ -147,7 +147,7 @@ def upload_video_blob(vid_path: pathlib.Path, jwt: str, did: str) -> dict:
             pass
     raise TimeoutError("Video processing timed out on video.bsky.app")
 
-def dispatch_drop(drop: dict, dry_run: bool = False):
+def dispatch_drop(drop: dict, dry_run: bool = False, force: bool = False):
     # Integrity Invariant: Never tease content on Bluesky that is not live on Fanvue!
     fv_uuid = drop.get("fanvue_post_uuid")
     if not fv_uuid and not dry_run:
@@ -158,6 +158,15 @@ def dispatch_drop(drop: dict, dry_run: bool = False):
             f"    python growth/campaign_orchestrator.py --sync-fanvue\n"
             f"  This will publish the exclusive set to Fanvue first, then unlock Bluesky.\n"
         )
+
+    if drop.get("status") == "published" and not force:
+        print(f"\n============================================================")
+        print(f"  [SKIPPED] DROP ALREADY PUBLISHED: {drop.get('id')} ({drop.get('day')})")
+        print(f"  Bluesky URI: {drop.get('uri')}")
+        print(f"  Skipping dispatch to prevent duplicate posting on Bluesky.")
+        print(f"  (Use --force if you intentionally wish to republish)")
+        print(f"============================================================\n")
+        return {"status": "skipped", "reason": "already_published", "uri": drop.get("uri")}
 
     handle, app_pw = get_credentials()
     media_p = PROJECT_ROOT / drop["media_file"]
@@ -274,9 +283,23 @@ def dispatch_drop(drop: dict, dry_run: bool = False):
     with open(LEDGER_FILE, "a", encoding="utf-8") as f:
         f.write(json.dumps(entry, ensure_ascii=False) + "\n")
 
+    # Record to schedule file so state is persistent and idempotent
+    if SCHEDULE_FILE.exists() and not dry_run:
+        try:
+            sched = json.loads(SCHEDULE_FILE.read_text(encoding="utf-8"))
+            for d in sched:
+                if d.get("id") == drop.get("id"):
+                    d["status"] = "published"
+                    d["uri"] = main_uri
+                    d["published_at"] = now_iso
+                    break
+            SCHEDULE_FILE.write_text(json.dumps(sched, indent=2, ensure_ascii=False), encoding="utf-8")
+        except Exception as e:
+            print(f"  [Warning] Could not update status in weekly_schedule.json: {e}")
+
     return {"main_uri": main_uri}
 
-def run_auto(dry_run: bool = False):
+def run_auto(dry_run: bool = False, force: bool = False):
     schedule = json.loads(SCHEDULE_FILE.read_text(encoding="utf-8"))
     # Match current weekday in UTC/KST
     now_utc = dt.datetime.now(dt.timezone.utc)
@@ -290,7 +313,15 @@ def run_auto(dry_run: bool = False):
         print(f"No scheduled drop configured for {current_day}.")
         return
 
-    dispatch_drop(drop, dry_run=dry_run)
+    if drop.get("status") == "published" and not force:
+        print(f"\n============================================================")
+        print(f"  [SKIPPED] DROP ALREADY PUBLISHED: {drop.get('id')} ({drop.get('day')})")
+        print(f"  Bluesky URI: {drop.get('uri')}")
+        print(f"  Skipping auto-dispatch to avoid duplicate posting on Bluesky.")
+        print(f"============================================================\n")
+        return
+
+    dispatch_drop(drop, dry_run=dry_run, force=force)
 
 def main():
     parser = argparse.ArgumentParser(description="Bluesky Automated Funnel Scheduler Worker")
@@ -298,6 +329,7 @@ def main():
     parser.add_argument("--drop", type=str, help="Dispatch specific drop ID from schedule")
     parser.add_argument("--list", action="store_true", help="List all scheduled drops")
     parser.add_argument("--dry-run", action="store_true", help="Simulate without publishing")
+    parser.add_argument("--force", action="store_true", help="Force republish even if already marked as published")
     args = parser.parse_args()
 
     if not SCHEDULE_FILE.exists():
@@ -321,11 +353,11 @@ def main():
         drop = next((d for d in schedule if d["id"] == args.drop), None)
         if not drop:
             sys.exit(f"Error: Drop ID '{args.drop}' not found in schedule.")
-        dispatch_drop(drop, dry_run=args.dry_run)
+        dispatch_drop(drop, dry_run=args.dry_run, force=args.force)
     elif args.auto:
-        run_auto(dry_run=args.dry_run)
+        run_auto(dry_run=args.dry_run, force=args.force)
     else:
-        run_auto(dry_run=args.dry_run)
+        run_auto(dry_run=args.dry_run, force=args.force)
 
 if __name__ == "__main__":
     main()

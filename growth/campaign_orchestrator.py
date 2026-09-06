@@ -276,7 +276,7 @@ def sync_all_fanvue(dry_run: bool = False, schedule_future: bool = True) -> None
         print("\n[SUCCESS] Weekly schedule updated with all live Fanvue post UUIDs.")
 
 
-def dispatch_drop(drop_id: str, dry_run: bool = False) -> None:
+def dispatch_drop(drop_id: str, dry_run: bool = False, force: bool = False) -> None:
     """Dispatches a synchronized drop: guarantees Fanvue existence, then posts to Bluesky."""
     schedule = load_schedule()
     
@@ -288,6 +288,16 @@ def dispatch_drop(drop_id: str, dry_run: bool = False) -> None:
 
     if not target_drop:
         sys.exit(f"Drop ID '{drop_id}' not found in schedule.")
+
+    # Guardrail: Check if already published on Bluesky
+    if target_drop.get("status") == "published" and not force:
+        print(f"\n============================================================")
+        print(f"  [SKIPPED] DROP ALREADY PUBLISHED: {drop_id} ({target_drop.get('day')})")
+        print(f"  Bluesky URI: {target_drop.get('uri')}")
+        print(f"  Skipping dispatch to prevent duplicate posting on Bluesky.")
+        print(f"  (Use --force if you intentionally wish to republish)")
+        print(f"============================================================\n")
+        return
 
     # 1. Guarantee Fanvue existence (either pre-scheduled or already live)
     fv_uuid = target_drop.get("fanvue_post_uuid")
@@ -312,6 +322,8 @@ def dispatch_drop(drop_id: str, dry_run: bool = False) -> None:
     cmd = [sys.executable, str(GROWTH_DIR / "bsky_schedule_worker.py"), "--drop", drop_id]
     if dry_run:
         cmd.append("--dry-run")
+    if force:
+        cmd.append("--force")
     
     res = subprocess.run(cmd, cwd=str(PROJECT_ROOT), capture_output=True, text=True, encoding="utf-8", errors="replace")
     print(res.stdout)
@@ -320,7 +332,7 @@ def dispatch_drop(drop_id: str, dry_run: bool = False) -> None:
         sys.exit(f"Bluesky dispatch failed with code {res.returncode}")
 
 
-def dispatch_auto(dry_run: bool = False) -> None:
+def dispatch_auto(dry_run: bool = False, force: bool = False) -> None:
     """Auto-detects today's scheduled drop, guarantees Fanvue existence, and dispatches."""
     schedule = load_schedule()
     now_utc = dt.datetime.now(dt.timezone.utc)
@@ -333,7 +345,15 @@ def dispatch_auto(dry_run: bool = False) -> None:
         print(f"No scheduled drop configured for {current_day}.")
         return
 
-    dispatch_drop(drop["id"], dry_run=dry_run)
+    if drop.get("status") == "published" and not force:
+        print(f"\n============================================================")
+        print(f"  [SKIPPED] TODAY'S DROP ALREADY PUBLISHED: {drop['id']} ({drop.get('day')})")
+        print(f"  Bluesky URI: {drop.get('uri')}")
+        print(f"  Skipping auto-dispatch to avoid duplicate posting on Bluesky.")
+        print(f"============================================================\n")
+        return
+
+    dispatch_drop(drop["id"], dry_run=dry_run, force=force)
 
 
 def main():
@@ -344,6 +364,7 @@ def main():
     parser.add_argument("--dispatch", type=str, help="Dispatch a synchronized drop (Fanvue check -> Bluesky post)")
     parser.add_argument("--auto", action="store_true", help="Auto-detect current day and dispatch synchronized drop")
     parser.add_argument("--dry-run", action="store_true", help="Simulate actions without publishing")
+    parser.add_argument("--force", action="store_true", help="Force republish even if already marked as published")
 
     args = parser.parse_args()
 
@@ -365,9 +386,9 @@ def main():
         sync_all_fanvue(dry_run=args.dry_run)
         print_campaign_matrix()
     elif args.dispatch:
-        dispatch_drop(args.dispatch, dry_run=args.dry_run)
+        dispatch_drop(args.dispatch, dry_run=args.dry_run, force=args.force)
     elif args.auto:
-        dispatch_auto(dry_run=args.dry_run)
+        dispatch_auto(dry_run=args.dry_run, force=args.force)
 
 
 if __name__ == "__main__":

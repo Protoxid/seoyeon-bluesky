@@ -123,10 +123,16 @@
     "main_text": "sunday. coffee first. leaving bed later.",
     "reply_text": "lazy sundays are better shared... chatting in my private inbox all afternoon 🖤 https://www.fanvue.com/syeon.hn?c=fv-4",
     "label": "suggestive",
-    "status": "ready",
-    "fanvue_post_uuid": "simulated-fanvue-uuid",
+    "status": "published",
+    "uri": "at://did:plc:qmzkrqxywyhq4ar4k3nxdbvg/app.bsky.feed.post/3mussukzox22c",
+    "fanvue_post_uuid": "83bc0b2b-a24c-42b3-b542-24bd4b6981a9",
     "fanvue_status": "published",
     "fanvue_audience": "subscribers",
-    "fanvue_text": "sunday. coffee first. leaving bed later... lazy sundays are better shared. chatting in my inbox all afternoon 🖤"
+    "fanvue_text": "sunday. coffee first. leaving bed later... lazy sundays are better shared. chatting in my inbox all afternoon 🖤",
+    "fanvue_gallery_files": [
+      "growth/schedule_assets/sun_sunday_bed.png",
+      "growth/schedule_assets/sets/sun_sunday_bed/02_livingroom_stretch.png",
+      "growth/schedule_assets/sets/sun_sunday_bed/03_balcony_coffee.png"
+    ]
   }
 ]

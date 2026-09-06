@@ -358,7 +358,7 @@ SETS_CONFIG: Dict[str, Dict[str, Any]] = {
                     "A joyful candid morning photograph on a sun-drenched blonde wood living room floor in Seongsu. "
                     "A 26-year-old Korean woman with a healthy, natural Pilates-toned physique seated in an easy relaxed floor stretch with legs extended casually on a cream wool rug. "
                     "Her honey-balayage hair is woven into a loose side braid resting over her left shoulder, with wispy strands framing her smiling face. "
-                    "She is wearing a tiny bra and matching boy-shorts. "
+                    "She is wearing a plain heather-gray soft cotton bralette top and matching white cotton sleep shorts tailored from completely plain, solid, unprinted fabric with zero graphics, zero markings, and zero patterns. "
                     "Natural athletic waist and long relaxed spine. "
                     "She is laughing candidly looking slightly off-camera as if reacting to someone speaking, with natural eye crinkles and genuine joy. "
                     "One hand rests flat on the wooden floor beside her with five clean relaxed fingers; the other rests comfortably on her knee. "
@@ -366,7 +366,8 @@ SETS_CONFIG: Dict[str, Dict[str, Any]] = {
                     "Shot on iPhone 15 Pro: bright daylight, natural colors, authentic matte skin with visible real pores and faint freckles."
                 ),
                 "aspect": "3:4",
-                "tier": "1k"
+                "tier": "1k",
+                "exclude_body_ref": True
             },
             {
                 "filename": "03_balcony_coffee.png",
