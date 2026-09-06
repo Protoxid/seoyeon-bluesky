@@ -47,8 +47,11 @@ manifest.jsonl
 *.jpeg
 *.safetensors
 
-# Whitelist scheduled funnel assets so cloud runner can access them
-!growth/schedule_assets/**
+# Whitelist scheduled funnel teaser assets so cloud runner can access them
+!growth/schedule_assets/*.png
+!growth/schedule_assets/*.mp4
+!growth/schedule_assets/*.json
+growth/schedule_assets/sets/
 
 
 # Bluesky credentials
