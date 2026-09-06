@@ -68,6 +68,7 @@ POOLS = {
     "fanvue":      ("fanvue_shots", "SHOTS", ["--fanvue"],               "content/fanvue"),
     "outside":     ("outside_shots", "SHOTS", [],                        "content/outside"),
     "lora":        ("lora_shots",   "SHOTS", ["--lora"],                 "content/lora"),
+    "w37":         ("w37_shots",    "SHOTS", ["--week3"],                "content/w37_2026-09-07"),
 }
 
 # ---------------------------------------------------------------- run state --
