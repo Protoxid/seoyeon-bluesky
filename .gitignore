@@ -25,6 +25,8 @@ ig_token.txt
 ig_user_id.txt
 ftp_host.txt
 ftp_public.txt
+runpod_key.txt
+*_api_key.txt
 x_key.txt
 bluesky_app_password.txt
 
