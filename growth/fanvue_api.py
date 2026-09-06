@@ -55,6 +55,11 @@ def load_key(key_dir: Optional[pathlib.Path] = None) -> str:
     Finds the Fanvue API key or OAuth access token and returns it. Never prints the key.
     Refuses on placeholder or empty values.
     """
+    # 0. Check for environment variable (e.g. GitHub Secrets in automated cloud actions)
+    env_key = os.environ.get("FANVUE_API_KEY")
+    if env_key and env_key.strip() and env_key.lower() not in PLACEHOLDER_KEYS:
+        return env_key.strip()
+
     # 1. Check for active OAuth 2.0 token from fanvue_tokens.json
     try:
         try:

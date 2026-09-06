@@ -112,8 +112,8 @@
     "reply_text": "lazy sundays are better shared... chatting in my private inbox all afternoon 🖤 https://www.fanvue.com/syeon.hn?c=fv-4",
     "label": "suggestive",
     "status": "ready",
-    "fanvue_post_uuid": null,
-    "fanvue_status": "ready",
+    "fanvue_post_uuid": "simulated-fanvue-uuid",
+    "fanvue_status": "published",
     "fanvue_audience": "subscribers",
     "fanvue_text": "sunday. coffee first. leaving bed later... lazy sundays are better shared. chatting in my inbox all afternoon 🖤"
   }

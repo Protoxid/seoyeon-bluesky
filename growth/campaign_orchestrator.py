@@ -250,12 +250,29 @@ def dispatch_drop(drop_id: str, dry_run: bool = False) -> None:
         sys.exit(f"Bluesky dispatch failed with code {res.returncode}")
 
 
+def dispatch_auto(dry_run: bool = False) -> None:
+    """Auto-detects today's scheduled drop, guarantees Fanvue existence, and dispatches."""
+    schedule = load_schedule()
+    now_utc = dt.datetime.now(dt.timezone.utc)
+    now_kst = now_utc + dt.timedelta(hours=9)
+    current_day = now_kst.strftime("%A")
+    print(f"Current KST Time: {now_kst.strftime('%Y-%m-%d %H:%M')} ({current_day})")
+
+    drop = next((d for d in schedule if d["day"].lower() == current_day.lower()), None)
+    if not drop:
+        print(f"No scheduled drop configured for {current_day}.")
+        return
+
+    dispatch_drop(drop["id"], dry_run=dry_run)
+
+
 def main():
     parser = argparse.ArgumentParser(description="Synchronized Fanvue <-> Bluesky Campaign Orchestrator")
     parser.add_argument("--status", action="store_true", help="Display cross-platform campaign coherence matrix")
     parser.add_argument("--sync-fanvue", action="store_true", help="Upload and publish all missing drops to Fanvue")
     parser.add_argument("--sync-drop", type=str, help="Upload and publish a specific drop's full set to Fanvue")
     parser.add_argument("--dispatch", type=str, help="Dispatch a synchronized drop (Fanvue check -> Bluesky post)")
+    parser.add_argument("--auto", action="store_true", help="Auto-detect current day and dispatch synchronized drop")
     parser.add_argument("--dry-run", action="store_true", help="Simulate actions without publishing")
 
     args = parser.parse_args()
@@ -279,6 +296,8 @@ def main():
         print_campaign_matrix()
     elif args.dispatch:
         dispatch_drop(args.dispatch, dry_run=args.dry_run)
+    elif args.auto:
+        dispatch_auto(dry_run=args.dry_run)
 
 
 if __name__ == "__main__":
