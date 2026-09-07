@@ -148,3 +148,9 @@ printed:    Modified the original 3 posts in-place via PATCH /posts/{uuid} with 
 conclusion: Original 3 Fanvue subscriber feed posts modified in-place via PATCH /posts/{uuid} with verified, authentic, 2K soft-NSFW exclusive assets. Zero duplicate posts remain on the account. Logged to ledger.jsonl.
 blocked by: nothing
 
+
+## 2026-09-07 12:51 UTC — ig_schedule_worker
+- published w37_class_bad at 2026-09-07T07:55+09:00 (slot time)
+- permalink: https://www.instagram.com/p/Dc_Jy2smxdf/
+conclusion: tier-1 post published and recorded in weekly_schedule.json
+blocked by: nothing
