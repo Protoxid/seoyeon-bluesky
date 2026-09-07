@@ -169,11 +169,30 @@ def dispatch_drop(drop: dict, dry_run: bool = False, force: bool = False):
         return {"status": "skipped", "reason": "already_published", "uri": drop.get("uri")}
 
     handle, app_pw = get_credentials()
-    media_p = PROJECT_ROOT / drop["media_file"]
-    if not media_p.exists():
-        media_p = (GROWTH_DIR / drop["media_file"]).resolve()
-    if not media_p.exists():
-        sys.exit(f"Error: Media asset not found: {drop['media_file']}")
+    media_raw = drop.get("media_file", "")
+    media_p = PROJECT_ROOT / media_raw if media_raw else None
+    if not media_p or not media_p.exists():
+        media_p = (GROWTH_DIR / media_raw).resolve() if media_raw else None
+
+    # Fallback: if pointed to untracked sets directory or missing, resolve by drop ID or filename in schedule_assets
+    if not media_p or not media_p.exists():
+        drop_id = drop.get("id", "")
+        for ext in (".png", ".mp4", ".jpg", ".jpeg"):
+            cand = GROWTH_DIR / "schedule_assets" / f"{drop_id}{ext}"
+            if cand.exists():
+                print(f"  [Notice] Resolved media fallback: {cand.name}")
+                media_p = cand
+                break
+
+    if not media_p or not media_p.exists():
+        if media_raw:
+            cand = GROWTH_DIR / "schedule_assets" / pathlib.Path(media_raw).name
+            if cand.exists():
+                print(f"  [Notice] Resolved media fallback by filename: {cand.name}")
+                media_p = cand
+
+    if not media_p or not media_p.exists():
+        sys.exit(f"Error: Media asset not found: {drop.get('media_file')}")
 
     print(f"\n============================================================")
     print(f"  BLUESKY SCHEDULED FUNNEL DISPATCH -> @{handle}")
@@ -308,7 +327,11 @@ def run_auto(dry_run: bool = False, force: bool = False):
     current_day = now_kst.strftime("%A")
     print(f"Current KST Day: {current_day} ({now_kst.strftime('%Y-%m-%d %H:%M')})")
 
-    drop = next((d for d in schedule if d["day"].lower() == current_day.lower()), None)
+    drop = next((
+        d for d in schedule
+        if d.get("day") and str(d.get("day")).lower() == current_day.lower()
+        and "bluesky" in (d.get("platforms") or d.get("lanes") or ["bluesky"])
+    ), None)
     if not drop:
         print(f"No scheduled drop configured for {current_day}.")
         return
@@ -340,11 +363,15 @@ def main():
         print("\n" + "="*70)
         print("  7-DAY BLUESKY SOFT-NSFW FUNNEL SCHEDULE")
         print("="*70)
-        for d in schedule:
-            print(f"[{d['day']}] {d['id']} ({d['media_type']}) - {d['time_kst']} KST")
-            print(f"  Hook:   \"{d['main_text']}\"")
-            print(f"  CTA:    \"{d['reply_text']}\"")
-            print(f"  Asset:  {d['media_file']}")
+        bluesky_drops = [
+            d for d in schedule
+            if d.get("day") and "bluesky" in (d.get("platforms") or d.get("lanes") or ["bluesky"])
+        ]
+        for d in bluesky_drops:
+            print(f"[{d.get('day')}] {d.get('id')} ({d.get('media_type')}) - {d.get('time_kst')} KST")
+            print(f"  Hook:   \"{d.get('main_text', '')}\"")
+            print(f"  CTA:    \"{d.get('reply_text', '')}\"")
+            print(f"  Asset:  {d.get('media_file', '')}")
             print(f"  Status: {d.get('status', 'ready')}")
             print("-"*70)
         print()

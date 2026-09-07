@@ -1,2 +1,20 @@
 {"ts": "2026-09-06T01:13:21.459787+00:00", "surface": "bluesky", "action": "scheduled_funnel_post", "drop_id": "sun_sunday_bed", "target": "at://did:plc:qmzkrqxywyhq4ar4k3nxdbvg/app.bsky.feed.post/3mussukzox22c", "note": "Published Sunday drop: sunday. coffee first. leaving bed later...."}
 {"ts": "2026-09-07T12:51:51.337946+00:00", "surface": "instagram", "action": "tier1_post", "target": "instagram", "note": "Published w37_class_bad (media id 18103661002955593) — https://www.instagram.com/p/Dc_Jy2smxdf/"}
+{"ts": "2026-09-06T01:34:38.215460+00:00", "surface": "fanvue", "action": "media_upload", "target": "fanvue", "note": "Uploaded media wed_towel_steam.png -> 2ae8635f-b7e7-4674-8c25-e60ec77c4f6e"}
+{"ts": "2026-09-06T01:34:43.224092+00:00", "surface": "fanvue", "action": "media_upload", "target": "fanvue", "note": "Uploaded media 02_vanity_towel_drop.png -> 0944fbc5-3b51-4f07-87da-c21b4d910405"}
+{"ts": "2026-09-06T01:34:46.220978+00:00", "surface": "fanvue", "action": "media_upload", "target": "fanvue", "note": "Uploaded media 03_silk_robe_midnight.png -> 35a7c3da-cfcc-4222-8e97-df7a288d9bec"}
+{"ts": "2026-09-06T01:34:47.049867+00:00", "surface": "fanvue", "action": "schedule_post", "target": "fanvue", "note": "Post a1fa6066-1ef1-4a5b-9733-6a1c80df6fc6 (subscribers, publishAt=2026-09-09T13:30:00.000Z)"}
+{"ts": "2026-09-06T01:34:49.409177+00:00", "surface": "fanvue", "action": "media_upload", "target": "fanvue", "note": "Uploaded media thu_silk_slip.png -> e494df46-74bd-433c-8484-52a211caa6ae"}
+{"ts": "2026-09-06T01:34:51.525255+00:00", "surface": "fanvue", "action": "media_upload", "target": "fanvue", "note": "Uploaded media 02_rooftop_sunset.png -> 1bb42042-ec98-47f5-a32d-e8cc97448f01"}
+{"ts": "2026-09-06T01:34:53.431974+00:00", "surface": "fanvue", "action": "media_upload", "target": "fanvue", "note": "Uploaded media 03_terrace_twilight.png -> 170d7f21-0611-4539-8308-e30cae9518f6"}
+{"ts": "2026-09-06T01:34:55.711423+00:00", "surface": "fanvue", "action": "schedule_post", "target": "fanvue", "note": "Post 5455fa6c-8f68-4830-86a2-2dccd2247ca0 (subscribers, publishAt=2026-09-10T09:15:00.000Z)"}
+{"ts": "2026-09-06T01:44:06.065005+00:00", "surface": "fanvue", "action": "media_upload", "target": "fanvue", "note": "Uploaded media sun_sunday_bed.png -> cc4c428e-60e4-4ee0-8994-9148e43f3262"}
+{"ts": "2026-09-06T01:44:08.296100+00:00", "surface": "fanvue", "action": "media_upload", "target": "fanvue", "note": "Uploaded media 02_livingroom_stretch.png -> 95802161-1a75-4bf5-a8ef-cbed20c1c1bb"}
+{"ts": "2026-09-06T01:44:13.716377+00:00", "surface": "fanvue", "action": "media_upload", "target": "fanvue", "note": "Uploaded media 03_balcony_coffee.png -> da4621d3-cab3-4ecd-bd02-ba9d120696e3"}
+{"ts": "2026-09-06T01:44:14.313386+00:00", "surface": "fanvue", "action": "create_post", "target": "fanvue", "note": "Post 83bc0b2b-a24c-42b3-b542-24bd4b6981a9 (subscribers, publishAt=None)"}
+{"ts": "2026-09-06T01:54:00.925640+00:00", "surface": "fanvue", "action": "media_upload", "target": "fanvue", "note": "Uploaded media sun_sunday_bed.png -> 66972a54-6fce-44a5-b46c-a3d8664f963c"}
+{"ts": "2026-09-06T01:54:03.208431+00:00", "surface": "fanvue", "action": "media_upload", "target": "fanvue", "note": "Uploaded media 02_livingroom_stretch.png -> 2f808c96-f315-49e8-9ac1-cc3e31e5f0eb"}
+{"ts": "2026-09-06T01:54:07.377811+00:00", "surface": "fanvue", "action": "media_upload", "target": "fanvue", "note": "Uploaded media 03_balcony_coffee.png -> d4d6a8c8-ea74-4e38-9aa2-7f3fc0baa9ad"}
+{"ts": "2026-09-06T01:54:07.717825+00:00", "surface": "fanvue", "action": "create_post", "target": "fanvue", "note": "Post c84dedc2-e653-43ee-85df-77d8b48b4e27 (subscribers, publishAt=None)"}
+{"ts": "2026-09-06T01:55:29.714880+00:00", "surface": "fanvue", "action": "media_upload", "target": "fanvue", "note": "Uploaded media 02_livingroom_stretch.png -> b7c558a5-26db-4bcf-9a44-a5943c97c230"}
+{"ts": "2026-09-06T01:55:29.823786+00:00", "surface": "fanvue", "action": "create_post", "target": "fanvue", "note": "Post 75681e06-4ad6-4c6c-9d36-68fd6d349a45 (subscribers, publishAt=None)"}

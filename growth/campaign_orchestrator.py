@@ -112,6 +112,14 @@ def get_fanvue_live_posts(client: Optional[FanvueClient]) -> Dict[str, Dict[str,
         return {}
 
 
+def is_bluesky_fanvue_drop(d: Dict[str, Any]) -> bool:
+    """Returns True if the drop is part of the Bluesky <-> Fanvue growth funnel."""
+    platforms = d.get("platforms") or d.get("lanes") or []
+    if any(p in platforms for p in ("bluesky", "fanvue")):
+        return True
+    return d.get("tier") in (2, 3) and bool(d.get("day"))
+
+
 def print_campaign_matrix() -> None:
     """Displays the side-by-side Fanvue <-> Bluesky campaign coherence matrix."""
     schedule = load_schedule()
@@ -125,6 +133,8 @@ def print_campaign_matrix() -> None:
     print("-" * 90)
 
     for drop in schedule:
+        if not is_bluesky_fanvue_drop(drop):
+            continue
         drop_id = drop.get("id", "unknown")
         day_slot = f"{drop.get('day', '')} ({drop.get('time_kst', '')})"
         fv_uuid = drop.get("fanvue_post_uuid")
@@ -255,6 +265,8 @@ def sync_all_fanvue(dry_run: bool = False, schedule_future: bool = True) -> None
     updated = False
 
     for drop in schedule:
+        if not is_bluesky_fanvue_drop(drop):
+            continue
         drop_id = drop["id"]
         current_uuid = drop.get("fanvue_post_uuid")
 
@@ -340,7 +352,11 @@ def dispatch_auto(dry_run: bool = False, force: bool = False) -> None:
     current_day = now_kst.strftime("%A")
     print(f"Current KST Time: {now_kst.strftime('%Y-%m-%d %H:%M')} ({current_day})")
 
-    drop = next((d for d in schedule if d["day"].lower() == current_day.lower()), None)
+    drop = next((
+        d for d in schedule
+        if d.get("day") and str(d.get("day")).lower() == current_day.lower()
+        and is_bluesky_fanvue_drop(d)
+    ), None)
     if not drop:
         print(f"No scheduled drop configured for {current_day}.")
         return
@@ -351,6 +367,23 @@ def dispatch_auto(dry_run: bool = False, force: bool = False) -> None:
         print(f"  Bluesky URI: {drop.get('uri')}")
         print(f"  Skipping auto-dispatch to avoid duplicate posting on Bluesky.")
         print(f"============================================================\n")
+        return
+
+    # Time-window gate:
+    # 1. Off-hours guard (00:00 - 06:00 KST): Do not publish drops during overnight dead hours
+    drop_slot = (drop.get("slot") or "").lower()
+    drop_time = drop.get("time_kst") or ""
+    current_hour = now_kst.hour
+
+    if not force and 0 <= current_hour < 6:
+        print(f"\n[TIME-GATE] Current KST time ({now_kst.strftime('%H:%M')}) is off-hours (00:00-06:00).")
+        print(f"Skipping automated dispatch for '{drop['id']}' until scheduled daytime window.")
+        return
+
+    # 2. Morning run guard (before 12:00 KST): Evening/night drops must wait for evening run
+    if not force and current_hour < 12 and drop_slot in ("evening", "night"):
+        print(f"\n[TIME-GATE] Today's drop '{drop['id']}' is scheduled for {drop_slot} ({drop_time} KST).")
+        print(f"Current KST time is {now_kst.strftime('%H:%M')} (morning). Skipping morning dispatch until evening run.")
         return
 
     dispatch_drop(drop["id"], dry_run=dry_run, force=force)
