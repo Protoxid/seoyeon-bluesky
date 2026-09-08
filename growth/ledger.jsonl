@@ -18,3 +18,5 @@
 {"ts": "2026-09-06T01:54:07.717825+00:00", "surface": "fanvue", "action": "create_post", "target": "fanvue", "note": "Post c84dedc2-e653-43ee-85df-77d8b48b4e27 (subscribers, publishAt=None)"}
 {"ts": "2026-09-06T01:55:29.714880+00:00", "surface": "fanvue", "action": "media_upload", "target": "fanvue", "note": "Uploaded media 02_livingroom_stretch.png -> b7c558a5-26db-4bcf-9a44-a5943c97c230"}
 {"ts": "2026-09-06T01:55:29.823786+00:00", "surface": "fanvue", "action": "create_post", "target": "fanvue", "note": "Post 75681e06-4ad6-4c6c-9d36-68fd6d349a45 (subscribers, publishAt=None)"}
+{"ts": "2026-09-08T06:31:11.966458+00:00", "surface": "instagram", "action": "tier1_post", "target": "instagram", "note": "Published w37_gimbap (media id 17904633960330189) — https://www.instagram.com/p/DdBDB99FZoI/"}
+{"ts": "2026-09-08T06:31:38.096993+00:00", "surface": "instagram", "action": "tier1_post", "target": "instagram", "note": "Published w37_fan (media id 18088019066199838) — https://www.instagram.com/p/DdBDFQ2lYe3/"}

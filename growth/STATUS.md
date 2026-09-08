@@ -154,3 +154,15 @@ blocked by: nothing
 - permalink: https://www.instagram.com/p/Dc_Jy2smxdf/
 conclusion: tier-1 post published and recorded in weekly_schedule.json
 blocked by: nothing
+
+## 2026-09-08 06:31 UTC — ig_schedule_worker
+- published w37_gimbap at 2026-09-08T13:20+09:00 (slot time)
+- permalink: https://www.instagram.com/p/DdBDB99FZoI/
+conclusion: tier-1 post published and recorded in weekly_schedule.json
+blocked by: nothing
+
+## 2026-09-08 06:31 UTC — ig_schedule_worker
+- published w37_fan at 2026-09-08T15:10+09:00 (slot time)
+- permalink: https://www.instagram.com/p/DdBDFQ2lYe3/
+conclusion: tier-1 post published and recorded in weekly_schedule.json
+blocked by: nothing

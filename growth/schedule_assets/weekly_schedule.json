@@ -219,10 +219,13 @@
     "media_file": "personas/seoyeon/content/w37_2026-09-07/w37_gimbap_c3c9f3_1.png",
     "caption_file": "personas/seoyeon/caps/w37_gimbap.txt",
     "publish_at": "2026-09-08T13:20+09:00",
-    "status": "ready",
+    "status": "published",
     "platforms": [
       "instagram"
-    ]
+    ],
+    "published_at": "2026-09-08T06:31:11.764655+00:00",
+    "published_media_id": "17904633960330189",
+    "permalink": "https://www.instagram.com/p/DdBDB99FZoI/"
   },
   {
     "id": "w37_fan",
@@ -234,10 +237,13 @@
     "media_file": "personas/seoyeon/content/w37_2026-09-07/w37_fan_5c020b_1.png",
     "caption_file": "personas/seoyeon/caps/w37_fan.txt",
     "publish_at": "2026-09-08T15:10+09:00",
-    "status": "ready",
+    "status": "published",
     "platforms": [
       "instagram"
-    ]
+    ],
+    "published_at": "2026-09-08T06:31:37.921130+00:00",
+    "published_media_id": "18088019066199838",
+    "permalink": "https://www.instagram.com/p/DdBDFQ2lYe3/"
   },
   {
     "id": "w37_studio_after",
