@@ -25,6 +25,8 @@
   {
     "id": "tue_cozy_knit",
     "day": "Tuesday",
+    "date": "2026-09-08",
+    "week": "2026-W37",
     "slot": "evening",
     "time_kst": "20:00",
     "media_type": "image",
@@ -32,11 +34,12 @@
     "main_text": "rain in seongsu tonight. boiled water for barley tea, pulled on this knit. too warm for it now.",
     "reply_text": "slipped into something lighter once the room warmed up. the full set is on my private feed... come say hi 🖤 https://www.fanvue.com/syeon.hn?c=fv-4",
     "label": "suggestive",
-    "status": "ready",
+    "status": "published",
     "fanvue_post_uuid": "02a350c3-7941-4df6-98a3-a4f34e566fac",
     "fanvue_status": "published",
     "fanvue_audience": "subscribers",
-    "fanvue_text": "slipped out of the knit once the flat warmed up... whole rainy night set for you 🖤☕",
+    "fanvue_price_cents": null,
+    "fanvue_text": "slipped out of the knit once the flat warmed up. rain sounds through the window. what are you listening to tonight? 🖤",
     "fanvue_gallery_files": [
       "growth/schedule_assets/tue_cozy_knit.png",
       "growth/schedule_assets/sets/tue_cozy_knit/02_knit_slide.png",
@@ -47,23 +50,28 @@
     "platforms": [
       "bluesky",
       "fanvue"
-    ]
+    ],
+    "uri": "at://did:plc:qmzkrqxywyhq4ar4k3nxdbvg/app.bsky.feed.post/3muzqtx3hkw2l",
+    "published_at": "2026-09-08T19:25:51.597788Z"
   },
   {
     "id": "wed_towel_steam",
     "day": "Wednesday",
+    "date": "2026-09-09",
+    "week": "2026-W37",
     "slot": "night",
     "time_kst": "22:45",
     "media_type": "image",
     "media_file": "growth/schedule_assets/wed_towel_steam.png",
     "main_text": "warm shower after a late night. steam still on the glass.",
-    "reply_text": "shared the quiet morning moments on my private wall... don't be shy, link is here 🖤 https://www.fanvue.com/syeon.hn?c=fv-4",
+    "reply_text": "shared the quiet moments after... full steam set is on my private page 🖤 https://www.fanvue.com/syeon.hn?c=fv-4",
     "label": "suggestive",
     "status": "ready",
     "fanvue_post_uuid": "a1fa6066-1ef1-4a5b-9733-6a1c80df6fc6",
     "fanvue_status": "scheduled",
     "fanvue_audience": "subscribers",
-    "fanvue_text": "fresh out of the shower... steam still on the glass. wanted you to see this first 🤍🚿",
+    "fanvue_price_cents": 999,
+    "fanvue_text": "fresh out of the shower. steam still on the glass and i didn't bother towelling dry yet. do you shower at night or in the morning? 🤍",
     "fanvue_gallery_files": [
       "growth/schedule_assets/wed_towel_steam.png",
       "growth/schedule_assets/sets/wed_towel_steam/02_vanity_towel_drop.png",
@@ -80,6 +88,8 @@
   {
     "id": "thu_silk_slip",
     "day": "Thursday",
+    "date": "2026-09-10",
+    "week": "2026-W37",
     "slot": "evening",
     "time_kst": "18:30",
     "media_type": "image",
@@ -91,11 +101,12 @@
     "fanvue_post_uuid": "5455fa6c-8f68-4830-86a2-2dccd2247ca0",
     "fanvue_status": "scheduled",
     "fanvue_audience": "subscribers",
-    "fanvue_text": "late sun in the flat. this slip is almost too light for late summer... private camera roll for you 🍯",
+    "fanvue_price_cents": null,
+    "fanvue_text": "late sun in the flat. this slip is almost too light for late summer. took these before the light went completely. are you watching the sunset where you are? 🍯",
     "fanvue_gallery_files": [
       "growth/schedule_assets/thu_silk_slip.png",
-      "growth/schedule_assets/sets/thu_silk_slip/02_rooftop_sunset.png",
-      "growth/schedule_assets/sets/thu_silk_slip/03_terrace_twilight.png"
+      "growth/schedule_assets/sets/thu_silk_slip/02_slip_shoulder_tattoo.png",
+      "growth/schedule_assets/sets/thu_silk_slip/03_slip_recline.png"
     ],
     "fanvue_publish_at": "2026-09-10T09:15:00.000Z",
     "tier": 2,
@@ -103,7 +114,8 @@
     "platforms": [
       "bluesky",
       "fanvue"
-    ]
+    ],
+    "media_replacement_needed": false
   },
   {
     "id": "fri_morning_window",
