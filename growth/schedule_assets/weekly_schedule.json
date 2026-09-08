@@ -267,10 +267,13 @@
     "media_file": "personas/seoyeon/content/w37_2026-09-07/w37_studio_after_e29b43_1.png",
     "caption_file": "personas/seoyeon/caps/w37_studio_after.txt",
     "publish_at": "2026-09-09T08:05+09:00",
-    "status": "ready",
+    "status": "published",
     "platforms": [
       "instagram"
-    ]
+    ],
+    "published_at": "2026-09-08T23:45:54.867044+00:00",
+    "published_media_id": "18110107129854486",
+    "permalink": "https://www.instagram.com/p/DdC5cTEm0Kj/"
   },
   {
     "id": "w37_jieun_roof",

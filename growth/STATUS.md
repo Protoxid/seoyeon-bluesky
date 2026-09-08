@@ -166,3 +166,9 @@ blocked by: nothing
 - permalink: https://www.instagram.com/p/DdBDFQ2lYe3/
 conclusion: tier-1 post published and recorded in weekly_schedule.json
 blocked by: nothing
+
+## 2026-09-08 23:45 UTC — ig_schedule_worker
+- published w37_studio_after at 2026-09-09T08:05+09:00 (slot time)
+- permalink: https://www.instagram.com/p/DdC5cTEm0Kj/
+conclusion: tier-1 post published and recorded in weekly_schedule.json
+blocked by: nothing
