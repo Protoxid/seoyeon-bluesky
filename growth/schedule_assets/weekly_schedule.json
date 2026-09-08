@@ -369,7 +369,10 @@
       "growth/schedule_assets/w38_tue_olive_camisole.png",
       "growth/schedule_assets/sets/w38_tue_olive_camisole/02_strap_drop.png",
       "growth/schedule_assets/sets/w38_tue_olive_camisole/03_golden_recline.png"
-    ]
+    ],
+    "fanvue_status": "published",
+    "fanvue_price_cents": null,
+    "fanvue_post_uuid": "0c8634a7-3b0f-4b8c-a171-52ade899933f"
   },
   {
     "id": "w38_wed_poplin_shirt",
@@ -401,7 +404,10 @@
       "growth/schedule_assets/w38_wed_poplin_shirt.png",
       "growth/schedule_assets/sets/w38_wed_poplin_shirt/02_shirt_unbutton.png",
       "growth/schedule_assets/sets/w38_wed_poplin_shirt/03_midnight_chair.png"
-    ]
+    ],
+    "fanvue_status": "published",
+    "fanvue_price_cents": null,
+    "fanvue_post_uuid": "90b45f26-fbd7-4094-8752-fa68a1df95d4"
   },
   {
     "id": "w38_thu_silk_robe",
@@ -433,7 +439,9 @@
       "growth/schedule_assets/w38_thu_silk_robe.png",
       "growth/schedule_assets/sets/w38_thu_silk_robe/02_robe_parted.png",
       "growth/schedule_assets/sets/w38_thu_silk_robe/03_vanity_mirror.png"
-    ]
+    ],
+    "fanvue_status": "ready",
+    "fanvue_price_cents": null
   },
   {
     "id": "w38_fri_navy_slip",
@@ -465,7 +473,10 @@
       "growth/schedule_assets/w38_fri_navy_slip.png",
       "growth/schedule_assets/sets/w38_fri_navy_slip/02_slip_slide.png",
       "growth/schedule_assets/sets/w38_fri_navy_slip/03_midnight_recline.png"
-    ]
+    ],
+    "fanvue_status": "published",
+    "fanvue_price_cents": null,
+    "fanvue_post_uuid": "e43d4d3d-1af2-44be-9f3e-d1205bede268"
   },
   {
     "id": "w38_sat_black_lace",
@@ -497,7 +508,10 @@
       "growth/schedule_assets/w38_sat_black_lace.png",
       "growth/schedule_assets/sets/w38_sat_black_lace/02_lace_unclasp.png",
       "growth/schedule_assets/sets/w38_sat_black_lace/03_slate_intimate.png"
-    ]
+    ],
+    "fanvue_status": "published",
+    "fanvue_price_cents": null,
+    "fanvue_post_uuid": "1da82d0c-8870-4724-9c39-c5ba824c2e0b"
   },
   {
     "id": "w38_sun_waffle_henley",
@@ -529,7 +543,10 @@
       "growth/schedule_assets/w38_sun_waffle_henley.png",
       "growth/schedule_assets/sets/w38_sun_waffle_henley/02_henley_lift.png",
       "growth/schedule_assets/sets/w38_sun_waffle_henley/03_tatami_stretch.png"
-    ]
+    ],
+    "fanvue_status": "published",
+    "fanvue_price_cents": null,
+    "fanvue_post_uuid": "456db97c-aadf-484a-bc7b-4d0c5d22b2c3"
   },
   {
     "id": "w38_morning_light",
