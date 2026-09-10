@@ -172,3 +172,9 @@ blocked by: nothing
 - permalink: https://www.instagram.com/p/DdC5cTEm0Kj/
 conclusion: tier-1 post published and recorded in weekly_schedule.json
 blocked by: nothing
+
+## 2026-09-10 11:46 UTC — ig_schedule_worker
+- published w37_jieun_roof at 2026-09-10T20:40+09:00 (slot time)
+- permalink: https://www.instagram.com/p/DdGwvp1Fa4M/
+conclusion: tier-1 post published and recorded in weekly_schedule.json
+blocked by: nothing

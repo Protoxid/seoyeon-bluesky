@@ -285,10 +285,13 @@
     "media_file": "personas/seoyeon/content/w37_2026-09-07/w37_jieun_roof_7a5af3_1.png",
     "caption_file": "personas/seoyeon/caps/w37_jieun_roof.txt",
     "publish_at": "2026-09-10T20:40+09:00",
-    "status": "ready",
+    "status": "published",
     "platforms": [
       "instagram"
-    ]
+    ],
+    "published_at": "2026-09-10T11:46:52.305366+00:00",
+    "published_media_id": "18430141201182471",
+    "permalink": "https://www.instagram.com/p/DdGwvp1Fa4M/"
   },
   {
     "id": "w37_market_peaches",
