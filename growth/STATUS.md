@@ -224,3 +224,28 @@ verification:
   - python growth/campaign_orchestrator.py --status -> all W37 live drops verified coherent; all 7 W38 drops verified coherent and scheduled on Fanvue.
   - python growth/campaign_orchestrator.py --auto --dry-run -> cleanly handles current status without false skips or premature triggers.
 blocked by: nothing.
+
+## 2026-09-13 — Lyra Bluesky Organic Commenting Engine (DeepSeek Flash via OpenRouter) — Lyra / Atlas
+
+ran:
+  1. Built `growth/bsky_engage.py`: Full organic engagement and commenting suite for Lyra (`@syeonhn.bsky.social`).
+     - Discovery: Scans followed accounts via `app.bsky.feed.getTimeline` and canonical lifestyle topics (`성수동`, `뚝섬`, `서울숲`, `필라테스`, `폼롤러`, `2호선`, etc.) via `app.bsky.feed.searchPosts`.
+     - Negative Filters: Drops own posts, political news bots (`-news`, `정부`, `대통령`), spam, crypto, adult/NSFW, external URLs, and previously answered posts.
+     - In-Character Generation: Powered by `deepseek/deepseek-v4-flash` via OpenRouter API with fallbacks to Gemini 3.6 Flash and deterministic canon templates.
+     - Strict Canon Validation: Dry, concrete, lowercase, full stops only, strictly zero exclamation marks (`!`), zero marketing/links/ads.
+     - Cadence Gate: Capped at max 2 comments/day, minimum 3h interval, 07:00–01:00 KST only.
+  2. Setup `.env` configuration for `OPENROUTER_API_KEY` (git ignored).
+  3. Integrated `Execute Organic Engagement (Lyra Comments)` step into `.github/workflows/bluesky_scheduler.yml`.
+  4. Executed live test dispatch:
+     - Target: `@selossnovel.bsky.social` (post: `뚜쥬르는 성심당처럼 메뉴 엄청 다양하지는 않지만 부지 넓어서 평화롭고...`)
+     - Generated Reply: `"맞아요. 넓은 데서 커피 마시면 시간이 느리게 가는 느낌이더라고요. 요즘 같은 날씨에 딱이에요."`
+     - Live Bluesky URI: `at://did:plc:qmzkrqxywyhq4ar4k3nxdbvg/app.bsky.feed.post/3mvftrtnjmm2i`
+     - Logged to `growth/bsky_comments.jsonl`, `growth/ledger.jsonl`, and `.pi/agent-memory/lyra/MEMORY.md`.
+  5. Tested cadence gate: immediate subsequent call blocked with 3h cooldown.
+
+verification:
+  - python growth/bsky_engage.py --scan -> cleanly discovered 42+ eligible posts and generated in-character replies.
+  - python growth/bsky_engage.py --auto -> successfully published live threaded reply on Bluesky.
+  - Subsequent --auto call -> cleanly gated by 3h cooldown.
+blocked by: nothing.
+
