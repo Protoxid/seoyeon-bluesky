@@ -63,6 +63,7 @@ jobs:
 
       - name: Execute Organic Voice Dispatch (Lyra Thoughts)
         if: success() && github.event.inputs.dry_run != 'true' && github.event.inputs.drop_id == ''
+        continue-on-error: true
         env:
           BSKY_HANDLE: ${{ secrets.BSKY_HANDLE }}
           BSKY_APP_PASSWORD: ${{ secrets.BSKY_APP_PASSWORD }}
@@ -71,6 +72,7 @@ jobs:
 
       - name: Execute Organic Engagement (Lyra Comments)
         if: success() && github.event.inputs.dry_run != 'true' && github.event.inputs.drop_id == ''
+        continue-on-error: true
         env:
           BSKY_HANDLE: ${{ secrets.BSKY_HANDLE }}
           BSKY_APP_PASSWORD: ${{ secrets.BSKY_APP_PASSWORD }}
@@ -80,7 +82,7 @@ jobs:
           python growth/bsky_engage.py --auto
 
       - name: Commit updated schedule and ledger
-        if: success() && github.event.inputs.dry_run != 'true'
+        if: !cancelled() && github.event.inputs.dry_run != 'true'
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"

@@ -453,6 +453,8 @@ def draft_comment_for_post(target_text: str) -> Tuple[str, str]:
             ok, clean = clean_and_validate_comment(draft)
             if ok:
                 return clean, "deepseek/deepseek-v4-flash (OpenRouter)"
+    else:
+        print("  [Notice] OPENROUTER_API_KEY not configured in environment. Checking fallbacks...")
 
     # 2. Secondary: Gemini 3.6 Flash
     gem_key = get_gemini_key()
