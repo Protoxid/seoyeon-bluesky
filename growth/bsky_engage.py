@@ -328,18 +328,17 @@ def filter_and_rank_candidates(posts: List[Dict[str, Any]], my_did: str) -> List
 
 
 def generate_comment_openrouter(target_text: str, is_korean: bool, api_key: str) -> Optional[str]:
-    """Generates an in-character comment using DeepSeek Flash via OpenRouter."""
+    """Generates a tightly matched, engaging, profile-visit-driving comment using DeepSeek Flash via OpenRouter."""
     system_prompt = (
         "You are Han Seo-yeon (한서연). You are 25 years old and live alone in Seongsu-dong, Seoul. "
-        "You used to work in corporate marketing, but resigned in January 2026 and are retraining as a pilates instructor, "
-        "teaching a 7am beginner class twice a week. You are recovering from a herniated lumbar disc. "
-        "You live frugally and notice prices. You drink roasted barley tea or iced americanos.\n\n"
-        "You are replying to someone's post on Bluesky. Write a single, short, empathetic and observant comment (1-2 sentences, max 120 characters).\n"
-        "Rules:\n"
-        "- Voice: dry, concrete, relatable, understated, lowercase, full stops only.\n"
-        "- Strictly NO exclamation marks (!).\n"
-        "- Strictly NO marketing, NO promotion, NEVER mention products, links, or other platforms.\n"
-        f"- Language: {'Write in natural, quiet, polite/casual everyday Korean (e.g., ~더라고요, ~인 것 같아요, 맞아요).' if is_korean else 'Write in natural, quiet everyday lowercase English.'}"
+        "You quit a grueling corporate marketing job in January 2026 after burning out with a herniated disc, and are now retraining as a pilates instructor, "
+        "teaching a 7am beginner class twice a week. You live frugally in your Seongsu flat, drinking roasted barley tea or iced americanos.\n\n"
+        "You are commenting on someone's social media post on Bluesky. Your goal is to write a comment that is:\n"
+        "1. TIGHTLY MATCHED to the specific situation and nouns in their post.\n"
+        "2. NATURALLY ENGAGING & INTRIGUING: Drop a vivid, concrete snippet of your real lived experience (your pilates knowledge, corporate burnout reality, coffee habits, or quiet solitary flat life) that makes readers curious to click your profile and see who you are.\n"
+        "3. NEVER start with generic filler ('맞아요', '공감해요', '와'). Jump straight into the substance with your unique, relatable perspective.\n"
+        "4. Voice: dry, concrete, relatable, understated, lowercase, full stops only. Strictly ZERO exclamation marks (!). Strictly NO marketing, NO links, NO product promotions.\n"
+        f"5. Length: 1-2 short sentences (under 140 characters). {'Write in natural, quiet everyday Korean.' if is_korean else 'Write in natural, quiet everyday lowercase English.'}"
     )
 
     user_prompt = f"Post to reply to:\n\"{target_text}\"\n\nWrite your in-character reply:"
@@ -351,7 +350,7 @@ def generate_comment_openrouter(target_text: str, is_korean: bool, api_key: str)
             {"role": "user", "content": user_prompt}
         ],
         "temperature": 0.7,
-        "max_tokens": 400
+        "max_tokens": 1000
     }).encode("utf-8")
 
     req = urllib.request.Request(
@@ -367,9 +366,10 @@ def generate_comment_openrouter(target_text: str, is_korean: bool, api_key: str)
     )
 
     try:
-        with urllib.request.urlopen(req, timeout=20) as r:
+        with urllib.request.urlopen(req, timeout=25) as r:
             res = json.loads(r.read().decode("utf-8"))
-            content = res.get("choices", [{}])[0].get("message", {}).get("content", "")
+            msg = res.get("choices", [{}])[0].get("message", {})
+            content = msg.get("content")
             return content.strip() if content else None
     except Exception as e:
         print(f"  [Warning] OpenRouter DeepSeek call failed: {e}")
