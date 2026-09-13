@@ -249,3 +249,9 @@ verification:
   - Subsequent --auto call -> cleanly gated by 3h cooldown.
 blocked by: nothing.
 
+
+## 2026-09-13 23:47 UTC — ig_schedule_worker
+- published w38_morning_light at 2026-09-14T07:45+09:00 (slot time)
+- permalink: https://www.instagram.com/p/DdPxodsjpJI/
+conclusion: tier-1 post published and recorded in weekly_schedule.json
+blocked by: nothing

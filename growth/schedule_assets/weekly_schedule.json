@@ -589,10 +589,13 @@
     "media_file": "personas/seoyeon/content/w38_2026-09-14/w38_morning_light.png",
     "caption_file": "personas/seoyeon/caps/w38_morning_light.txt",
     "publish_at": "2026-09-14T07:45+09:00",
-    "status": "ready",
+    "status": "published",
     "platforms": [
       "instagram"
-    ]
+    ],
+    "published_at": "2026-09-13T23:47:46.877541+00:00",
+    "published_media_id": "18125657176875143",
+    "permalink": "https://www.instagram.com/p/DdPxodsjpJI/"
   },
   {
     "id": "w38_table_afternoon",
