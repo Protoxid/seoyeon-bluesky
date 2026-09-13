@@ -320,30 +320,24 @@ def dispatch_drop(drop: dict, dry_run: bool = False, force: bool = False):
 
 def run_auto(dry_run: bool = False, force: bool = False):
     schedule = json.loads(SCHEDULE_FILE.read_text(encoding="utf-8"))
-    # Match current weekday in UTC/KST
     now_utc = dt.datetime.now(dt.timezone.utc)
-    # KST is UTC+9
     now_kst = now_utc + dt.timedelta(hours=9)
     current_day = now_kst.strftime("%A")
     print(f"Current KST Day: {current_day} ({now_kst.strftime('%Y-%m-%d %H:%M')})")
 
-    drop = next((
-        d for d in schedule
-        if d.get("day") and str(d.get("day")).lower() == current_day.lower()
-        and "bluesky" in (d.get("platforms") or d.get("lanes") or ["bluesky"])
-    ), None)
-    if not drop:
-        print(f"No scheduled drop configured for {current_day}.")
-        return
+    try:
+        from campaign_orchestrator import select_auto_drop
+    except ImportError:
+        from growth.campaign_orchestrator import select_auto_drop
 
-    if drop.get("status") == "published" and not force:
+    drop, reason = select_auto_drop(schedule, now_kst=now_kst, force=force)
+    if not drop:
         print(f"\n============================================================")
-        print(f"  [SKIPPED] DROP ALREADY PUBLISHED: {drop.get('id')} ({drop.get('day')})")
-        print(f"  Bluesky URI: {drop.get('uri')}")
-        print(f"  Skipping auto-dispatch to avoid duplicate posting on Bluesky.")
+        print(f"  [AUTO-DISPATCH STATUS] {reason}")
         print(f"============================================================\n")
         return
 
+    print(f"\n[AUTO-DISPATCH MATCH] Selected '{drop['id']}' ({drop.get('day')}) — Reason: {reason}")
     dispatch_drop(drop, dry_run=dry_run, force=force)
 
 def main():

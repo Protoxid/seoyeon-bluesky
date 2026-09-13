@@ -29,16 +29,15 @@ blocked by: nothing
 
 ## 2026-09-05 — Deliverable 2: `fanvue_api.py` Client (§4)
 ran:        python growth/fanvue_api.py --whoami
-printed:      ========================================
-  FANVUE CREATOR IDENTITY
-  ========================================
-  Handle:       @syeon.hn
+printed:
+
+=================================  FANVUE CREATOR IDENTITY
+  =================================  Handle:       @syeon.hn
   User ID:      24cd3144-7fc0-4087-a6d7-a4e328fb74ab
   Subscribers:  0
   Balance:      €0.00
   Status:       ACTIVE (API connection verified)
-  ========================================
-conclusion: fanvue_api.py verified live against https://api.fanvue.com; creator identity and token acceptance passed 100%.
+  =================================conclusion: fanvue_api.py verified live against https://api.fanvue.com; creator identity and token acceptance passed 100%.
 blocked by: nothing
 
 ## 2026-09-05 — Deliverable 3: Tracking Links (§5)
@@ -88,10 +87,8 @@ blocked by: Setting up Bluesky handle/app password in bsky_credentials.json or e
 
 ## 2026-09-05 — Step 5: Instagram Comment Engagement & Approval Queue (`ig_engage.py`)
 ran:        python growth/ig_engage.py --test-simulation && python growth/ig_engage.py --poll
-printed:      ============================================================
-  RUNNING IG_ENGAGE SIMULATION & GATE VERIFICATION TEST
-  ============================================================
-    [Step 1] Created mock comment test_comment_sim_9999 with status: PENDING
+printed:      =====================================================  RUNNING IG_ENGAGE SIMULATION & GATE VERIFICATION TEST
+  =====================================================    [Step 1] Created mock comment test_comment_sim_9999 with status: PENDING
     [Step 2 Pass] Verified pending item is NOT approved and cannot be posted.
     [Step 3 Pass] Comment test_comment_sim_9999 marked as APPROVED.
     [Step 4 Pass] Dispatcher picked up approved comment (1 item).
@@ -104,10 +101,8 @@ blocked by: nothing
 
 ## 2026-09-05 — Step 6: Financial Audit & Attribution Ledger (`ledger.py`)
 ran:        python growth/ledger.py --tick && python growth/ledger.py --report
-printed:      ============================================================
-  FINANCIAL LEDGER — DAILY TICK & ATTRIBUTION SYNC
-  ============================================================
-    Querying Fanvue creator account (/v1/users/account)...
+printed:      =====================================================  FINANCIAL LEDGER — DAILY TICK & ATTRIBUTION SYNC
+  =====================================================    Querying Fanvue creator account (/v1/users/account)...
     Available Balance: €0.00 | All-time Gross: €0.00 | Subscribers: 0
     Querying Fanvue tracking links (GET /tracking-links)...
     instagram  ->    0 clicks |  0 subs | €  0.00 net revenue
@@ -167,6 +162,7 @@ blocked by: nothing
 conclusion: tier-1 post published and recorded in weekly_schedule.json
 blocked by: nothing
 
+<<<<<<< HEAD
 ## 2026-09-08 23:45 UTC — ig_schedule_worker
 - published w37_studio_after at 2026-09-09T08:05+09:00 (slot time)
 - permalink: https://www.instagram.com/p/DdC5cTEm0Kj/
@@ -190,3 +186,41 @@ blocked by: nothing
 - permalink: https://www.instagram.com/p/DdOjR3QG7JC/
 conclusion: tier-1 post published and recorded in weekly_schedule.json
 blocked by: nothing
+## 2026-09-08 — W37 Tue Cozy Knit + Thu Silk Slip Fanvue Media Replace — Atlas
+
+ran:
+  1. `git rev-parse --git-dir` → `.git` (main tree, not worktree). `git fetch origin` → 0/0 divergence.
+  2. `python growth/campaign_orchestrator.py --status` → tue: Fanvue LIVE / Bluesky READY; thu: Fanvue SCHEDULED (5455fa6c @ 09-10T09:15) / Bluesky READY.
+  3. DROP 1 — tue_cozy_knit: `python growth/campaign_orchestrator.py --dispatch tue_cozy_knit --dry-run` (validated UUID present, media resolves, copy with ?c=fv-4). Then live dispatch → main post published at `at://did:plc:qmzkrqxywyhq4ar4k3nxdbvg/app.bsky.feed.post/3muzqtx3hkw2l` + threaded CTA reply at `3muzqtxysbd2t`. `createdAt=now` (no back-dating). Weekly_schedule.json updated by worker: status→"published", uri→set.
+  4. DROP 2 — thu_silk_slip: Uploaded 3 approved media files via FanvueClient.upload_media (teaser: e0e273fa, shot 02: 38fe22d9, shot 03: 48926ca7). Probed PATCH /posts/5455fa6c... with mediaUuids + approved fanvue_text → HTTP 200 (in-place update accepted). Existing post updated: 3 new media UUIDs, approved text, publishAt 09:15 UTC unchanged, audience subscribers, price null. GET /posts/{uuid} verified: 3 media, scheduled, text correct. Set media_replacement_needed→false in weekly_schedule.json. No new post created, no DELETE needed. Bluesky teaser left as status "ready" — GH Actions 20:30 KST run on Sep 10 will dispatch it ~2h15 after Fanvue goes live (18:15 KST).
+  5. Staged only weekly_schedule.json + ledger.jsonl. Privacy checklist: no sets/ files, no secrets, no handoff files, no w38 images. Commit `fef1374` with [skip ci] pushed to origin/main.
+  6. `python growth/campaign_orchestrator.py --status` (post-ship): Tuesday (20:00) [VERIFIED] Coherent (LIVE+ LIVE); Thursday (18:30) [VERIFIED] Coherent (SCHEDULED + READY).
+
+shipped per drop:
+  - tue_cozy_knit   | fanvue 02a350c3 (LIVE) | bsky at://.../3muzqtx3hkw2l | published Tue 19:25 UTC (21:25 KST)
+  - thu_silk_slip   | fanvue 5455fa6c (SCHEDULED @ 09-10T09:15) | bsky READY (armed for GH Actions Sep 10 20:30 KST)
+
+verification (campaign_orchestrator.py --status, post-ship):
+      Tuesday (20:00)  | LIVE (02a350c3...)             | LIVE (3muzqtx3)          | [VERIFIED] Coherent
+      Thursday (18:30) | SCHEDULED (5455fa6c... @ 09-10T09:15) | READY                    | [VERIFIED] Coherent
+
+blocked by: nothing.
+
+## 2026-09-13 — Bluesky Scheduler Investigation & Dispatch Fix — Atlas
+
+ran:
+  1. Root cause investigation: GitHub Actions runs showed scheduler delay across midnight KST (11:30 UTC cron running at 14:14–15:12 UTC = 23:14–00:12 KST), triggering strict 00:00–06:00 off-hours abort gate and shifting day calculation to next day. Furthermore, dispatch_auto used naive weekday matching (matching top-of-file already published items, skipping executions).
+  2. Executed manual catch-up dispatches for missed W37 drops per user request:
+     - wed_towel_steam: Live dispatch -> main post at at://did:plc:qmzkrqxywyhq4ar4k3nxdbvg/app.bsky.feed.post/3mvfrppclfh2r, threaded reply at 3mvfrpq2hxo2e. Fanvue companion post verified live (a1fa6066).
+     - thu_silk_slip: Live dispatch -> main post at at://did:plc:qmzkrqxywyhq4ar4k3nxdbvg/app.bsky.feed.post/3mvfrpwzhqd23, threaded reply at 3mvfrpxqfof2l. Fanvue companion post verified live (5455fa6c).
+  3. Pre-scheduled missing W38 drop on Fanvue:
+     - w38_thu_silk_robe: Uploaded 3 gallery shots to Fanvue and scheduled subscriber post for 2026-09-17T10:30:00.000Z. Fanvue UUID: cda2f9c4-bcb3-45ca-a04d-28e8f852c77f. W38 now 100% pre-scheduled across all 7 days.
+  4. Patched dispatch selection and resilience in campaign_orchestrator.py and bsky_schedule_worker.py:
+     - Added select_auto_drop with date matching (date == YYYY-MM-DD), status == "ready" filtering, and runner delay recovery (allowing 00:00-04:00 runs to pick up delayed evening slots).
+  5. Updated .github/workflows/bluesky_scheduler.yml to run every 30 minutes across daytime and evening hours (*/30 23 * * * and */30 0-15 * * *), aligning with slot times and eliminating queue delay vulnerabilities.
+  6. Marked unposted W37 slots (fri_morning_window, sat_lace_mirror) as missed.
+
+verification:
+  - python growth/campaign_orchestrator.py --status -> all W37 live drops verified coherent; all 7 W38 drops verified coherent and scheduled on Fanvue.
+  - python growth/campaign_orchestrator.py --auto --dry-run -> cleanly handles current status without false skips or premature triggers.
+blocked by: nothing.

@@ -66,7 +66,7 @@
     "main_text": "warm shower after a late night. steam still on the glass.",
     "reply_text": "shared the quiet moments after... full steam set is on my private page 🖤 https://www.fanvue.com/syeon.hn?c=fv-4",
     "label": "suggestive",
-    "status": "ready",
+    "status": "published",
     "fanvue_post_uuid": "a1fa6066-1ef1-4a5b-9733-6a1c80df6fc6",
     "fanvue_status": "scheduled",
     "fanvue_audience": "subscribers",
@@ -83,7 +83,9 @@
     "platforms": [
       "bluesky",
       "fanvue"
-    ]
+    ],
+    "uri": "at://did:plc:qmzkrqxywyhq4ar4k3nxdbvg/app.bsky.feed.post/3mvfrppclfh2r",
+    "published_at": "2026-09-13T14:13:18.924050Z"
   },
   {
     "id": "thu_silk_slip",
@@ -97,7 +99,7 @@
     "main_text": "late sun in the flat. this slip is almost too light for late summer.",
     "reply_text": "took a few before changing. private camera roll is here 🍯 https://www.fanvue.com/syeon.hn?c=fv-4",
     "label": "suggestive",
-    "status": "ready",
+    "status": "published",
     "fanvue_post_uuid": "5455fa6c-8f68-4830-86a2-2dccd2247ca0",
     "fanvue_status": "scheduled",
     "fanvue_audience": "subscribers",
@@ -115,7 +117,9 @@
       "bluesky",
       "fanvue"
     ],
-    "media_replacement_needed": false
+    "media_replacement_needed": false,
+    "uri": "at://did:plc:qmzkrqxywyhq4ar4k3nxdbvg/app.bsky.feed.post/3mvfrpwzhqd23",
+    "published_at": "2026-09-13T14:13:26.887954Z"
   },
   {
     "id": "fri_morning_window",
@@ -127,9 +131,10 @@
     "main_text": "friday morning breeze through the window. slow weekend ahead.",
     "reply_text": "unlocked the video diaries and answering dms all weekend... come keep me company ✨ https://www.fanvue.com/syeon.hn?c=fv-4",
     "label": "suggestive",
-    "status": "ready",
+    "status": "missed",
+    "note": "W37 slot elapsed without Fanvue companion set",
     "fanvue_post_uuid": null,
-    "fanvue_status": "ready",
+    "fanvue_status": "missed",
     "fanvue_audience": "subscribers",
     "fanvue_text": "friday morning breeze through the window... video diaries unlocked for the weekend. come keep me company ✨",
     "tier": 2,
@@ -149,9 +154,10 @@
     "main_text": "trying on black lace before bed. how does it look.",
     "reply_text": "the full try-on set is waiting for you... answering all messages tonight on my page 🖤 https://www.fanvue.com/syeon.hn?c=fv-4",
     "label": "suggestive",
-    "status": "ready",
+    "status": "missed",
+    "note": "W37 slot elapsed without Fanvue companion set",
     "fanvue_post_uuid": null,
-    "fanvue_status": "ready",
+    "fanvue_status": "missed",
     "fanvue_audience": "subscribers",
     "fanvue_text": "trying on black lace before bed. how does it look? the full try-on set is here for you tonight 🖤🌙",
     "tier": 2,
@@ -464,8 +470,9 @@
       "growth/schedule_assets/sets/w38_thu_silk_robe/02_robe_parted.png",
       "growth/schedule_assets/sets/w38_thu_silk_robe/03_vanity_mirror.png"
     ],
-    "fanvue_status": "ready",
-    "fanvue_price_cents": null
+    "fanvue_status": "published",
+    "fanvue_price_cents": null,
+    "fanvue_post_uuid": "cda2f9c4-bcb3-45ca-a04d-28e8f852c77f"
   },
   {
     "id": "w38_fri_navy_slip",

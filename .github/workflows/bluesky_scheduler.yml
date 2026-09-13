@@ -2,10 +2,10 @@ name: Cross-Platform Campaign Scheduler (Fanvue + Bluesky)
 
 on:
   schedule:
-    # 23:30 UTC = 08:30 KST (Morning wake-up drop)
-    - cron: '30 23 * * *'
-    # 11:30 UTC = 20:30 KST (Evening high-engagement drop)
-    - cron: '30 11 * * *'
+    # KST 08:00-08:59 (covers 08:30 morning wake-up drop)
+    - cron: '*/30 23 * * *'
+    # KST 09:00-24:00 (covers 09:15, 10:30, 17:30, 18:30, 19:45, 20:00, 22:00, 22:45, 23:15, 23:45 drops)
+    - cron: '*/30 0-15 * * *'
   workflow_dispatch:
     inputs:
       drop_id:

@@ -344,6 +344,96 @@ def dispatch_drop(drop_id: str, dry_run: bool = False, force: bool = False) -> N
         sys.exit(f"Bluesky dispatch failed with code {res.returncode}")
 
 
+def select_auto_drop(schedule: List[Dict[str, Any]], now_kst: Optional[dt.datetime] = None, force: bool = False) -> tuple[Optional[Dict[str, Any]], str]:
+    """
+    Selects the due drop for auto-dispatch with runner queue delay resilience.
+    Returns (target_drop, status_or_reason).
+    """
+    if now_kst is None:
+        now_utc = dt.datetime.now(dt.timezone.utc)
+        now_kst = now_utc + dt.timedelta(hours=9)
+
+    today_str = now_kst.strftime("%Y-%m-%d")
+    yesterday_str = (now_kst - dt.timedelta(days=1)).strftime("%Y-%m-%d")
+    current_day = now_kst.strftime("%A")
+    current_hour = now_kst.hour
+
+    # 1. Runner Queue Delay Recovery:
+    # If runner triggered just past midnight (00:00 - 04:00 KST), check if yesterday's
+    # evening/night drop is still "ready" (meaning the evening cron was delayed).
+    if current_hour < 4 and not force:
+        delayed_drop = next((
+            d for d in schedule
+            if d.get("date") == yesterday_str
+            and (d.get("slot") or "").lower() in ("evening", "night")
+            and d.get("status") == "ready"
+            and is_bluesky_fanvue_drop(d)
+        ), None)
+        if delayed_drop:
+            return delayed_drop, f"Delayed evening drop from yesterday ({yesterday_str})"
+
+    # 2. Match by exact date for today
+    today_drops = [
+        d for d in schedule
+        if d.get("date") == today_str and is_bluesky_fanvue_drop(d)
+    ]
+    if today_drops:
+        ready_today = [d for d in today_drops if d.get("status") == "ready"]
+        if not ready_today and not force:
+            return None, f"All drops for today ({today_str}) are already published or completed."
+
+        target = ready_today[0] if ready_today else today_drops[0]
+        if target.get("status") == "published" and not force:
+            return None, f"[SKIPPED] Drop '{target['id']}' already published ({target.get('uri')})."
+
+        # Check slot time
+        time_kst_str = target.get("time_kst") or "20:00"
+        try:
+            parts = [int(p) for p in time_kst_str.split(":", 1)]
+            target_time = now_kst.replace(hour=parts[0], minute=parts[1], second=0, microsecond=0)
+        except Exception:
+            target_time = now_kst
+
+        # Allow dispatch within 30 minutes before slot time, but gate if hours early
+        if not force and now_kst < target_time - dt.timedelta(minutes=30):
+            return None, (
+                f"[TIME-GATE] Today's drop '{target['id']}' is scheduled for {target.get('slot')} "
+                f"({time_kst_str} KST). Current KST time is {now_kst.strftime('%H:%M')}. Skipping until slot window."
+            )
+
+        return target, f"Scheduled drop for today ({today_str})"
+
+    # 3. Fallback: match by day-of-week for undated drops or current date (ignoring future-dated drops)
+    day_drops = [
+        d for d in schedule
+        if d.get("day") and str(d.get("day")).lower() == current_day.lower()
+        and (d.get("date") is None or d.get("date") <= today_str)
+        and is_bluesky_fanvue_drop(d)
+    ]
+    ready_day = [d for d in day_drops if d.get("status") == "ready"]
+    if ready_day:
+        target = ready_day[0]
+        time_kst_str = target.get("time_kst") or "20:00"
+        try:
+            parts = [int(p) for p in time_kst_str.split(":", 1)]
+            target_time = now_kst.replace(hour=parts[0], minute=parts[1], second=0, microsecond=0)
+        except Exception:
+            target_time = now_kst
+
+        if not force and now_kst < target_time - dt.timedelta(minutes=30):
+            return None, (
+                f"[TIME-GATE] Drop '{target['id']}' is scheduled for {target.get('slot')} "
+                f"({time_kst_str} KST). Current KST time is {now_kst.strftime('%H:%M')}. Skipping until slot window."
+            )
+
+        return target, f"Ready drop for {current_day}"
+
+    if day_drops:
+        return None, f"All configured drops for {current_day} are already published or completed."
+
+    return None, f"No scheduled drop configured for {current_day} ({today_str})."
+
+
 def dispatch_auto(dry_run: bool = False, force: bool = False) -> None:
     """Auto-detects today's scheduled drop, guarantees Fanvue existence, and dispatches."""
     schedule = load_schedule()
@@ -352,40 +442,14 @@ def dispatch_auto(dry_run: bool = False, force: bool = False) -> None:
     current_day = now_kst.strftime("%A")
     print(f"Current KST Time: {now_kst.strftime('%Y-%m-%d %H:%M')} ({current_day})")
 
-    drop = next((
-        d for d in schedule
-        if d.get("day") and str(d.get("day")).lower() == current_day.lower()
-        and is_bluesky_fanvue_drop(d)
-    ), None)
+    drop, reason = select_auto_drop(schedule, now_kst=now_kst, force=force)
     if not drop:
-        print(f"No scheduled drop configured for {current_day}.")
-        return
-
-    if drop.get("status") == "published" and not force:
         print(f"\n============================================================")
-        print(f"  [SKIPPED] TODAY'S DROP ALREADY PUBLISHED: {drop['id']} ({drop.get('day')})")
-        print(f"  Bluesky URI: {drop.get('uri')}")
-        print(f"  Skipping auto-dispatch to avoid duplicate posting on Bluesky.")
+        print(f"  [AUTO-DISPATCH STATUS] {reason}")
         print(f"============================================================\n")
         return
 
-    # Time-window gate:
-    # 1. Off-hours guard (00:00 - 06:00 KST): Do not publish drops during overnight dead hours
-    drop_slot = (drop.get("slot") or "").lower()
-    drop_time = drop.get("time_kst") or ""
-    current_hour = now_kst.hour
-
-    if not force and 0 <= current_hour < 6:
-        print(f"\n[TIME-GATE] Current KST time ({now_kst.strftime('%H:%M')}) is off-hours (00:00-06:00).")
-        print(f"Skipping automated dispatch for '{drop['id']}' until scheduled daytime window.")
-        return
-
-    # 2. Morning run guard (before 12:00 KST): Evening/night drops must wait for evening run
-    if not force and current_hour < 12 and drop_slot in ("evening", "night"):
-        print(f"\n[TIME-GATE] Today's drop '{drop['id']}' is scheduled for {drop_slot} ({drop_time} KST).")
-        print(f"Current KST time is {now_kst.strftime('%H:%M')} (morning). Skipping morning dispatch until evening run.")
-        return
-
+    print(f"\n[AUTO-DISPATCH MATCH] Selected '{drop['id']}' ({drop.get('day')}) — Reason: {reason}")
     dispatch_drop(drop["id"], dry_run=dry_run, force=force)
 
 
