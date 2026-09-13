@@ -74,3 +74,4 @@
 {"ts": "2026-09-13T14:13:55.623503+00:00", "surface": "fanvue", "action": "media_upload", "target": "fanvue", "note": "Uploaded media 03_vanity_mirror.png -> 0215bffe-dfbf-4052-853d-a00a407b6363"}
 {"ts": "2026-09-13T14:13:56.224111+00:00", "surface": "fanvue", "action": "schedule_post", "target": "fanvue", "note": "Post cda2f9c4-bcb3-45ca-a04d-28e8f852c77f (subscribers, publishAt=2026-09-17T10:30:00.000Z)"}
 {"ts": "2026-09-13T14:13:56.224584+00:00", "surface": "fanvue", "action": "fanvue_campaign_sync", "target": "w38_thu_silk_robe", "note": "Post cda2f9c4-bcb3-45ca-a04d-28e8f852c77f with 3 media items (publishAt=2026-09-17T10:30:00.000Z)"}
+{"ts": "2026-09-13T14:24:00.373759+00:00", "surface": "bluesky", "action": "organic_text_post", "target": "at://did:plc:qmzkrqxywyhq4ar4k3nxdbvg/app.bsky.feed.post/3mvfscsntqd2e", "note": "Lyra: it is 23:40 and the motorcycle couriers ..."}
