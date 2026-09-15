@@ -135,8 +135,11 @@ W39_DROPS: Dict[str, Dict[str, Any]] = {
                 "exclude_body_ref": False,
                 "prompt": (
                     "A sensual candid bedroom photograph in deep twilight dusk. "
-                    "A 26-year-old Korean woman lying back across dark crumpled linen bedsheets. "
-                    "Topless, bare athletic torso. Soft dark amber lamp glow, authentic film grain, intimate gaze. " + FILM_SUFFIX
+                    "A 26-year-old Korean woman reclining lazily across dark crumpled linen bedsheets on the bed, propped up resting on her right elbow with her right hand casually supporting her head. "
+                    "Her lean athletic torso is naturally angled toward the camera, exposing her bare left ribcage and flank in the warm amber bedside lamp glow. "
+                    "Her left hand rests gently down along her hip. "
+                    "Topless, intimate bedroom gaze into the camera lens with soft parted lips. "
+                    "Natural athletic pilates physique, real skin pores, subtle filmic sensor noise. " + FILM_SUFFIX
                 ),
             },
         ],
