@@ -81,10 +81,13 @@ W39_DROPS: Dict[str, Dict[str, Any]] = {
                 "title": "Tatami Floor Recline",
                 "exclude_body_ref": False,
                 "prompt": (
-                    "An alluring candid top-down photograph of a 26-year-old Korean woman reclining on her side on a tatami straw mat. "
-                    "Topless, arms relaxed over her head with parted lips and bedroom eyes looking up at camera. "
-                    ""
-                    "Natural athletic pilates proportions, real skin pores, morning window glow. " + FILM_SUFFIX
+                    "An alluring, sensual candid morning photograph in a quiet sunlit tatami corner of a minimalist Seoul flat. "
+                    "A 26-year-old Korean woman reclining back lazily on the woven straw tatami mat against a soft floor cushion, legs stretched comfortably. "
+                    "Topless, resting back on her right elbow with her right hand casually supporting her head, her lean torso naturally angled so her bare left ribcage and flank face forward into the warm morning window sunlight. "
+                    "Her left hand rests gently down along her hip. "
+                    "Alluring bedroom eyes looking into the camera lens with soft parted lips and a sleepy morning expression. "
+                    "The cream ribbed knit tank top is discarded on the tatami mat beside her. "
+                    "Natural athletic pilates ribcage and midriff, real skin pores, authentic morning window glow. " + FILM_SUFFIX
                 ),
             },
         ],
@@ -436,7 +439,7 @@ def update_weekly_schedule() -> None:
     print(f"✓ Registered {len(W39_DROPS)} drops for 2026-W39 in weekly_schedule.json")
 
 
-def generate_drops(day_filter: str = "all", force: bool = False, dry_run: bool = False) -> None:
+def generate_drops(day_filter: str = "all", force: bool = False, dry_run: bool = False, shot_filter: str = "") -> None:
     load_key(PERSONA_DIR)
     key = os.environ.get("KIE_API_KEY", "")
     if not key and not dry_run:
@@ -469,32 +472,35 @@ def generate_drops(day_filter: str = "all", force: bool = False, dry_run: bool =
         print(f"\n{'='*70}\n  Generating 2026-W39 Drop: {drop_id} ({drop['day']})\n{'='*70}")
 
         # 1. Teaser Image (Shot 01)
-        teaser_dest = ROOT_DIR / drop["media_file"]
-        teaser_dest.parent.mkdir(parents=True, exist_ok=True)
-        if teaser_dest.exists() and not force:
-            print(f"  [EXISTS] Teaser: {teaser_dest.name} — skip")
-        else:
-            refs = [a1_url] if drop.get("teaser_exclude_body_ref", False) else all_refs
-            print(f"  --> Rendering Teaser ({len(refs)} refs, exclude_body={drop.get('teaser_exclude_body_ref', False)})...")
-            if dry_run:
-                print(f"      [DRY-RUN] Teaser prompt: {drop['teaser_prompt'][:80]}...")
+        if not shot_filter:
+            teaser_dest = ROOT_DIR / drop["media_file"]
+            teaser_dest.parent.mkdir(parents=True, exist_ok=True)
+            if teaser_dest.exists() and not force:
+                print(f"  [EXISTS] Teaser: {teaser_dest.name} — skip")
             else:
-                t0 = time.time()
-                urls = kie.generate(
-                    prompt=drop["teaser_prompt"],
-                    aspect="3:4",
-                    tier="1k",
-                    image_urls=refs,
-                    model="seedream/5-pro-image-to-image",
-                )
-                if urls:
-                    n = kie.download(urls[0], teaser_dest)
-                    print(f"      ✓ Teaser downloaded: {teaser_dest.name} ({n//1024} KB in {time.time()-t0:.1f}s)")
+                refs = [a1_url] if drop.get("teaser_exclude_body_ref", False) else all_refs
+                print(f"  --> Rendering Teaser ({len(refs)} refs, exclude_body={drop.get('teaser_exclude_body_ref', False)})...")
+                if dry_run:
+                    print(f"      [DRY-RUN] Teaser prompt: {drop['teaser_prompt'][:80]}...")
+                else:
+                    t0 = time.time()
+                    urls = kie.generate(
+                        prompt=drop["teaser_prompt"],
+                        aspect="3:4",
+                        tier="1k",
+                        image_urls=refs,
+                        model="seedream/5-pro-image-to-image",
+                    )
+                    if urls:
+                        n = kie.download(urls[0], teaser_dest)
+                        print(f"      ✓ Teaser downloaded: {teaser_dest.name} ({n//1024} KB in {time.time()-t0:.1f}s)")
 
         # 2. Companion Images (Shots 02 & 03)
         drop_dir = SETS_DIR / drop_id
         drop_dir.mkdir(parents=True, exist_ok=True)
         for shot in drop["shots"]:
+            if shot_filter and shot["filename"] != shot_filter:
+                continue
             shot_dest = drop_dir / shot["filename"]
             if shot_dest.exists() and not force:
                 print(f"  [EXISTS] Companion {shot['filename']} — skip")
@@ -522,6 +528,7 @@ def main():
     parser.add_argument("--sync-schedule", action="store_true", help="Sync metadata into weekly_schedule.json without generating media")
     parser.add_argument("--generate", action="store_true", help="Execute image generation on Kie")
     parser.add_argument("--day", type=str, default="all", help="Target specific day (mon, tue, wed, thu, fri, sat, sun, all)")
+    parser.add_argument("--shot", type=str, default="", help="Target specific shot filename (e.g. 03_tatami_intimate.png)")
     parser.add_argument("--force", action="store_true", help="Force overwrite of existing files")
     parser.add_argument("--dry-run", action="store_true", help="Simulate generation without spending Kie credits")
     args = parser.parse_args()
@@ -529,7 +536,7 @@ def main():
     update_weekly_schedule()
 
     if args.generate or args.dry_run:
-        generate_drops(day_filter=args.day, force=args.force, dry_run=args.dry_run)
+        generate_drops(day_filter=args.day, force=args.force, dry_run=args.dry_run, shot_filter=args.shot)
     else:
         print("\nSchedule synced. Pass --generate to execute image generation on Kie.")
 
