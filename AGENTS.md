@@ -40,8 +40,9 @@ All generation runs on **Kie.ai**:
   - `MASTER_TATTOO`: `personas/seoyeon/master/c/tattoo_crop.png` (high-res crop of the canon botanical sprig)
 - **Tattoo Invariants**:
   - Canon tattoo: Delicate, fine-line, two-branch minimalist botanical sprig on her **left ribcage** below the breast line.
-  - **Clothed Torso Rule**: Diffusion models bleed tattoos onto clothing if body references are passed or "tattoo" is in the prompt. For any clothed torso shots, set `"exclude_body_ref": True` (passes only `a1_front.png`) and omit the word "tattoo" from the text prompt entirely.
-  - **Bare Ribcage Rule**: Condition on `[a1_front, c5_relax_front, tattoo_crop]` and explicitly locate the tattoo in the text prompt: `"On her bare left ribcage, running vertically just below the breast line, is the delicate fine-line botanical sprig tattoo shown in the reference."` Reject thick ferns or parallel-leaf mutations.
+  - **Zero-Tattoo Prompt Rule**: Do **NOT** mention the word "tattoo" anywhere in the text prompts (clothed or bare). Mentioning "tattoo" in text prompts triggers diffusion hallucinations and spatial flipping.
+  - **Reference Anchoring**: Pass `[a1_front, c5_relax_front, tattoo_crop]` for bare-torso shots. The visual master references (`c5_relax_front.png` and `tattoo_crop.png`) permanently and accurately anchor the marking directly to HER anatomical left ribcage.
+  - **Clothed Torso Rule**: For clothed torso shots, set `"exclude_body_ref": True` (passes only `a1_front.png`) so no tattoo reference is sent.
 - **Zero Body Prompting**: Rely on references for her natural athletic Pilates proportions. Never prompt "tiny waist" or "hourglass" (causes unnatural CGI wasp-waist artifacts).
 - **Realistic Camera & Props**: White iPhone 15 Pro with plain clear transparent case. Phone only visible in mirror selfies or propped on tables.
 

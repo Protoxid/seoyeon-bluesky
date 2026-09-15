@@ -73,9 +73,7 @@ W39_DROPS: Dict[str, Dict[str, Any]] = {
                 "prompt": (
                     "An intimate boudoir photograph on a sunlit tatami mat in a minimalist room. "
                     "A 26-year-old Korean woman kneeling gracefully, sliding the cream ribbed tank top off over her head. "
-                    "Her athletic pilates torso is exposed. On her bare left ribcage, running vertically just below the breast line, "
-                    "is the delicate fine-line botanical sprig tattoo shown in the reference. Her physical right flank is clean and unmarked. "
-                    "Warm natural morning backlight, soft sensor grain. " + FILM_SUFFIX
+                    "Her athletic pilates torso is exposed in the soft natural morning backlight, showing natural skin pores and subtle sensor grain. " + FILM_SUFFIX
                 ),
             },
             {
@@ -85,7 +83,7 @@ W39_DROPS: Dict[str, Dict[str, Any]] = {
                 "prompt": (
                     "An alluring candid top-down photograph of a 26-year-old Korean woman reclining on her side on a tatami straw mat. "
                     "Topless, arms relaxed over her head with parted lips and bedroom eyes looking up at camera. "
-                    "Her bare left ribcage is visible displaying the fine-line two-branch botanical sprig tattoo below her breast line. "
+                    ""
                     "Natural athletic pilates proportions, real skin pores, morning window glow. " + FILM_SUFFIX
                 ),
             },
@@ -124,7 +122,7 @@ W39_DROPS: Dict[str, Dict[str, Any]] = {
                     "An intimate candid boudoir photograph in a bedroom during golden hour dusk. "
                     "A 26-year-old Korean woman sitting on the edge of the bed, having slipped the straps of the charcoal silk dress down to her waist. "
                     "Bare upper body, delicate natural breasts, looking sideways toward the window. "
-                    "On her bare left ribcage, running vertically just below the breast line, is the delicate fine-line botanical sprig tattoo shown in the reference. "
+                    ""
                     "Warm copper twilight light highlighting the curves of her ribs and collarbone. " + FILM_SUFFIX
                 ),
             },
@@ -135,8 +133,7 @@ W39_DROPS: Dict[str, Dict[str, Any]] = {
                 "prompt": (
                     "A sensual candid bedroom photograph in deep twilight dusk. "
                     "A 26-year-old Korean woman lying back across dark crumpled linen bedsheets. "
-                    "Topless, bare athletic torso. On her bare left ribcage, running vertically just below the breast line, "
-                    "is the delicate botanical sprig tattoo. Soft dark amber lamp glow, authentic film grain, intimate gaze. " + FILM_SUFFIX
+                    "Topless, bare athletic torso. Soft dark amber lamp glow, authentic film grain, intimate gaze. " + FILM_SUFFIX
                 ),
             },
         ],
@@ -174,7 +171,7 @@ W39_DROPS: Dict[str, Dict[str, Any]] = {
                     "An intimate late-night photograph in a dim kitchen. "
                     "A 26-year-old Korean woman standing by the counter, holding the pale blue oxford shirt open to her sides, completely bare beneath. "
                     "Her bare athletic torso is illuminated by the soft warm range hood light. "
-                    "On her bare left ribcage, running vertically just below the breast line, is the delicate fine-line botanical sprig tattoo shown in the reference. "
+                    ""
                     "Unforced bedroom eyes, authentic matte skin texture. " + FILM_SUFFIX
                 ),
             },
@@ -185,7 +182,7 @@ W39_DROPS: Dict[str, Dict[str, Any]] = {
                 "prompt": (
                     "An alluring candid photograph of a 26-year-old Korean woman seated on the edge of the kitchen counter at midnight. "
                     "The blue oxford shirt has slipped off her shoulders down her arms, topless, bare breasts and torso. "
-                    "Her physical left ribcage clearly displays the canon two-branch botanical sprig tattoo below the breast line. "
+                    ""
                     "Sensual, quiet, moody nocturnal atmosphere. " + FILM_SUFFIX
                 ),
             },
@@ -223,7 +220,7 @@ W39_DROPS: Dict[str, Dict[str, Any]] = {
                 "prompt": (
                     "An intimate after-hours photograph in an empty dimly lit pilates studio. "
                     "A 26-year-old Korean woman seated on the mat, pulling the terracotta camisole up over her chest, revealing her bare athletic pilates ribcage and breasts. "
-                    "On her bare left ribcage, running vertically just below the breast line, is the delicate fine-line botanical sprig tattoo shown in the reference. "
+                    ""
                     "Dusk light through the tall studio windows, quiet solitary breathing. " + FILM_SUFFIX
                 ),
             },
@@ -235,7 +232,7 @@ W39_DROPS: Dict[str, Dict[str, Any]] = {
                     "A sensual mirror selfie in a dim pilates studio. "
                     "A 26-year-old Korean woman kneeling before the full-height wall mirror. "
                     "Topless, holding her white iPhone 15 Pro with one hand while her other arm rests gently across her lap. "
-                    "In the mirror reflection, her physical left ribcage displays the fine botanical sprig tattoo. Authentic skin texture, zero plastic CGI. " + FILM_SUFFIX
+                    "Authentic skin texture, zero plastic CGI. " + FILM_SUFFIX
                 ),
             },
         ],
@@ -274,7 +271,7 @@ W39_DROPS: Dict[str, Dict[str, Any]] = {
                     "An intimate boudoir photograph in a dimly lit bedroom on a Friday night. "
                     "A 26-year-old Korean woman sitting on the bed, holding the emerald silk slip bunched at her waist. "
                     "Bare breasts, relaxed natural posture with soft clavicles. "
-                    "On her bare left ribcage, running vertically just below the breast line, is the delicate fine-line botanical sprig tattoo shown in the reference. "
+                    ""
                     "Warm amber shadows, real skin texture. " + FILM_SUFFIX
                 ),
             },
@@ -285,7 +282,7 @@ W39_DROPS: Dict[str, Dict[str, Any]] = {
                 "prompt": (
                     "An alluring sensual photograph of a 26-year-old Korean woman lying on her back across messy linen duvet sheets. "
                     "Topless, looking down the lens with parted lips and sleepy bedroom eyes. "
-                    "Her bare athletic torso is framed by the crumpled white sheets, with her left ribcage displaying the canon botanical tattoo. "
+                    "Her bare athletic torso is framed by the crumpled white sheets. "
                     "Sensual, quiet midnight atmosphere. " + FILM_SUFFIX
                 ),
             },
@@ -324,9 +321,7 @@ W39_DROPS: Dict[str, Dict[str, Any]] = {
                 "prompt": (
                     "An explicit high-heat boudoir photograph on a bedroom rug at midnight. "
                     "A 26-year-old Korean woman unhooking the sheer black lace bralette, parting it wide with her fingers. "
-                    "Bare full breasts and athletic pilates midriff. On her bare left ribcage, running vertically just below the breast line, "
-                    "is the delicate fine-line botanical sprig tattoo shown in the reference. "
-                    "Deep moody warm chiaroscuro lighting, authentic film grain. " + FILM_SUFFIX
+                    "Bare full breasts and athletic pilates midriff. Deep moody warm chiaroscuro lighting, authentic film grain. " + FILM_SUFFIX
                 ),
             },
             {
@@ -336,7 +331,7 @@ W39_DROPS: Dict[str, Dict[str, Any]] = {
                 "prompt": (
                     "A provocative and intimate photograph of a 26-year-old Korean woman reclining against pillows on her bed. "
                     "Topless, wearing only sheer black lace briefs, arched back slightly with relaxed shoulders. "
-                    "Her bare left ribcage proudly displays the canon botanical sprig tattoo. "
+                    ""
                     "Bedroom eyes, parted lips, authentic fine-grain 35mm film aesthetic. " + FILM_SUFFIX
                 ),
             },
@@ -375,7 +370,7 @@ W39_DROPS: Dict[str, Dict[str, Any]] = {
                     "An intimate candid morning photograph on white linen bedding. "
                     "A 26-year-old Korean woman kneeling on the mattress, unbuttoning the oatmeal waffle henley completely open. "
                     "Her bare breasts and athletic torso exposed in the bright morning sunbeams. "
-                    "On her bare left ribcage, running vertically just below the breast line, is the delicate fine-line botanical sprig tattoo shown in the reference. "
+                    ""
                     "Natural morning glow, authentic skin pores and freckles. " + FILM_SUFFIX
                 ),
             },
@@ -386,7 +381,7 @@ W39_DROPS: Dict[str, Dict[str, Any]] = {
                 "prompt": (
                     "A sensual candid photograph of a 26-year-old Korean woman stretching lazily on her back in bed on Sunday morning. "
                     "Topless, arms reaching above her head, showing off her natural pilates spine alignment and ribcage. "
-                    "Her bare left ribcage displays the delicate botanical sprig tattoo. Soft golden sunbeams across the white linen sheets. " + FILM_SUFFIX
+                    "Soft golden sunbeams across the white linen sheets. " + FILM_SUFFIX
                 ),
             },
         ],
@@ -441,17 +436,102 @@ def update_weekly_schedule() -> None:
     print(f"✓ Registered {len(W39_DROPS)} drops for 2026-W39 in weekly_schedule.json")
 
 
+def generate_drops(day_filter: str = "all", force: bool = False, dry_run: bool = False) -> None:
+    load_key(PERSONA_DIR)
+    key = os.environ.get("KIE_API_KEY", "")
+    if not key and not dry_run:
+        sys.exit("Error: KIE_API_KEY not found.")
+
+    kie = None
+    all_refs = []
+    a1_url = None
+    if not dry_run:
+        kie = Kie(key)
+        print(f"[*] Available Kie credit: {kie.credit()}")
+        print("[*] Uploading/caching reference masters...")
+        a1_url = kie.upload(MASTER_A1.resolve())
+        c5_url = kie.upload(MASTER_C5.resolve()) if MASTER_C5.exists() else None
+        tattoo_url = kie.upload(MASTER_TATTOO.resolve()) if MASTER_TATTOO.exists() else None
+        all_refs = [a1_url]
+        if c5_url:
+            all_refs.append(c5_url)
+        if tattoo_url:
+            all_refs.append(tattoo_url)
+        print(f"[+] Active references: {len(all_refs)} master images")
+
+    targets = list(W39_DROPS.keys()) if day_filter == "all" else [day_filter]
+    for d_key in targets:
+        if d_key not in W39_DROPS:
+            print(f"Unknown day: {d_key}")
+            continue
+        drop = W39_DROPS[d_key]
+        drop_id = drop["id"]
+        print(f"\n{'='*70}\n  Generating 2026-W39 Drop: {drop_id} ({drop['day']})\n{'='*70}")
+
+        # 1. Teaser Image (Shot 01)
+        teaser_dest = ROOT_DIR / drop["media_file"]
+        teaser_dest.parent.mkdir(parents=True, exist_ok=True)
+        if teaser_dest.exists() and not force:
+            print(f"  [EXISTS] Teaser: {teaser_dest.name} — skip")
+        else:
+            refs = [a1_url] if drop.get("teaser_exclude_body_ref", False) else all_refs
+            print(f"  --> Rendering Teaser ({len(refs)} refs, exclude_body={drop.get('teaser_exclude_body_ref', False)})...")
+            if dry_run:
+                print(f"      [DRY-RUN] Teaser prompt: {drop['teaser_prompt'][:80]}...")
+            else:
+                t0 = time.time()
+                urls = kie.generate(
+                    prompt=drop["teaser_prompt"],
+                    aspect="3:4",
+                    tier="1k",
+                    image_urls=refs,
+                    model="seedream/5-pro-image-to-image",
+                )
+                if urls:
+                    n = kie.download(urls[0], teaser_dest)
+                    print(f"      ✓ Teaser downloaded: {teaser_dest.name} ({n//1024} KB in {time.time()-t0:.1f}s)")
+
+        # 2. Companion Images (Shots 02 & 03)
+        drop_dir = SETS_DIR / drop_id
+        drop_dir.mkdir(parents=True, exist_ok=True)
+        for shot in drop["shots"]:
+            shot_dest = drop_dir / shot["filename"]
+            if shot_dest.exists() and not force:
+                print(f"  [EXISTS] Companion {shot['filename']} — skip")
+                continue
+            refs = [a1_url] if shot.get("exclude_body_ref", False) else all_refs
+            print(f"  --> Rendering Companion {shot['filename']} ({len(refs)} refs, exclude_body={shot.get('exclude_body_ref', False)})...")
+            if dry_run:
+                print(f"      [DRY-RUN] Prompt: {shot['prompt'][:80]}...")
+            else:
+                t0 = time.time()
+                urls = kie.generate(
+                    prompt=shot["prompt"],
+                    aspect="3:4",
+                    tier="1k",
+                    image_urls=refs,
+                    model="seedream/5-pro-image-to-image",
+                )
+                if urls:
+                    n = kie.download(urls[0], shot_dest)
+                    print(f"      ✓ Companion downloaded: {shot_dest.name} ({n//1024} KB in {time.time()-t0:.1f}s)")
+
+
 def main():
     parser = argparse.ArgumentParser(description="Generate and schedule 2026-W39 Bluesky/Fanvue companion drops")
     parser.add_argument("--sync-schedule", action="store_true", help="Sync metadata into weekly_schedule.json without generating media")
-    parser.add_argument("--dry-run", action="store_true", help="Simulate generation and API payload construction")
+    parser.add_argument("--generate", action="store_true", help="Execute image generation on Kie")
+    parser.add_argument("--day", type=str, default="all", help="Target specific day (mon, tue, wed, thu, fri, sat, sun, all)")
+    parser.add_argument("--force", action="store_true", help="Force overwrite of existing files")
+    parser.add_argument("--dry-run", action="store_true", help="Simulate generation without spending Kie credits")
     args = parser.parse_args()
 
-    if args.sync_schedule or len(sys.argv) == 1:
-        update_weekly_schedule()
-        return
+    update_weekly_schedule()
 
-    print("Generation runner ready for Kie Seedream execution.")
+    if args.generate or args.dry_run:
+        generate_drops(day_filter=args.day, force=args.force, dry_run=args.dry_run)
+    else:
+        print("\nSchedule synced. Pass --generate to execute image generation on Kie.")
 
 if __name__ == "__main__":
     main()

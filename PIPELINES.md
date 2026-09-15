@@ -61,16 +61,18 @@ left ribcage, below the breast line. Reference crop at
 Getting it on screen is where the rules live, and they are opposite depending
 on whether the ribcage is visible:
 
-**Clothed torso — SUPPRESS IT.** Passing a body reference, or letting the word
-"tattoo" into the prompt, makes diffusion models stamp the tattoo onto fabric.
-Set `"exclude_body_ref": True` so only `a1_front.png` goes, and omit the word
-"tattoo" from the prompt entirely.
+**Zero-Tattoo in Prompts.** Do NOT mention the word "tattoo" anywhere in the
+prompts (clothed or bare). Prompting the word "tattoo" causes diffusion models to
+hallucinate random ink, bleed ink onto fabrics, or mirror placement to the wrong
+side. The visual master references (`c5_relax_front.png`, `tattoo_crop.png`) anchor
+the tattoo directly to HER anatomical left ribcage without text interference.
 
-**Bare ribcage — NAME IT AND LOCATE IT.** Condition on
-`[a1_front, c5_relax_front, tattoo_crop]` and say in the prompt:
-> "On her bare left ribcage, running vertically just below the breast line, is
-> the delicate fine-line botanical sprig tattoo shown in the reference."
-Reject thick ferns and parallel-leaf mutations — those are the known failure.
+**Clothed torso — SUPPRESS BODY REFS.** Set `"exclude_body_ref": True` so only
+`a1_front.png` goes, and omit body references so tattoos never bleed onto fabric.
+
+**Bare ribcage — ANCHOR VIA REFERENCES.** Condition on
+`[a1_front, c5_relax_front, tattoo_crop]` without the word "tattoo" in the prompt.
+The reference image physically has the sprig on her anatomical left ribcage.
 
 **Why a reference alone is not enough.** The one rule everything follows from:
 *a reference anchors what it visibly depicts, at the angle it depicts it.* A
