@@ -352,7 +352,7 @@
     ],
     "slot": "morning",
     "time_kst": "10:30",
-    "status": "ready",
+    "status": "published",
     "label": "suggestive",
     "media_type": "image",
     "media_file": "growth/schedule_assets/w38_mon_ribbed_tank.png",
@@ -367,7 +367,9 @@
       "growth/schedule_assets/sets/w38_mon_ribbed_tank/03_counter_stretch.png"
     ],
     "fanvue_status": "published",
-    "fanvue_post_uuid": "5c426874-54f2-4379-9d56-7a7395302a1a"
+    "fanvue_post_uuid": "5c426874-54f2-4379-9d56-7a7395302a1a",
+    "uri": "at://did:plc:qmzkrqxywyhq4ar4k3nxdbvg/app.bsky.feed.post/3mvlgqa44jm23",
+    "published_at": "2026-09-15T20:12:43.897350Z"
   },
   {
     "id": "w38_tue_olive_camisole",
@@ -386,7 +388,7 @@
     ],
     "slot": "evening",
     "time_kst": "17:30",
-    "status": "ready",
+    "status": "published",
     "label": "suggestive",
     "media_type": "image",
     "media_file": "growth/schedule_assets/w38_tue_olive_camisole.png",
@@ -402,7 +404,9 @@
     ],
     "fanvue_status": "published",
     "fanvue_price_cents": null,
-    "fanvue_post_uuid": "0c8634a7-3b0f-4b8c-a171-52ade899933f"
+    "fanvue_post_uuid": "0c8634a7-3b0f-4b8c-a171-52ade899933f",
+    "uri": "at://did:plc:qmzkrqxywyhq4ar4k3nxdbvg/app.bsky.feed.post/3mvlgqhchiu2t",
+    "published_at": "2026-09-15T20:12:51.325460Z"
   },
   {
     "id": "w38_wed_poplin_shirt",

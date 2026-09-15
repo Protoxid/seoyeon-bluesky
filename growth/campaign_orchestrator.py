@@ -358,19 +358,24 @@ def select_auto_drop(schedule: List[Dict[str, Any]], now_kst: Optional[dt.dateti
     current_day = now_kst.strftime("%A")
     current_hour = now_kst.hour
 
-    # 1. Runner Queue Delay Recovery:
-    # If runner triggered just past midnight (00:00 - 04:00 KST), check if yesterday's
-    # evening/night drop is still "ready" (meaning the evening cron was delayed).
-    if current_hour < 4 and not force:
-        delayed_drop = next((
-            d for d in schedule
-            if d.get("date") == yesterday_str
-            and (d.get("slot") or "").lower() in ("evening", "night")
-            and d.get("status") == "ready"
-            and is_bluesky_fanvue_drop(d)
-        ), None)
-        if delayed_drop:
-            return delayed_drop, f"Delayed evening drop from yesterday ({yesterday_str})"
+    # 1. Overdue Drops Recovery (catch-up for missed/delayed runs from current week):
+    # If any past drop in the schedule is still 'ready' and has a live/scheduled Fanvue post,
+    # recover it during daytime/evening hours (07:00 - 01:00 KST) so it does not get dropped.
+    if not force:
+        # Don't dispatch catch-ups in the dead of night (01:00 - 07:00 KST)
+        if not (1 <= current_hour < 7):
+            overdue_drops = [
+                d for d in schedule
+                if d.get("date") and d.get("date") < today_str
+                and d.get("status") == "ready"
+                and is_bluesky_fanvue_drop(d)
+                and (d.get("fanvue_post_uuid") or d.get("fanvue_status") in ("published", "scheduled"))
+            ]
+            if overdue_drops:
+                # Sort by date ascending to catch up oldest first
+                overdue_drops.sort(key=lambda x: x.get("date", ""))
+                target = overdue_drops[0]
+                return target, f"Overdue drop recovery from {target.get('day')} ({target.get('date')})"
 
     # 2. Match by exact date for today
     today_drops = [
