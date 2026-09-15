@@ -607,10 +607,13 @@
     "media_file": "personas/seoyeon/content/w38_2026-09-14/w38_table_afternoon.png",
     "caption_file": "personas/seoyeon/caps/w38_table_afternoon.txt",
     "publish_at": "2026-09-15T14:15+09:00",
-    "status": "ready",
+    "status": "published",
     "platforms": [
       "instagram"
-    ]
+    ],
+    "published_at": "2026-09-15T07:46:02.746484+00:00",
+    "published_media_id": "18267125233307148",
+    "permalink": "https://www.instagram.com/p/DdTNKByG0Me/"
   },
   {
     "id": "w38_stairwell_notes",
