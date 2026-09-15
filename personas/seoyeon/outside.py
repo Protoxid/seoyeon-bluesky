@@ -55,7 +55,7 @@ from kie_api import Kie, load_key, MODEL_I2I
 # already generated, and gpt image-to-image does take 4:3, 16:9 and 21:9 if a
 # wide plate is ever needed again.
 FAMILIES = {
- "gpt": ("gpt-image-2-image-to-image", "gpt-image-2-text-to-image", 0.09),
+ "gpt": ("gpt-image-2-5-sunburst-image-to-image", "gpt-image-2-text-to-image", 0.09),
 }
 
 

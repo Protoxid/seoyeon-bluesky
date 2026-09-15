@@ -47,13 +47,14 @@ MODEL_T2I = "gpt-image-2-text-to-image"
 # fallback below (`model or MODEL_I2I`) meant any reference-conditioned call
 # that did not name a model went to a different renderer than the grid, and
 # nothing would have said so.
-MODEL_I2I = "gpt-image-2-image-to-image"
+MODEL_I2I = "gpt-image-2-5-sunburst-image-to-image"
 
 # per-image USD, for the budget guard only; never sent upstream
 PRICE = {"seedream/5-pro-text-to-image": 0.07,
          "seedream/5-pro-image-to-image": 0.07,
          "gpt-image-2-text-to-image": 0.09,
-         "gpt-image-2-image-to-image": 0.09}
+         "gpt-image-2-image-to-image": 0.09,
+         "gpt-image-2-5-sunburst-image-to-image": 0.09}
 
 
 def load_key(folder: Path) -> None:

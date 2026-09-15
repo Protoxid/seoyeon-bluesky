@@ -60,6 +60,11 @@ TIERS: dict[str, dict[str, dict]] = {
         "2k": {"resolution": "2K"},
         "4k": {"resolution": "4K"},
     },
+    "gpt-image-2-5-sunburst-image-to-image": {
+        "1k": {"resolution": "1K"},
+        "2k": {"resolution": "2K"},
+        "4k": {"resolution": "4K"},
+    },
     "flux-2/pro-text-to-image": {
         "1k": {"resolution": "1K"},
         "2k": {"resolution": "2K"},
@@ -102,6 +107,12 @@ SCHEMAS: dict[str, dict] = {
         "ref_key": "input_urls",
         "ratios": ["3:4", "1:1", "2:3", "9:16", "4:3", "3:2", "16:9", "21:9"],
         "notes": "input_urls (NOT image_urls); prompt max 20000",
+    },
+    "gpt-image-2-5-sunburst-image-to-image": {
+        "extras": {"output_format": "png", "background": "auto"},
+        "ref_key": "input_urls",
+        "ratios": ["auto", "1:1", "16:27", "16:9", "21:9", "2:3", "27:16", "3:2", "3:4", "4:3", "8:9", "9:16", "9:8"],
+        "notes": "gpt-image-2.5 Sunburst i2i. input_urls; prompt max 20000; 1K/2K/4K resolution",
     },
     # The reference-conditioned sibling of the bake-off winner. This is what
     # phases a/b/c run on: up to 10 reference images via image_urls.
