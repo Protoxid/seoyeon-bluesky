@@ -14,13 +14,13 @@ naming fal is stale; correct it rather than working around it.
 
 | tier | model | entry point | $/image |
 |---|---|---|---|
-| **1 — SFW** | `gpt-image-2-image-to-image` / `-text-to-image` | `personas/seoyeon/outside.py --model gpt` | 0.09 |
+| **1 — SFW** | `gpt-image-2-5-sunburst-image-to-image` / `-text-to-image` | `personas/seoyeon/outside.py --model gpt` | 0.09 |
 | **2 and 3** | `seedream/5-pro-image-to-image` | `growth/generate_weekly_companion_sets.py` | 0.07 |
 
 **Seedream is not chosen because it is better. It is chosen because
-gpt-image-2 refuses this content.** The standing warning in
+gpt refuses this content.** The standing warning in
 `wiki/domains/pipeline/playbook.md` — that Seedream once "won" a bake-off only
-because references were going to a field gpt-image-2 does not read — is still
+because references were going to a field gpt does not read — is still
 correct about SFW quality and must not be deleted. It simply does not apply
 where gpt is not an option.
 
@@ -33,13 +33,14 @@ prompt alone with no identity input, and no error anywhere.
 
 | model | reference field |
 |---|---|
+| `gpt-image-2-5-sunburst-image-to-image` | **`input_urls`** |
 | `gpt-image-2-image-to-image` | **`input_urls`** |
 | `gpt-image-2-text-to-image` | `image_urls` |
 | `seedream/5-pro-image-to-image` | `image_urls` |
 | `kling-3.0/video` | `image_urls` (first + last frame) |
 | `bytedance/seedance-2-5` | `reference_image_urls` (max 2) |
 
-This exact mistake invalidated a whole model bake-off once: gpt-image-2 was
+This exact mistake invalidated a whole model bake-off once: gpt was
 scored with no identity input at all, Seedream "won", and that wrong number sat
 at the top of the playbook for a day telling every reader to pick the wrong
 model. `kie_api.py` routes this correctly — do not bypass it with a hand-built
@@ -49,8 +50,7 @@ request body.
 
 - **Seedream (tiers 2–3): `"tier": "1k"`** — 1024×1365 for 3:4. 2K costs ~4x
   and 1K keeps the filmic sensor grain. Enforce it.
-- **gpt-image-2 (tier 1):** no tier knob. `image_size` takes an enum or exact
-  pixels, multiples of 16, max edge 3840. `fal_api.SIZES` maps our ratios.
+- **gpt-image-2.5 (tier 1): `"tier": "1k"`** — accepts `resolution`: `"1K"`, `"2K"`, `"4K"`. Enforce 1K to conserve credits and preserve sensor grain.
 
 ## 3. THE TATTOO — a rendering problem, not a canon one
 
@@ -89,6 +89,7 @@ is nearly edge-on. That is why `tattoo_crop.png` exists.
   camera. "The camera is still" and "her arm moves" are two instructions about
   one object; give them opposite values and the phone slides inside a locked
   frame. State the eyeline **on the glass**, never in the room.
+- **Plateless default (avoid plates).** Use plates as little as possible: at most a couple (~2) per week, restricted strictly to recurring indoor anchor locations (flat, studio). Attaching plates to outdoor scenes, streets, cafes, rivers, or parks causes glued-on composite artifacts. Rely on natural prompt descriptions and identity face references.
 - **Video.** First-frame conditioning for anything without her face in it;
   reference conditioning when she is on camera. Kling holds motion but not
   identity; Seedance 2.5 with the turntable holds identity.

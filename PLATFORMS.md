@@ -15,7 +15,7 @@ the only mistake here that ends an account.
 
 | tier | content | platforms | generator |
 |---|---|---|---|
-| **1 — clean** | her life. no nudity, nothing suggestive | Instagram | **gpt-image-2** (Kie) |
+| **1 — clean** | her life. no nudity, nothing suggestive | Instagram | **gpt-image-2.5** (Kie) |
 | **2 — soft** | suggestive, opaque, not explicitly posed | Bluesky, Fanvue public profile | **Seedream 5 Pro** (Kie) |
 | **3 — intimate** | intimate, marked 18+ | Fanvue paywall | **Seedream 5 Pro** (Kie) |
 

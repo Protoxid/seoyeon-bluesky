@@ -1,8 +1,15 @@
 #!/usr/bin/env python3
 """generate_w40_ig.py — Generate all 7 Instagram tier-1 images for 2026-W40.
 
-Uses Kie gpt-image-2-5-sunburst-image-to-image with plate references.
-Resolution: 1K (1024×1365), tier: 1k.
+Engine: Kie gpt-image-2-5-sunburst-image-to-image (Tier 1 SFW).
+Resolution: 1K (1024×1365), tier: 1k, aspect: 3:4.
+
+Plate Policy (Strictly Enforced):
+- Plateless default: Avoid using plates as much as possible.
+- Max couple per week (~2): Reserved strictly for recurring indoor anchor spaces
+  (Tuesday Studio & Sunday Flat).
+- All other shots (riverside, subway, street cart, desk, alley) are Plateless, relying on natural
+  environmental prompts and face reference MASTER_A1 to prevent glued-on composite artifacts.
 """
 import json, os, pathlib, sys, time
 
@@ -39,6 +46,8 @@ SHOTS = [
             "She wears a light olive fleece zip-up, grey sweatpants, hair pulled back into a messy claw clip with curtain bangs. "
             "Soft cool early morning light, misty bridge in the distance. Incidental body, candid photograph. " + FILM
         ),
+        "plate": None,  # Plateless: outdoor riverside
+        "has_person": True,
     },
     {
         "id": "w40_tue_studio_empty",
@@ -49,6 +58,8 @@ SHOTS = [
             "She wears fitted black leggings, a long-sleeve charcoal athletic top, barefoot. "
             "Long golden shadows through tall warehouse-style windows. Everyday instructor routine. " + FILM
         ),
+        "plate": "plate_studio_wide_4e68ba_1.png",  # Plate 1 of 2: Recurring workplace
+        "has_person": True,
     },
     {
         "id": "w40_wed_subway_autumn",
@@ -59,6 +70,8 @@ SHOTS = [
             "Yellow platform warning line, cool autumn night air, green Line 2 signage in the background. "
             "Authentic candid Seoul commute texture. " + FILM
         ),
+        "plate": None,  # Plateless: subway commute
+        "has_person": True,
     },
     {
         "id": "w40_thu_chestnut_roast",
@@ -68,6 +81,8 @@ SHOTS = [
             "A small paper cone of warm roasted chestnuts held in two natural hands, steam rising into the cool evening air. "
             "In the blurred background, neon signs and passing commuters. Lived-in, sensory autumn Seoul texture, hands-only frame. " + FILM
         ),
+        "plate": None,  # Plateless: hands-only street snack
+        "has_person": False,
     },
     {
         "id": "w40_fri_reading_desk",
@@ -77,6 +92,8 @@ SHOTS = [
             "A single brass task lamp lighting a thick open pilates anatomy textbook, handwritten notes, and a mug of roasted barley tea. "
             "The rest of the room is dim. Quiet, focused study atmosphere. " + FILM
         ),
+        "plate": None,  # Plateless: quiet desk still life
+        "has_person": False,
     },
     {
         "id": "w40_sat_chuseok_quiet",
@@ -86,6 +103,8 @@ SHOTS = [
             "A young Korean woman, 26, walking down the center of the empty street in a loose navy knit sweater and cream denim pants. "
             "Warm golden autumn afternoon sun, long shadows. Peaceful solitary city walk. " + FILM
         ),
+        "plate": None,  # Plateless: outdoor neighborhood walk
+        "has_person": True,
     },
     {
         "id": "w40_sun_window_light",
@@ -96,6 +115,8 @@ SHOTS = [
             "She wears an oversized cream waffle henley and soft lounge shorts, bare feet resting on the floor. "
             "She reads a design magazine, warm sunbeams illuminating dust motes in the air. Natural, peaceful candid snapshot. " + FILM
         ),
+        "plate": "plate_room_ecc050_1.png",  # Plate 2 of 2: Recurring home flat
+        "has_person": True,
     },
 ]
 
@@ -103,15 +124,71 @@ def main():
     load_key(PERSONA)
     kie = Kie(os.environ.get("KIE_API_KEY", ""))
     print("✓ Kie initialized for W40 Instagram generator.")
+    print("  Model: gpt-image-2-5-sunburst-image-to-image (1K tier)")
+    print("  Plates attached: 2 of 7 (studio Tuesday, flat Sunday; 5 plateless)")
 
+    # Save captions
     for s in SHOTS:
-        sid = s["id"]
-        dest = OUT_DIR / f"{sid}.png"
-        cap_path = CAPS_DIR / f"{sid}.txt"
+        cap_path = CAPS_DIR / f"{s['id']}.txt"
         cap_path.write_text(s["caption"], encoding="utf-8")
         print(f"  ✓ Caption saved: {cap_path.name}")
 
-    print("\n=== W40 IG Specification Prepared ===")
+    if "--generate" in sys.argv:
+        print("\n[*] Uploading required references and executing generation...")
+        uploaded_urls = {}
+
+        # Upload face master
+        face_url = kie.upload(MASTER_A1)
+        print(f"  Uploaded face master → {face_url[:60]}...")
+
+        # Upload the couple of locked plates
+        plate_urls = {}
+        for s in SHOTS:
+            if s["plate"]:
+                p_path = PLATES / s["plate"]
+                if str(p_path) not in plate_urls:
+                    p_url = kie.upload(str(p_path))
+                    plate_urls[str(p_path)] = p_url
+                    print(f"  Uploaded plate {s['plate']} → {p_url[:60]}...")
+
+        for s in SHOTS:
+            sid = s["id"]
+            dest = OUT_DIR / f"{sid}.png"
+            if dest.exists():
+                print(f"  SKIP {sid} — already exists on disk")
+                continue
+
+            refs = []
+            if s["plate"]:
+                refs.append(plate_urls[str(PLATES / s["plate"])])
+            if s["has_person"]:
+                refs.append(face_url)
+
+            print(f"\n--- Generating {sid} ---")
+            print(f"  Plate: {s['plate'] or 'NONE (Plateless)'} | Refs: {len(refs)}")
+
+            if refs:
+                urls = kie.generate(
+                    prompt=s["prompt"],
+                    aspect="3:4",
+                    image_urls=refs,
+                    model="gpt-image-2-5-sunburst-image-to-image",
+                    tier="1k",
+                )
+            else:
+                urls = kie.generate(
+                    prompt=s["prompt"],
+                    aspect="3:4",
+                    image_urls=None,
+                    model="gpt-image-2-text-to-image",
+                    tier="1k",
+                )
+
+            if urls:
+                n = kie.download(urls[0], dest)
+                print(f"  ✓ Downloaded {n} bytes → {dest}")
+
+    print("\n=== W40 IG Ready ===")
 
 if __name__ == "__main__":
     main()

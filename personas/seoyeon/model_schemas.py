@@ -109,7 +109,7 @@ SCHEMAS: dict[str, dict] = {
         "notes": "input_urls (NOT image_urls); prompt max 20000",
     },
     "gpt-image-2-5-sunburst-image-to-image": {
-        "extras": {"output_format": "png", "background": "auto"},
+        "extras": {"background": "auto"},
         "ref_key": "input_urls",
         "ratios": ["auto", "1:1", "16:27", "16:9", "21:9", "2:3", "27:16", "3:2", "3:4", "4:3", "8:9", "9:16", "9:8"],
         "notes": "gpt-image-2.5 Sunburst i2i. input_urls; prompt max 20000; 1K/2K/4K resolution",
