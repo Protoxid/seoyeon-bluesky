@@ -2,9 +2,8 @@ name: Cross-Platform Campaign Scheduler (Fanvue + Bluesky)
 
 on:
   schedule:
-    # KST 08:00-08:59 (covers 08:30 morning wake-up drop)
-    - cron: '*/30 23 * * *'
-    # KST 09:00-01:30 KST (covers 09:15, 10:30, 17:30, 18:30, 19:45, 20:00, 22:00, 22:45, 23:15, 23:45 drops)
+    # Runs every 30 mins during KST waking hours: 07:00 KST to 01:30 KST (22:00 UTC - 16:30 UTC)
+    - cron: '*/30 22,23 * * *'
     - cron: '*/30 0-16 * * *'
   workflow_dispatch:
     inputs:
@@ -46,6 +45,7 @@ jobs:
       - name: Execute Synchronized Campaign Dispatch
         # Fanvue sets are pre-scheduled natively on Fanvue servers with publishAt.
         # GitHub Actions only needs Bluesky credentials to trigger the matching teaser.
+        continue-on-error: true
         env:
           BSKY_HANDLE: ${{ secrets.BSKY_HANDLE }}
           BSKY_APP_PASSWORD: ${{ secrets.BSKY_APP_PASSWORD }}
@@ -62,7 +62,7 @@ jobs:
           fi
 
       - name: Execute Organic Voice Dispatch (Lyra Thoughts)
-        if: success() && github.event.inputs.dry_run != 'true' && github.event.inputs.drop_id == ''
+        if: ${{ !cancelled() && github.event.inputs.dry_run != 'true' }}
         continue-on-error: true
         env:
           BSKY_HANDLE: ${{ secrets.BSKY_HANDLE }}
@@ -71,7 +71,7 @@ jobs:
           python growth/bsky_text_post.py --auto
 
       - name: Execute Organic Engagement (Lyra Comments)
-        if: success() && github.event.inputs.dry_run != 'true' && github.event.inputs.drop_id == ''
+        if: ${{ !cancelled() && github.event.inputs.dry_run != 'true' }}
         continue-on-error: true
         env:
           BSKY_HANDLE: ${{ secrets.BSKY_HANDLE }}
@@ -82,7 +82,7 @@ jobs:
           python growth/bsky_engage.py --auto
 
       - name: Commit updated schedule and ledger
-        if: !cancelled() && github.event.inputs.dry_run != 'true'
+        if: ${{ !cancelled() && github.event.inputs.dry_run != 'true' }}
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"

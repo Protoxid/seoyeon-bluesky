@@ -474,9 +474,10 @@ def draft_comment_for_post(target_text: str) -> Tuple[str, str]:
 def check_cadence_gate(force: bool = False) -> Tuple[bool, str]:
     """
     Checks if an organic comment is allowed under Lyra's cadence invariants:
-    - Max 2 comments per day
-    - Minimum 3 hours between comments
-    - Realistic active hours (07:00–01:00 KST)
+    - Target: exactly 2 comments per day (KST)
+    - Minimum cooldown: 3.5 hours between comments (relaxed to 2.5h late evening)
+    - Realistic active hours: 07:00–01:00 KST
+    - Natural daily distribution: Comment 1 in morning/lunch (07:00–13:30), Comment 2 in afternoon/evening (>= 14:00)
     """
     if force:
         return True, "Cadence gate bypassed via --force."
@@ -485,36 +486,65 @@ def check_cadence_gate(force: bool = False) -> Tuple[bool, str]:
     kst_tz = dt.timezone(dt.timedelta(hours=9))
     now_kst = now_utc.astimezone(kst_tz)
     current_hour = now_kst.hour
+    today_kst_date = now_kst.date()
 
     # Human active hours check (07:00 - 01:00 KST)
     valid_hours = {7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 0}
     if current_hour not in valid_hours:
         return False, f"Current KST hour ({current_hour:02d}:00) is outside realistic human posting windows (07:00–01:00 KST)."
 
+    # Read and parse comments log
+    entries = []
     if COMMENTS_LOG.exists():
-        lines = [l.strip() for l in COMMENTS_LOG.read_text(encoding="utf-8").splitlines() if l.strip()]
-        if lines:
+        for line in COMMENTS_LOG.read_text(encoding="utf-8", errors="ignore").splitlines():
+            line = line.strip()
+            if not line:
+                continue
             try:
-                last_entry = json.loads(lines[-1])
-                last_ts = dt.datetime.fromisoformat(last_entry["ts"])
-                hours_since = (now_utc - last_ts).total_seconds() / 3600.0
-                if hours_since < 3.0:
-                    return False, f"Cooldown active: last comment was {hours_since:.1f}h ago (minimum interval is 3.0h)."
+                entries.append(json.loads(line))
+            except Exception:
+                continue
 
-                # Check daily count
-                today_kst_date = now_kst.date()
-                comments_today = 0
-                for line in lines:
-                    e = json.loads(line)
-                    entry_dt = dt.datetime.fromisoformat(e["ts"]).astimezone(kst_tz)
-                    if entry_dt.date() == today_kst_date:
-                        comments_today += 1
-                if comments_today >= 2:
-                    return False, f"Daily limit reached: {comments_today} comments already posted today ({today_kst_date})."
-            except Exception as e:
-                print(f"  [Warning] Error parsing comments log for cadence: {e}")
+    # Filter comments from today (KST) and collect all timestamps
+    today_comments = []
+    all_timestamps = []
+    for e in entries:
+        ts_str = e.get("ts")
+        if not ts_str:
+            continue
+        try:
+            entry_dt = dt.datetime.fromisoformat(ts_str)
+            if entry_dt.tzinfo is None:
+                entry_dt = entry_dt.replace(tzinfo=dt.timezone.utc)
+            all_timestamps.append(entry_dt)
+            if entry_dt.astimezone(kst_tz).date() == today_kst_date:
+                today_comments.append(entry_dt)
+        except Exception:
+            pass
 
-    return True, "Cadence gate passed."
+    comments_today = len(today_comments)
+    if comments_today >= 2:
+        return False, f"Daily quota fulfilled: {comments_today}/2 comments already posted today ({today_kst_date})."
+
+    # Check cooldown since last comment across all entries
+    if all_timestamps:
+        latest_ts = max(all_timestamps)
+        hours_since = (now_utc - latest_ts).total_seconds() / 3600.0
+
+        # Relax cooldown late at night (21:00-01:00 KST) so 2nd comment isn't lost before sleep
+        min_cooldown = 2.5 if current_hour in {21, 22, 23, 0} else 3.5
+        if hours_since < min_cooldown:
+            return False, f"Cooldown active: last comment was {hours_since:.1f}h ago (minimum interval is {min_cooldown:.1f}h)."
+
+        # Natural daytime spacing: if 1 comment was already made today, let Comment 2 wait for afternoon (>= 14:00 KST)
+        # unless hours_since is already very large (>= 5.0h)
+        if comments_today == 1 and current_hour < 14 and hours_since < 5.0:
+            return False, (
+                f"Pacing hold: 1st comment posted today ({hours_since:.1f}h ago). "
+                f"Holding 2nd comment for afternoon window (>= 14:00 KST, currently {current_hour:02d}:00 KST)."
+            )
+
+    return True, f"Cadence gate passed (Comment #{comments_today + 1} of 2 for today {today_kst_date})."
 
 
 def publish_comment(
@@ -698,17 +728,33 @@ def run_auto(jwt: str, did: str, dry_run: bool = False, force: bool = False) -> 
         print("No eligible candidate posts available to reply to.")
         return
 
-    top_candidate = candidates[0]
-    comment_text, engine = draft_comment_for_post(top_candidate["text"])
+    published = False
+    for i, candidate in enumerate(candidates[:5], 1):
+        target_author = candidate.get("author_handle", "unknown")
+        target_snippet = candidate.get("text", "")[:60].replace("\n", " ")
+        print(f"\n[Attempt {i}/{min(5, len(candidates))}] Target: @{target_author} — \"{target_snippet}...\"")
 
-    publish_comment(
-        jwt=jwt,
-        did=did,
-        target_post=top_candidate,
-        comment_text=comment_text,
-        engine_name=engine,
-        dry_run=dry_run
-    )
+        try:
+            comment_text, engine = draft_comment_for_post(candidate["text"])
+            res = publish_comment(
+                jwt=jwt,
+                did=did,
+                target_post=candidate,
+                comment_text=comment_text,
+                engine_name=engine,
+                dry_run=dry_run
+            )
+            if res and (res.get("uri") or res.get("dry_run")):
+                published = True
+                print(f"[SUCCESS] Organic comment dispatched successfully on candidate #{i}.")
+                break
+        except Exception as e:
+            print(f"  [Warning] Candidate #{i} (@{target_author}) dispatch failed: {e}. Trying next candidate...")
+            time.sleep(1.0)
+            continue
+
+    if not published:
+        print("  [Error] Failed to publish comment across top candidates.")
 
 
 def run_reply_to_uri(jwt: str, did: str, uri: str, text: Optional[str] = None, dry_run: bool = False) -> None:
@@ -743,6 +789,65 @@ def run_reply_to_uri(jwt: str, did: str, uri: str, text: Optional[str] = None, d
     publish_comment(jwt, did, target_dict, comment_text, engine, dry_run=dry_run)
 
 
+def show_status() -> None:
+    """Displays detailed cadence and daily commenting status for Lyra."""
+    now_utc = dt.datetime.now(dt.timezone.utc)
+    kst_tz = dt.timezone(dt.timedelta(hours=9))
+    now_kst = now_utc.astimezone(kst_tz)
+    today_kst_date = now_kst.date()
+
+    entries = []
+    if COMMENTS_LOG.exists():
+        for line in COMMENTS_LOG.read_text(encoding="utf-8", errors="ignore").splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                entries.append(json.loads(line))
+            except Exception:
+                continue
+
+    today_comments = []
+    all_timestamps = []
+    for e in entries:
+        ts_str = e.get("ts")
+        if not ts_str:
+            continue
+        try:
+            entry_dt = dt.datetime.fromisoformat(ts_str)
+            if entry_dt.tzinfo is None:
+                entry_dt = entry_dt.replace(tzinfo=dt.timezone.utc)
+            all_timestamps.append(entry_dt)
+            if entry_dt.astimezone(kst_tz).date() == today_kst_date:
+                today_comments.append((entry_dt, e))
+        except Exception:
+            pass
+
+    allowed, reason = check_cadence_gate()
+
+    print("\n" + "=" * 70)
+    print("  LYRA (@syeonhn.bsky.social) — ORGANIC COMMENTING STATUS")
+    print("=" * 70)
+    print(f"  Current Time (KST):     {now_kst.strftime('%Y-%m-%d %H:%M:%S')} (Hour {now_kst.hour:02d}:00)")
+    print(f"  Today's Comments:       {len(today_comments)} / 2 posted")
+    print(f"  Cadence Gate Status:    {'ALLOWED' if allowed else 'GATED'}")
+    print(f"  Gate Reason:            {reason}")
+    print("-" * 70)
+    if today_comments:
+        print("  Today's Published Comments:")
+        for idx, (cdt, ce) in enumerate(today_comments, 1):
+            kst_time_str = cdt.astimezone(kst_tz).strftime("%H:%M")
+            print(f"    [{idx}] {kst_time_str} KST -> @{ce.get('target_author')}: \"{ce.get('reply_text')}\"")
+    else:
+        print("  No comments published yet today.")
+
+    if all_timestamps:
+        latest = max(all_timestamps)
+        hours_ago = (now_utc - latest).total_seconds() / 3600.0
+        print(f"  Last Comment:           {latest.astimezone(kst_tz).strftime('%Y-%m-%d %H:%M')} KST ({hours_ago:.1f}h ago)")
+    print("=" * 70 + "\n")
+
+
 def show_history() -> None:
     """Prints recent comments from log."""
     if not COMMENTS_LOG.exists() or COMMENTS_LOG.stat().st_size == 0:
@@ -764,6 +869,7 @@ def show_history() -> None:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Lyra — Bluesky Organic Engagement & Commenting Suite")
+    parser.add_argument("--status", action="store_true", help="Display daily commenting quota and cadence status")
     parser.add_argument("--scan", action="store_true", help="Scan timeline & topics, score candidates, and show drafts without posting")
     parser.add_argument("--auto", action="store_true", help="Auto-select top candidate, draft comment, and post (respects cadence gate)")
     parser.add_argument("--reply-to", type=str, help="Target specific post URI to reply to")
@@ -772,6 +878,10 @@ def main() -> int:
     parser.add_argument("--force", action="store_true", help="Bypass cadence/cooldown gate")
     parser.add_argument("--history", action="store_true", help="Display recent organic comments history")
     args = parser.parse_args()
+
+    if args.status:
+        show_status()
+        return 0
 
     if args.history:
         show_history()
