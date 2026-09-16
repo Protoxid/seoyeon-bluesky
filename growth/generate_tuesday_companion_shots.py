@@ -68,7 +68,7 @@ COMPANION_SHOTS = [
             "Relaxed neck and soft natural shoulders with zero tension. "
             "One hand rests on the floor beside her supporting her relaxed posture with five clean natural fingers; "
             "her other arm rests casually across her knee. Her phone—a white iPhone 15 Pro with clear case—rests face-up on the low table beside a glass of water. "
-            "The background is an unrecognizable, soft-focus wash of warm amber lamplight, cream linen, and quiet midnight atmosphere. "
+            "The background shows the cozy living room in warm amber lamplight, cream linen, and quiet midnight atmosphere. "
             "Shot on iPhone 15 Pro: natural low-light sensor grain, organic tones, authentic matte skin with visible natural pores, zero 3D gloss, candid unedited photograph."
         ),
         "aspect": "3:4",

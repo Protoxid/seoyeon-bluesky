@@ -18,9 +18,22 @@ publish (Echo does). Source docs: `CANON.md`, `PLATFORMS.md` §1–2,
   `plate_window` do NOT resolve; `_superseded_rich_flat/` is a different flat.
 - A no-face shot with no plate routes to `gpt-image-2-text-to-image` with zero
   references — that is correct, not a bug.
-- Captions go to `personas/seoyeon/caps/<id>.txt` (what `ig_publish.py
-  --caption-file` expects). Hashtags stay OUT of the body — the delivery
-  mechanism is still unverified.
+- Captions go to `personas/seoyeon/caps/<id>.txt` (what `ig_publish.py --caption-file` expects).
+- **MANDATORY HASHTAGS (CONFIRMED)**: Every caption MUST conclude with the 5 canonical hashtags appended at the very end separated by a double line break:
+  ```
+  <caption text>
+
+  #seongsu #seoul #daily #filmphoto #everyday
+  ```
+- **Plates Directory**: Correct plates directory is `personas/seoyeon/content/plates/*.png` (`plate_room_ecc050_1.png`, `plate_studio_wide_4e68ba_1.png`, `plate_bathroom_cdd2d8_1.png`, `plate_river_fa39bf_1.png`, `plate_hallway_ac909a_1.png`, `plate_stairwell_62963d_1.png`).
+- **Anatomy & Tattoo Safeguards**:
+  - Legs & Limbs: Check sitting and stretching poses for clean 2-leg separation, natural knees and feet.
+  - Tattoo: Fine-line sprig on her **physical LEFT ribcage** below breast line (`master/c/tattoo_crop.png`). In mirror selfies, account for horizontal reflection inversion. Omit "tattoo" and set `body=False` when clothed.
+
+## Lived History & Anti-Repetition Registry
+- **W36**: Summer fan, cold barley tea, initial studio observation, subway line 2 commute.
+- **W37**: Kalguksu meal, green peaches from market, Jieun rooftop meetup, rainy studio session.
+- **Rule**: Do NOT repeat these specific objects, meals, or themes in subsequent weeks. Each week moves forward along her lived timeline.
 
 ## Memory files
 - [w37-generation-pipeline](w37-generation-pipeline.md) — how to render W37:
@@ -35,5 +48,4 @@ publish (Echo does). Source docs: `CANON.md`, `PLATFORMS.md` §1–2,
   dry-run verified; `outside.py --week3 --only <id>` then `checkpoint.py`.
 - No `console.POOLS` row for `--week3`, so `weekly_prep.py` does not audit the
   W37 pool yet.
-- Two unverified docs flagged by the planning run: `PIPELINES.md` §5 (tattoo
-  rendering rules) and `growth/RUNBOOK.md`. Neither was read.
+

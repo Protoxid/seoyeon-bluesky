@@ -162,3 +162,17 @@
 {"ts": "2026-09-16T00:18:59.961598+00:00", "surface": "fanvue", "action": "media_upload", "target": "fanvue", "note": "Uploaded media 03_breakfast_sun.png -> 2b53bcb4-ed38-4e0c-9099-1aa8d4372fed"}
 {"ts": "2026-09-16T00:19:05.328055+00:00", "surface": "fanvue", "action": "schedule_post", "target": "fanvue", "note": "Post 75b1dde5-a28e-474f-9119-5c5fa6fb3fbd (subscribers, publishAt=2026-10-04T00:00:00.000Z)"}
 {"ts": "2026-09-16T00:19:05.328483+00:00", "surface": "fanvue", "action": "fanvue_campaign_sync", "target": "w40_sun_linen_robe", "note": "Post 75b1dde5-a28e-474f-9119-5c5fa6fb3fbd with 3 media items (publishAt=2026-10-04T00:00:00.000Z)"}
+{"ts": "2026-09-16T12:17:14.762891+00:00", "surface": "ledger", "action": "ledger_balance", "target": "fanvue", "note": "€0.00: Fanvue balance snapshot: €0.00 avail, €0.00 gross all-time (0 subs, 0 followers)"}
+{"ts": "2026-09-16T12:17:15.638921+00:00", "surface": "ledger", "action": "ledger_attribution", "target": "instagram", "note": "€0.00: Attribution for instagram: 0 clicks, 0 subs, €0.00 net revenue"}
+{"ts": "2026-09-16T12:17:15.639584+00:00", "surface": "ledger", "action": "ledger_attribution", "target": "x", "note": "€0.00: Attribution for x: 0 clicks, 0 subs, €0.00 net revenue"}
+{"ts": "2026-09-16T12:17:15.640219+00:00", "surface": "ledger", "action": "ledger_attribution", "target": "bluesky", "note": "€0.00: Attribution for bluesky: 0 clicks, 0 subs, €0.00 net revenue"}
+{"ts": "2026-09-16T12:17:15.640776+00:00", "surface": "ledger", "action": "ledger_attribution", "target": "threads", "note": "€0.00: Attribution for threads: 0 clicks, 0 subs, €0.00 net revenue"}
+{"ts": "2026-09-16T12:17:15.641248+00:00", "surface": "ledger", "action": "ledger_attribution", "target": "reddit", "note": "€0.00: Attribution for reddit: 0 clicks, 0 subs, €0.00 net revenue"}
+{"ts": "2026-09-16T12:17:15.641697+00:00", "surface": "ledger", "action": "ledger_attribution", "target": "youtube", "note": "€0.00: Attribution for youtube: 0 clicks, 0 subs, €0.00 net revenue"}
+{"ts": "2026-09-16T12:21:46.112623+00:00", "surface": "ledger", "action": "ledger_balance", "target": "fanvue", "note": "€0.00: Fanvue balance snapshot: €0.00 avail, €0.00 gross all-time (0 subs, 0 followers)"}
+{"ts": "2026-09-16T12:21:46.235201+00:00", "surface": "ledger", "action": "ledger_attribution", "target": "instagram", "note": "€0.00: Attribution for instagram: 0 clicks, 0 subs, €0.00 net revenue"}
+{"ts": "2026-09-16T12:21:46.235895+00:00", "surface": "ledger", "action": "ledger_attribution", "target": "x", "note": "€0.00: Attribution for x: 0 clicks, 0 subs, €0.00 net revenue"}
+{"ts": "2026-09-16T12:21:46.236462+00:00", "surface": "ledger", "action": "ledger_attribution", "target": "bluesky", "note": "€0.00: Attribution for bluesky: 0 clicks, 0 subs, €0.00 net revenue"}
+{"ts": "2026-09-16T12:21:46.237059+00:00", "surface": "ledger", "action": "ledger_attribution", "target": "threads", "note": "€0.00: Attribution for threads: 0 clicks, 0 subs, €0.00 net revenue"}
+{"ts": "2026-09-16T12:21:46.237613+00:00", "surface": "ledger", "action": "ledger_attribution", "target": "reddit", "note": "€0.00: Attribution for reddit: 0 clicks, 0 subs, €0.00 net revenue"}
+{"ts": "2026-09-16T12:21:46.238181+00:00", "surface": "ledger", "action": "ledger_attribution", "target": "youtube", "note": "€0.00: Attribution for youtube: 0 clicks, 0 subs, €0.00 net revenue"}

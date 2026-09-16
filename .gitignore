@@ -41,6 +41,10 @@ _trash/
 _prep/
 _thumbs/
 _lora_dataset/
+_lora_dataset.tar.gz
+*.tar.gz
+*.zip
+*.7z
 *.part
 manifest.jsonl
 *.mp4
@@ -64,3 +68,6 @@ bsky_credentials.json
 # spent PKCE verifier — harmless once used, still not for a repo
 _pkce_state.json
 _oidc.json
+
+# Google Drive sync temp artifacts
+.tmp.driveupload/

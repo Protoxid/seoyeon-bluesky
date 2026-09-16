@@ -107,7 +107,7 @@ SETS_CONFIG: Dict[str, Dict[str, Any]] = {
                     "Relaxed neck and soft natural shoulders with zero tension. "
                     "One hand rests on the floor beside her supporting her relaxed posture with five clean natural fingers; "
                     "her other arm rests casually across her knee. Her phone—a white iPhone 15 Pro with clear case—rests face-up on the low table beside a glass of water. "
-                    "The background is an unrecognizable, soft-focus wash of warm amber lamplight, cream linen, and quiet midnight atmosphere. "
+                    "The background shows the cozy modern flat in warm amber lamplight, cream linen, and quiet midnight atmosphere. "
                     "Shot on iPhone 15 Pro: natural low-light sensor grain, organic tones, authentic matte skin with visible natural pores, zero 3D gloss, candid unedited photograph."
                 ),
                 "aspect": "3:4",
@@ -171,7 +171,9 @@ SETS_CONFIG: Dict[str, Dict[str, Any]] = {
     },
 
     # --------------------------------------------------------------------------
-    # THURSDAY: thu_silk_slip (Teaser: Champagne silk slip in the flat at golden hour)
+    # THURSDAY: thu_silk_slip (Teaser: Olive/champagne silk slip in the flat, late sun)
+    # REGENERATED V2 — QC REJECTED: old shots were outdoor scenic lifestyle, too SFW.
+    # New shots: genuine Tier-3 seduction inside the flat, same garment, same golden hour.
     # --------------------------------------------------------------------------
     "thu": {
         "drop_id": "thu_silk_slip",
@@ -180,46 +182,54 @@ SETS_CONFIG: Dict[str, Dict[str, Any]] = {
         "teaser_file": "growth/schedule_assets/thu_silk_slip.png",
         "shots": [
             {
-                "filename": "02_rooftop_sunset.png",
-                "title": "Sunset on Private Rooftop Terrace (Outdoor)",
-                "hairstyle": "Messy high updo secured with a matte tortoiseshell claw clip, loose soft tendrils blowing in the breeze",
-                "expression": "Head tilted back slightly, looking out over the city skyline with a serene, amused half-smile",
-                "setting": "Outdoor private rooftop terrace in Seongsu at sunset golden hour, weathered teak deck, large terracotta planters with olive shrubs, lavender and orange sunset sky over Seoul skyline",
-                "camera_logic": "Propped self-timer on a low teak terrace table, both hands resting naturally on the warm ledge",
+                "filename": "02_slip_shoulder_tattoo.png",
+                "title": "Slip Strap Slid Off, Golden Hour on the Sofa (The Intimate Shift)",
+                "hairstyle": "Loose honey-balayage waves falling over bare shoulder and collarbone, soft golden hour glow through the strands",
+                "expression": "Soft, knowing half-smile, looking directly into the lens with relaxed parted lips and bedroom eyes",
+                "setting": "Warm minimal Seongsu apartment interior, light wood-and-linen sofa, evening golden sunlight pouring through the window casting long shadows across the room",
+                "camera_logic": "Propped on the sofa side table on self-timer, eye-level intimate candid angle, no visible phone in frame",
                 "prompt": (
-                    "An authentic golden hour candid photograph on a private wooden rooftop terrace overlooking Seoul at dusk. "
-                    "A 26-year-old Korean woman with a healthy natural athletic Pilates physique, relaxed spine and smooth natural shoulders. "
-                    "Her honey-balayage hair is swept up in a casual messy high updo secured with a tortoiseshell claw clip, "
-                    "with soft loose tendrils framing her cheekbones and gently moving in the late-summer warm evening breeze. "
-                    "She is wearing a delicate solid plain champagne silk slip dress with thin straps, softly backlit by the warm setting sun. "
-                    "The dress is tailored from pure smooth solid champagne satin silk with a completely plain, clean, unprinted surface with zero designs, zero graphics, and zero markings on the solid silk fabric. "
-                    "Her head is turned slightly toward the skyline with a calm, amused half-smile and relaxed eyes. "
-                    "Both hands rest naturally and comfortably on the smooth wooden terrace railing with exactly five clean relaxed fingers each. "
-                    "The background shows the soft-focus expanse of Seongsu rooftops and the warm orange and lavender twilight sky. "
-                    "Shot on iPhone 15 Pro: natural low contrast, realistic matte skin with visible delicate pores, "
-                    "zero artificial CGI sheen, authentic candid filmic snapshot."
+                    "An intimate, seductive golden-hour candid photograph inside a warm minimal apartment in Seongsu. "
+                    "A 26-year-old Korean woman with a naturally lean Pilates physique, relaxed shoulders and long neck, seated sideways on a light linen sofa. "
+                    "Her honey-balayage hair falls in loose waves over her bare shoulder. "
+                    "She is wearing a delicate solid plain champagne silk slip dress. "
+                    "One thin spaghetti strap has slipped completely off her left shoulder, pooling at her upper arm, "
+                    "while the other strap holds on her right shoulder. The top edge of the slip has slid down, "
+                    "revealing her bare left shoulder, the top of her bare breast, her bare clavicle, and her entire bare left ribcage. "
+                    "On her bare left ribcage, running vertically just below the breast line, is the delicate fine-line botanical sprig tattoo shown in the reference. "
+                    "The slip hem has naturally ridden up to mid-thigh as she sits, revealing her long bare legs. "
+                    "She looks directly into the camera lens with a soft, knowing half-smile, relaxed parted lips, and warm intimate eyes. "
+                    "One hand rests casually on the sofa cushion beside her thigh with exactly five clean natural fingers; "
+                    "her other forearm rests along the back of the sofa, fingers dangling naturally. "
+                    "Warm golden evening sunlight streams through the window, casting soft long shadows and a rich amber glow across her bare skin and the room. "
+                    "Shot on iPhone 15 Pro: natural warm sensor grain, authentic matte skin texture with visible pores, "
+                    "zero CGI sheen, raw intimate candid photograph."
                 ),
                 "aspect": "3:4",
-                "tier": "1k",
-                "exclude_body_ref": True
+                "tier": "1k"
             },
             {
-                "filename": "03_terrace_twilight.png",
-                "title": "Terrace Lounge at Twilight (Semi-Outdoor)",
-                "hairstyle": "Claw clip removed, loose wind-tossed waves falling softly over collarbones",
-                "expression": "Playful side-eye toward the camera with lips softly parted in quiet intimacy",
-                "setting": "Terrace outdoor daybed at dusk, minimalist glowing paper lantern on the deck, deep indigo twilight sky",
-                "camera_logic": "Self-timer on low side table beside a glass of iced herbal tea, one arm resting across knee",
+                "filename": "03_slip_recline.png",
+                "title": "Reclined on the Rug, Slip Pooling Low (Unhurried Candour)",
+                "hairstyle": "Honey waves splayed across a woven floor cushion, catching the last of the evening light",
+                "expression": "Direct, heavy-lidded eye contact into the lens, softly parted lips, quiet unhurried intimacy",
+                "setting": "Same Seongsu flat interior, neutral wool floor rug, late golden sun washing across the floorboards, a mug of tea on the low table",
+                "camera_logic": "Propped on the low wooden coffee table on self-timer, intimate low angle looking slightly down toward her",
                 "prompt": (
-                    "An alluring candid twilight photograph on a private outdoor terrace lounge at blue hour. "
-                    "A 26-year-old Korean woman lounging comfortably on a low charcoal linen outdoor cushion, body angled so her left side faces the camera. "
-                    "Her honey-balayage hair is loose in wind-tumbled textured waves draped over one bare shoulder and nude breast. "
-                    "She has slipped out of the silk dress, revealing her natural athletic Pilates proportions, healthy natural relaxed waist, and smooth abdomen. "
-                    "On her left ribcage, running vertically just below the breast line, is the small, delicate fine-line botanical sprig tattoo shown in the reference. "
-                    "She looks toward the camera with a subtle playful side-eye and relaxed parted lips. "
-                    "One hand rests casually on the cushion supporting her posture with clean natural fingers; "
-                    "her other arm rests across her knee. A soft warm glow from a small cordless lantern illuminates her face against the deep indigo evening sky. "
-                    "Shot on iPhone 15 Pro: natural low-light grain, authentic organic skin texture with real pores, zero 3D plastic gloss."
+                    "An alluring, deeply intimate candid late-afternoon photograph inside a warm Seongsu flat. "
+                    "A 26-year-old Korean woman with a natural athletic Pilates physique reclining on a neutral wool floor rug, her body angled toward the camera. "
+                    "Her honey-balayage hair is loose, textured waves spread across a woven floor cushion behind her, catching the last evening light. "
+                    "She is still wearing the delicate champagne silk slip, but it has rumpled and pooled low on her torso from reclining: "
+                    "the slip bodice has slid down revealing both bare shoulders, both bare breasts with natural teardrop shape, "
+                    "her bare upper abdomen, and her entire bare ribcage. "
+                    "On her bare left ribcage, running vertically just below the breast line, is the delicate fine-line botanical sprig tattoo shown in the reference. "
+                    "The slip hem is bunched loosely around her hips and upper thighs, with her bare legs stretched out naturally on the rug. "
+                    "She looks directly into the camera lens with heavy-lidded, intimate eye contact, softly parted lips, and an unhurried quiet expression. "
+                    "One arm rests loosely above her head on the floor cushion with relaxed fingers; her other hand rests casually on her stomach. "
+                    "Late golden sun washes across the wooden floorboards and her bare skin, creating warm amber tones and soft shadows. "
+                    "A ceramic mug of barley tea sits on the low wooden coffee table in the background. "
+                    "Shot on iPhone 15 Pro: natural warm light, authentic matte skin texture with visible pores and faint freckles, "
+                    "organic filmic grain, zero CGI or plastic gloss, raw seductive candid snapshot."
                 ),
                 "aspect": "3:4",
                 "tier": "1k"
