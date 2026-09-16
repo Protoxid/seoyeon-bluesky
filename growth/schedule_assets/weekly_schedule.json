@@ -133,8 +133,8 @@
     "label": "suggestive",
     "status": "missed",
     "note": "W37 slot elapsed without Fanvue companion set",
-    "fanvue_post_uuid": null,
-    "fanvue_status": "missed",
+    "fanvue_post_uuid": "293f573d-0af9-4cfa-b346-07385003a789",
+    "fanvue_status": "scheduled",
     "fanvue_audience": "subscribers",
     "fanvue_text": "friday morning breeze through the window... video diaries unlocked for the weekend. come keep me company ✨",
     "tier": 2,
@@ -142,7 +142,8 @@
     "platforms": [
       "bluesky",
       "fanvue"
-    ]
+    ],
+    "fanvue_publish_at": "2026-09-18T12:30:00.000Z"
   },
   {
     "id": "sat_lace_mirror",
@@ -156,8 +157,8 @@
     "label": "suggestive",
     "status": "missed",
     "note": "W37 slot elapsed without Fanvue companion set",
-    "fanvue_post_uuid": null,
-    "fanvue_status": "missed",
+    "fanvue_post_uuid": "397613e1-5906-41ab-bd65-d2c3187c8064",
+    "fanvue_status": "scheduled",
     "fanvue_audience": "subscribers",
     "fanvue_text": "trying on black lace before bed. how does it look? the full try-on set is here for you tonight 🖤🌙",
     "tier": 2,
@@ -165,7 +166,8 @@
     "platforms": [
       "bluesky",
       "fanvue"
-    ]
+    ],
+    "fanvue_publish_at": "2026-09-19T14:15:00.000Z"
   },
   {
     "id": "sun_sunday_bed",
@@ -728,8 +730,9 @@
       "growth/schedule_assets/sets/w39_mon_ribbed_knit/02_tank_slide.png",
       "growth/schedule_assets/sets/w39_mon_ribbed_knit/03_tatami_intimate.png"
     ],
-    "fanvue_status": "ready",
-    "fanvue_price_cents": null
+    "fanvue_status": "scheduled",
+    "fanvue_price_cents": null,
+    "fanvue_post_uuid": "0fabf45d-3b86-41a6-8e91-1e2891094554"
   },
   {
     "id": "w39_tue_charcoal_slip",
@@ -762,8 +765,9 @@
       "growth/schedule_assets/sets/w39_tue_charcoal_slip/02_strap_drop.png",
       "growth/schedule_assets/sets/w39_tue_charcoal_slip/03_dusk_recline.png"
     ],
-    "fanvue_status": "ready",
-    "fanvue_price_cents": null
+    "fanvue_status": "scheduled",
+    "fanvue_price_cents": null,
+    "fanvue_post_uuid": "ea3d6e59-3e1b-4cc0-906b-b7da78ae00ec"
   },
   {
     "id": "w39_wed_oversized_oxford",
@@ -796,8 +800,9 @@
       "growth/schedule_assets/sets/w39_wed_oversized_oxford/02_oxford_parted.png",
       "growth/schedule_assets/sets/w39_wed_oversized_oxford/03_counter_intimate.png"
     ],
-    "fanvue_status": "ready",
-    "fanvue_price_cents": null
+    "fanvue_status": "scheduled",
+    "fanvue_price_cents": null,
+    "fanvue_post_uuid": "845ac254-9aae-4d33-8e18-d1311fa86503"
   },
   {
     "id": "w39_thu_terracotta_cami",
@@ -830,8 +835,9 @@
       "growth/schedule_assets/sets/w39_thu_terracotta_cami/02_mat_recline.png",
       "growth/schedule_assets/sets/w39_thu_terracotta_cami/03_mirror_intimate.png"
     ],
-    "fanvue_status": "ready",
-    "fanvue_price_cents": null
+    "fanvue_status": "scheduled",
+    "fanvue_price_cents": null,
+    "fanvue_post_uuid": "7b36ecff-3093-422a-9402-2d7b7332f0d0"
   },
   {
     "id": "w39_fri_emerald_silk",
@@ -864,8 +870,9 @@
       "growth/schedule_assets/sets/w39_fri_emerald_silk/02_emerald_drop.png",
       "growth/schedule_assets/sets/w39_fri_emerald_silk/03_midnight_sheets.png"
     ],
-    "fanvue_status": "ready",
-    "fanvue_price_cents": null
+    "fanvue_status": "scheduled",
+    "fanvue_price_cents": null,
+    "fanvue_post_uuid": "441e9242-2af5-4dee-b6ea-0ce9604665c6"
   },
   {
     "id": "w39_sat_midnight_sheer",
@@ -898,8 +905,9 @@
       "growth/schedule_assets/sets/w39_sat_midnight_sheer/02_sheer_unclasp.png",
       "growth/schedule_assets/sets/w39_sat_midnight_sheer/03_boudoir_vault.png"
     ],
-    "fanvue_status": "ready",
-    "fanvue_price_cents": 999
+    "fanvue_status": "scheduled",
+    "fanvue_price_cents": 999,
+    "fanvue_post_uuid": "37bcd40b-a3a2-4229-a95d-801ba8c013cc"
   },
   {
     "id": "w39_sun_waffle_lounge",
@@ -932,8 +940,9 @@
       "growth/schedule_assets/sets/w39_sun_waffle_lounge/02_henley_parted.png",
       "growth/schedule_assets/sets/w39_sun_waffle_lounge/03_bed_stretch.png"
     ],
-    "fanvue_status": "ready",
-    "fanvue_price_cents": null
+    "fanvue_status": "scheduled",
+    "fanvue_price_cents": null,
+    "fanvue_post_uuid": "f4fca238-2575-4cd1-b1f4-2075ca69fd78"
   },
   {
     "id": "w40_mon_heather_tank",
@@ -966,8 +975,9 @@
       "growth/schedule_assets/sets/w40_mon_heather_tank/02_tank_lift.png",
       "growth/schedule_assets/sets/w40_mon_heather_tank/03_sunlit_counter.png"
     ],
-    "fanvue_status": "ready",
-    "fanvue_price_cents": null
+    "fanvue_status": "scheduled",
+    "fanvue_price_cents": null,
+    "fanvue_post_uuid": "a9e4931a-6717-4ee8-be65-b28dafdb4f39"
   },
   {
     "id": "w40_tue_champagne_slip",
@@ -1000,8 +1010,9 @@
       "growth/schedule_assets/sets/w40_tue_champagne_slip/02_satin_slide.png",
       "growth/schedule_assets/sets/w40_tue_champagne_slip/03_crepuscular_recline.png"
     ],
-    "fanvue_status": "ready",
-    "fanvue_price_cents": null
+    "fanvue_status": "scheduled",
+    "fanvue_price_cents": null,
+    "fanvue_post_uuid": "cb7de943-1857-452f-99ec-b653da77ddfc"
   },
   {
     "id": "w40_wed_cashmere_shrug",
@@ -1034,8 +1045,9 @@
       "growth/schedule_assets/sets/w40_wed_cashmere_shrug/02_shrug_drop.png",
       "growth/schedule_assets/sets/w40_wed_cashmere_shrug/03_midnight_tatami.png"
     ],
-    "fanvue_status": "ready",
-    "fanvue_price_cents": null
+    "fanvue_status": "scheduled",
+    "fanvue_price_cents": null,
+    "fanvue_post_uuid": "9f42f988-dbdb-47b3-9121-c96ee56c59d8"
   },
   {
     "id": "w40_thu_slate_cami",
@@ -1068,8 +1080,9 @@
       "growth/schedule_assets/sets/w40_thu_slate_cami/02_mirror_cami_drop.png",
       "growth/schedule_assets/sets/w40_thu_slate_cami/03_vanity_recline.png"
     ],
-    "fanvue_status": "ready",
-    "fanvue_price_cents": null
+    "fanvue_status": "scheduled",
+    "fanvue_price_cents": null,
+    "fanvue_post_uuid": "cc23c356-77c8-4f0d-8f51-1108449e2397"
   },
   {
     "id": "w40_fri_burgundy_lace",
@@ -1102,8 +1115,9 @@
       "growth/schedule_assets/sets/w40_fri_burgundy_lace/02_lace_parted.png",
       "growth/schedule_assets/sets/w40_fri_burgundy_lace/03_carpet_intimate.png"
     ],
-    "fanvue_status": "ready",
-    "fanvue_price_cents": null
+    "fanvue_status": "scheduled",
+    "fanvue_price_cents": null,
+    "fanvue_post_uuid": "794d2a3a-4ae3-4bd6-8a4a-29fb8edc3a31"
   },
   {
     "id": "w40_sat_velvet_midnight",
@@ -1136,8 +1150,9 @@
       "growth/schedule_assets/sets/w40_sat_velvet_midnight/02_velvet_slide.png",
       "growth/schedule_assets/sets/w40_sat_velvet_midnight/03_midnight_sanctuary.png"
     ],
-    "fanvue_status": "ready",
-    "fanvue_price_cents": 999
+    "fanvue_status": "scheduled",
+    "fanvue_price_cents": 999,
+    "fanvue_post_uuid": "51b21bfa-3309-412d-8e3a-159ceebf1088"
   },
   {
     "id": "w40_sun_linen_robe",
@@ -1170,8 +1185,9 @@
       "growth/schedule_assets/sets/w40_sun_linen_robe/02_robe_untied.png",
       "growth/schedule_assets/sets/w40_sun_linen_robe/03_breakfast_sun.png"
     ],
-    "fanvue_status": "ready",
-    "fanvue_price_cents": null
+    "fanvue_status": "scheduled",
+    "fanvue_price_cents": null,
+    "fanvue_post_uuid": "75b1dde5-a28e-474f-9119-5c5fa6fb3fbd"
   },
   {
     "id": "w39_mon_studio_mat",
