@@ -629,10 +629,13 @@
     "media_file": "personas/seoyeon/content/w38_2026-09-14/w38_stairwell_notes.png",
     "caption_file": "personas/seoyeon/caps/w38_stairwell_notes.txt",
     "publish_at": "2026-09-16T18:30+09:00",
-    "status": "ready",
+    "status": "published",
     "platforms": [
       "instagram"
-    ]
+    ],
+    "published_at": "2026-09-16T12:16:31.325496+00:00",
+    "published_media_id": "18195741913377725",
+    "permalink": "https://www.instagram.com/p/DdWQ6HwnKlE/"
   },
   {
     "id": "w38_river_pears",

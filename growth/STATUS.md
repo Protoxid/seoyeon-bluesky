@@ -261,3 +261,9 @@ blocked by: nothing
 - permalink: https://www.instagram.com/p/DdTNKByG0Me/
 conclusion: tier-1 post published and recorded in weekly_schedule.json
 blocked by: nothing
+
+## 2026-09-16 12:16 UTC — ig_schedule_worker
+- published w38_stairwell_notes at 2026-09-16T18:30+09:00 (slot time)
+- permalink: https://www.instagram.com/p/DdWQ6HwnKlE/
+conclusion: tier-1 post published and recorded in weekly_schedule.json
+blocked by: nothing
