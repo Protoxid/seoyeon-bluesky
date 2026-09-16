@@ -522,29 +522,28 @@ def check_cadence_gate(force: bool = False) -> Tuple[bool, str]:
         except Exception:
             pass
 
+    daily_limit = int(os.environ.get("BSKY_ENGAGE_MAX_COMMENTS", "5"))
     comments_today = len(today_comments)
-    if comments_today >= 2:
-        return False, f"Daily quota fulfilled: {comments_today}/2 comments already posted today ({today_kst_date})."
+    if comments_today >= daily_limit:
+        return False, f"Daily quota fulfilled: {comments_today}/{daily_limit} comments already posted today ({today_kst_date})."
 
     # Check cooldown since last comment across all entries
     if all_timestamps:
         latest_ts = max(all_timestamps)
         hours_since = (now_utc - latest_ts).total_seconds() / 3600.0
 
-        # Relax cooldown late at night (21:00-01:00 KST) so 2nd comment isn't lost before sleep
-        min_cooldown = 2.5 if current_hour in {21, 22, 23, 0} else 3.5
+        min_cooldown = 1.5 if daily_limit > 2 else (2.5 if current_hour in {21, 22, 23, 0} else 3.5)
         if hours_since < min_cooldown:
             return False, f"Cooldown active: last comment was {hours_since:.1f}h ago (minimum interval is {min_cooldown:.1f}h)."
 
-        # Natural daytime spacing: if 1 comment was already made today, let Comment 2 wait for afternoon (>= 14:00 KST)
-        # unless hours_since is already very large (>= 5.0h)
-        if comments_today == 1 and current_hour < 14 and hours_since < 5.0:
+        # Natural daytime spacing when on conservative 2-comment schedule
+        if daily_limit == 2 and comments_today == 1 and current_hour < 14 and hours_since < 5.0:
             return False, (
                 f"Pacing hold: 1st comment posted today ({hours_since:.1f}h ago). "
                 f"Holding 2nd comment for afternoon window (>= 14:00 KST, currently {current_hour:02d}:00 KST)."
             )
 
-    return True, f"Cadence gate passed (Comment #{comments_today + 1} of 2 for today {today_kst_date})."
+    return True, f"Cadence gate passed (Comment #{comments_today + 1} of {daily_limit} for today {today_kst_date})."
 
 
 def publish_comment(
@@ -574,6 +573,7 @@ def publish_comment(
         "$type": "app.bsky.feed.post",
         "text": comment_text,
         "createdAt": now_iso,
+        "langs": ["ko", "en"],
         "reply": {
             "root": root,
             "parent": parent

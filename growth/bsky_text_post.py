@@ -179,6 +179,26 @@ def create_session(handle: str, app_pw: str) -> tuple[str, str]:
     return res["accessJwt"], res["did"]
 
 
+def parse_facets(text: str) -> list[dict]:
+    """Detects Hashtags in text and builds AT Protocol richtext tag facets."""
+    facets = []
+    tag_pattern = re.compile(r'(?:^|\s)(#([^\s#.,!?:;()\[\]{}"\'<>]+))')
+    for match in tag_pattern.finditer(text):
+        tag_val = match.group(2)
+        start_char = match.start(1)
+        end_char = match.end(1)
+        start_byte = len(text[:start_char].encode("utf-8"))
+        end_byte = len(text[:end_char].encode("utf-8"))
+        facets.append({
+            "index": {"byteStart": start_byte, "byteEnd": end_byte},
+            "features": [{
+                "$type": "app.bsky.richtext.facet#tag",
+                "tag": tag_val
+            }]
+        })
+    return facets
+
+
 def publish_text_post(text: str, dry_run: bool = False) -> Dict[str, Any]:
     """Publishes a text-only record to Bluesky feed."""
     ok, reason = validate_text(text)
@@ -207,8 +227,12 @@ def publish_text_post(text: str, dry_run: bool = False) -> Dict[str, Any]:
     record = {
         "$type": "app.bsky.feed.post",
         "text": text,
-        "createdAt": now_iso
+        "createdAt": now_iso,
+        "langs": ["ko", "en"]
     }
+    facets = parse_facets(text)
+    if facets:
+        record["facets"] = facets
 
     payload = json.dumps({
         "repo": did,

@@ -78,13 +78,50 @@ jobs:
           BSKY_APP_PASSWORD: ${{ secrets.BSKY_APP_PASSWORD }}
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          BSKY_ENGAGE_MAX_COMMENTS: "5"
         run: |
           python growth/bsky_engage.py --auto
+
+      - name: Execute Inbound Two-Way Engagement (Lyra Replies)
+        if: ${{ !cancelled() && github.event.inputs.dry_run != 'true' }}
+        continue-on-error: true
+        env:
+          BSKY_HANDLE: ${{ secrets.BSKY_HANDLE }}
+          BSKY_APP_PASSWORD: ${{ secrets.BSKY_APP_PASSWORD }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          python growth/bsky_reply_worker.py --auto
+
+      - name: Execute Audience Harvester & Follower Growth (Lyra Sourcing)
+        if: ${{ !cancelled() && github.event.inputs.dry_run != 'true' }}
+        continue-on-error: true
+        env:
+          BSKY_HANDLE: ${{ secrets.BSKY_HANDLE }}
+          BSKY_APP_PASSWORD: ${{ secrets.BSKY_APP_PASSWORD }}
+        run: |
+          python growth/bsky_growth_engine.py --auto
+
+      - name: Execute Fanvue Subscriber Retention & Chat Agent (Apex Sanctuary)
+        if: ${{ !cancelled() && github.event.inputs.dry_run != 'true' }}
+        continue-on-error: true
+        env:
+          FANVUE_API_KEY: ${{ secrets.FANVUE_API_KEY }}
+          FANVUE_TOKENS_JSON: ${{ secrets.FANVUE_TOKENS_JSON }}
+          OAUTH_CLIENT_ID: ${{ secrets.FANVUE_CLIENT_ID }}
+          OAUTH_CLIENT_SECRET: ${{ secrets.FANVUE_CLIENT_SECRET }}
+          OAUTH_SCOPES: "read:self read:chat write:chat read:fan read:creator read:media write:media read:post write:post read:insights read:tracking_links write:tracking_links offline_access"
+          OAUTH_REDIRECT_URI: "https://protoxiderpg.it/api/oauth/callback"
+          OAUTH_ISSUER_BASE_URL: "https://auth.fanvue.com"
+          API_BASE_URL: "https://api.fanvue.com"
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        run: |
+          python growth/fanvue_chat_agent.py --auto
 
       - name: Commit updated schedule and ledger
         if: ${{ !cancelled() && github.event.inputs.dry_run != 'true' }}
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add growth/schedule_assets/weekly_schedule.json growth/ledger.jsonl growth/bsky_organic_posts.jsonl growth/bsky_comments.jsonl .pi/agent-memory/lyra/MEMORY.md
+          git add growth/schedule_assets/weekly_schedule.json growth/ledger.jsonl growth/bsky_organic_posts.jsonl growth/bsky_comments.jsonl growth/bsky_growth_follows.jsonl growth/bsky_replied_notifications.jsonl growth/welcomed.json growth/fanvue_chat_history.jsonl .pi/agent-memory/lyra/MEMORY.md
           git diff --staged --quiet || (git commit -m "chore(scheduler): update live post status and audit ledger [skip ci]" && git pull --rebase --autostash origin main && git push origin main)

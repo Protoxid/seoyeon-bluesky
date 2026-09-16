@@ -72,28 +72,53 @@ Lyra (@syeonhn.bsky.social) maintains active, authentic organic engagement along
 
 ---
 
-## 6. Daily Command Cheatsheet
+## 6. Autonomous Follower Growth & Two-Way Community Loops
+To solve the cold-start problem (0 to 1,000+ followers) and maximize conversion into Fanvue:
+1. **Audience Sourcing (`growth/bsky_growth_engine.py`)**:
+   - Discovers real active accounts engaging with Seoul culture, coffee, pilates, and illustration.
+   - Executes 15–20 curated follows/day (yielding ~5–8 follow-backs/day, ~150–240 followers/month).
+   - Automatically unfollows non-reciprocating accounts after 7 days (max 5/day).
+2. **Two-Way Reply Acceleration (`growth/bsky_reply_worker.py`)**:
+   - Continuously monitors follower comments and mentions.
+   - Replies in Seo-yeon's signature dry, lowercase voice to double thread engagement velocity.
+3. **Feed & Tag Optimization**:
+   - Injects `langs: ["ko", "en"]` into all post records.
+   - Emits richtext hashtag facets (`app.bsky.richtext.facet#tag`) for all `#hashtags` to index into Bluesky topic feeds.
+4. **Profile Anchor**:
+   - Hero soft-NSFW teaser post pinned at the top of `@syeonhn.bsky.social` with threaded Fanvue link (`c=fv-4`).
+5. **Fanvue Autonomous Retention (`growth/fanvue_chat_agent.py`)**:
+   - Greets all new paying subscribers ($9.99/mo) with Option 1 welcome DM from `fanvue_profile.md`.
+   - Polls active subscriber chats and delivers intimate, personal, lowercase conversational replies.
+
+---
+
+## 7. Daily Command Cheatsheet
 From project root:
 ```powershell
-# 1. Campaign matrix status check
-python growth/campaign_orchestrator.py --status
+# 1. Master cross-platform dashboard status
+python growth/daily_tick.py --status
 
-# 2. Lyra organic comment status (daily quota, cadence gate, next window)
+# 2. Run master autonomous growth tick (safe dry-run)
+python growth/daily_tick.py --dry-run
+
+# 3. Follower growth engine status and auto tick
+python growth/bsky_growth_engine.py --status
+python growth/bsky_growth_engine.py --auto
+
+# 4. Inbound Bluesky reply worker
+python growth/bsky_reply_worker.py --status
+python growth/bsky_reply_worker.py --auto
+
+# 5. Outbound organic comment engagement
 python growth/bsky_engage.py --status
+python growth/bsky_engage.py --auto
 
-# 3. Check Fanvue account identity & balance
-python growth/fanvue_api.py --whoami
+# 6. Fanvue autonomous welcome DMs and chat responder
+python growth/fanvue_chat_agent.py --status
+python growth/fanvue_chat_agent.py --auto
 
-# 4. Process new Fanvue subscriber welcome DMs
-python growth/fanvue_dm.py --welcome
-
-# 5. Generate companion reveal shots (1K resolution)
-python growth/generate_weekly_companion_sets.py --day [tue|wed|thu|fri|sat|sun|all]
-
-# 6. Dispatch / test synchronized drop
-python growth/campaign_orchestrator.py --dispatch [drop_id]
-
-# 7. Scan Bluesky engagement candidates (dry run)
-python growth/bsky_engage.py --scan
+# 7. Campaign matrix status check
+python growth/campaign_orchestrator.py --status
 ```
+
 

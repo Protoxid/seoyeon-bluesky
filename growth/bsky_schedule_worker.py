@@ -54,8 +54,9 @@ def get_credentials():
     return handle.strip(), app_pw.strip()
 
 def parse_facets(text: str) -> list[dict]:
-    """Detects URLs in text and builds AT Protocol richtext link facets using UTF-8 byte offsets."""
+    """Detects URLs and Hashtags in text and builds AT Protocol richtext link & tag facets using UTF-8 byte offsets."""
     facets = []
+    # 1. Parse Links (http / https / www)
     url_pattern = re.compile(r'https?://[^\s<>"]+|www\.[^\s<>"]+')
     for match in url_pattern.finditer(text):
         url = match.group(0)
@@ -67,6 +68,21 @@ def parse_facets(text: str) -> list[dict]:
             "features": [{
                 "$type": "app.bsky.richtext.facet#link",
                 "uri": full_url
+            }]
+        })
+    # 2. Parse Hashtags (alphanumeric, Hangul, underscores)
+    tag_pattern = re.compile(r'(?:^|\s)(#([^\s#.,!?:;()\[\]{}"\'<>]+))')
+    for match in tag_pattern.finditer(text):
+        tag_val = match.group(2)
+        start_char = match.start(1)
+        end_char = match.end(1)
+        start_byte = len(text[:start_char].encode("utf-8"))
+        end_byte = len(text[:end_char].encode("utf-8"))
+        facets.append({
+            "index": {"byteStart": start_byte, "byteEnd": end_byte},
+            "features": [{
+                "$type": "app.bsky.richtext.facet#tag",
+                "tag": tag_val
             }]
         })
     return facets
@@ -229,6 +245,7 @@ def dispatch_drop(drop: dict, dry_run: bool = False, force: bool = False):
         "$type": "app.bsky.feed.post",
         "text": drop["main_text"],
         "createdAt": now_iso,
+        "langs": ["ko", "en"],
         "labels": {
             "$type": "com.atproto.label.defs#selfLabels",
             "values": [{"val": drop.get("label", "suggestive")}]
@@ -265,6 +282,7 @@ def dispatch_drop(drop: dict, dry_run: bool = False, force: bool = False):
             "$type": "app.bsky.feed.post",
             "text": drop["reply_text"],
             "createdAt": reply_now_iso,
+            "langs": ["ko", "en"],
             "reply": {
                 "root": {"uri": main_uri, "cid": main_cid},
                 "parent": {"uri": main_uri, "cid": main_cid}
