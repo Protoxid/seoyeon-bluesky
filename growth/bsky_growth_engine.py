@@ -93,7 +93,7 @@ def get_credentials() -> Tuple[str, str]:
                 pass
 
     if not handle or not app_pw:
-        sys.exit("  ! Error: BSKY_HANDLE or BSKY_APP_PASSWORD not set.")
+        return "", ""
 
     if "." not in handle:
         handle = f"{handle}.bsky.social"
@@ -130,6 +130,8 @@ def load_tracked_follows() -> Dict[str, Dict[str, Any]]:
     """Loads all tracked growth follows from bsky_growth_follows.jsonl."""
     tracked: Dict[str, Dict[str, Any]] = {}
     if not GROWTH_LOG.exists():
+        GROWTH_DIR.mkdir(parents=True, exist_ok=True)
+        GROWTH_LOG.touch()
         return tracked
     for line in GROWTH_LOG.read_text(encoding="utf-8", errors="ignore").splitlines():
         line = line.strip()
@@ -342,9 +344,17 @@ def run_growth_cycle(dry_run: bool = False) -> int:
     print("============================================================")
 
     handle, app_pw = get_credentials()
-    jwt, my_did = create_session(handle, app_pw)
+    if not handle or not app_pw:
+        print("  [INFO] BSKY_HANDLE or BSKY_APP_PASSWORD not configured. Skipping follower growth cycle.")
+        return 0
 
-    stats = get_profile_stats(my_did, jwt)
+    try:
+        jwt, my_did = create_session(handle, app_pw)
+        stats = get_profile_stats(my_did, jwt)
+    except Exception as e:
+        print(f"  [Warning] Failed to authenticate with Bluesky: {e}")
+        return 0
+
     print(f"  Current Profile: @{stats['handle']}")
     print(f"  Followers: {stats['followersCount']} | Following: {stats['followsCount']} | Posts: {stats['postsCount']}")
 
@@ -444,8 +454,15 @@ def run_growth_cycle(dry_run: bool = False) -> int:
 
 def show_status() -> int:
     handle, app_pw = get_credentials()
-    jwt, my_did = create_session(handle, app_pw)
-    stats = get_profile_stats(my_did, jwt)
+    if not handle or not app_pw:
+        print("  [INFO] BSKY_HANDLE or BSKY_APP_PASSWORD not set.")
+        return 0
+    try:
+        jwt, my_did = create_session(handle, app_pw)
+        stats = get_profile_stats(my_did, jwt)
+    except Exception as e:
+        print(f"  [Warning] Failed to fetch profile stats: {e}")
+        stats = {"handle": "offline", "followersCount": 0, "followsCount": 0, "postsCount": 0}
 
     tracked = load_tracked_follows()
     today_utc = dt.datetime.now(dt.timezone.utc).date()

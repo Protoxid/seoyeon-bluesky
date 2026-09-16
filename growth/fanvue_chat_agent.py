@@ -63,6 +63,8 @@ def load_chat_history() -> Dict[str, Dict[str, Any]]:
     """Loads past chat interaction records by message UUID or user_uuid:ts."""
     history: Dict[str, Dict[str, Any]] = {}
     if not CHAT_LOG.exists():
+        GROWTH_DIR.mkdir(parents=True, exist_ok=True)
+        CHAT_LOG.touch()
         return history
     for line in CHAT_LOG.read_text(encoding="utf-8", errors="ignore").splitlines():
         line = line.strip()
@@ -201,16 +203,21 @@ def process_fanvue_chats(client: FanvueClient, dry_run: bool = False) -> int:
 
 
 def show_status() -> int:
-    key = load_key()
-    client = FanvueClient(api_key=key)
-    creator = client.whoami()
+    try:
+        key = load_key()
+        client = FanvueClient(api_key=key)
+        creator = client.whoami()
+        creator_handle = f"@{creator.get('handle', 'syeon.hn')}"
+    except (SystemExit, Exception) as e:
+        creator_handle = "@syeon.hn (offline / unconfigured)"
+
     welcomed = load_welcomed()
     history = load_chat_history()
 
     print("============================================================")
     print("  FANVUE AUTONOMOUS AGENT STATUS")
     print("============================================================")
-    print(f"  Creator Handle:     @{creator.get('handle', 'syeon.hn')}")
+    print(f"  Creator Handle:     {creator_handle}")
     print(f"  Total Welcomed:     {len(welcomed)} subscribers")
     print(f"  Total Chat Replies: {len(history)} messages logged")
     print("============================================================\n")
@@ -223,17 +230,30 @@ def run_autonomous_cycle(dry_run: bool = False) -> None:
     print(f"  Mode: {'[DRY-RUN] Simulation' if dry_run else '[LIVE EXECUTION]'}")
     print("============================================================")
 
+    # 0. Check credentials before executing network calls
+    try:
+        key = load_key()
+    except (SystemExit, Exception) as e:
+        print(f"\n  [INFO] Fanvue credentials not configured or active on this runner: {e}")
+        print("  Skipping Fanvue subscriber retention cycle gracefully.")
+        return
+
     # 1. Welcome new subscribers
     print("\n[1/2] Processing Fanvue Subscriber Welcome Loop...")
-    welcomes = run_welcome(dry_run=dry_run)
-    print(f"  Welcome loop finished: {welcomes} new subscriber(s) welcomed.")
+    try:
+        welcomes = run_welcome(dry_run=dry_run)
+        print(f"  Welcome loop finished: {welcomes} new subscriber(s) welcomed.")
+    except Exception as e:
+        print(f"  [Warning] Welcome loop encountered an error: {e}")
 
     # 2. Inbound chat processing
     print("\n[2/2] Processing Inbound Fanvue Subscriber Chats...")
-    key = load_key()
-    client = FanvueClient(api_key=key)
-    replies = process_fanvue_chats(client, dry_run=dry_run)
-    print(f"  Chat loop finished: {replies} conversational reply(ies) processed.")
+    try:
+        client = FanvueClient(api_key=key)
+        replies = process_fanvue_chats(client, dry_run=dry_run)
+        print(f"  Chat loop finished: {replies} conversational reply(ies) processed.")
+    except Exception as e:
+        print(f"  [Warning] Chat loop encountered an error: {e}")
 
     print("\n============================================================")
     print("  Fanvue Autonomous Cycle Complete.")

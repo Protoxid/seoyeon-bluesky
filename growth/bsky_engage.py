@@ -157,7 +157,7 @@ def get_bsky_credentials() -> Tuple[str, str]:
                 pass
 
     if not handle or not app_pw:
-        sys.exit("Error: BSKY_HANDLE or BSKY_APP_PASSWORD not configured.")
+        return "", ""
 
     if "." not in handle:
         handle = f"{handle}.bsky.social"
@@ -888,7 +888,15 @@ def main() -> int:
         return 0
 
     handle, app_pw = get_bsky_credentials()
-    jwt, did = create_session(handle, app_pw)
+    if not handle or not app_pw:
+        print("  [INFO] BSKY_HANDLE or BSKY_APP_PASSWORD not configured. Skipping engagement.")
+        return 0
+
+    try:
+        jwt, did = create_session(handle, app_pw)
+    except Exception as e:
+        print(f"  [Warning] Failed to authenticate with Bluesky: {e}")
+        return 0
 
     if args.scan:
         run_scan(jwt, did)

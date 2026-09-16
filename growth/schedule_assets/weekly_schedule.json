@@ -427,7 +427,7 @@
     ],
     "slot": "night",
     "time_kst": "23:15",
-    "status": "ready",
+    "status": "published",
     "label": "suggestive",
     "media_type": "image",
     "media_file": "growth/schedule_assets/w38_wed_poplin_shirt.png",
@@ -443,7 +443,9 @@
     ],
     "fanvue_status": "published",
     "fanvue_price_cents": null,
-    "fanvue_post_uuid": "90b45f26-fbd7-4094-8752-fa68a1df95d4"
+    "fanvue_post_uuid": "90b45f26-fbd7-4094-8752-fa68a1df95d4",
+    "uri": "at://did:plc:qmzkrqxywyhq4ar4k3nxdbvg/app.bsky.feed.post/3mvndmhihq42i",
+    "published_at": "2026-09-16T14:22:17.194252Z"
   },
   {
     "id": "w38_thu_silk_robe",

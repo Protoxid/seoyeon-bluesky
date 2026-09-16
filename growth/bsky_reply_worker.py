@@ -107,7 +107,7 @@ def get_credentials() -> Tuple[str, str]:
                 pass
 
     if not handle or not app_pw:
-        sys.exit("  ! Error: BSKY_HANDLE or BSKY_APP_PASSWORD not set.")
+        return "", ""
 
     if "." not in handle:
         handle = f"{handle}.bsky.social"
@@ -151,6 +151,8 @@ def xrpc_get(endpoint: str, params: Dict[str, Any], jwt: str) -> Dict[str, Any]:
 def load_replied_ids() -> Set[str]:
     replied: Set[str] = set()
     if not REPLIED_LOG.exists():
+        GROWTH_DIR.mkdir(parents=True, exist_ok=True)
+        REPLIED_LOG.touch()
         return replied
     for line in REPLIED_LOG.read_text(encoding="utf-8", errors="ignore").splitlines():
         line = line.strip()
@@ -346,7 +348,15 @@ def run_reply_worker(dry_run: bool = False) -> int:
     print("============================================================")
 
     handle, app_pw = get_credentials()
-    jwt, my_did = create_session(handle, app_pw)
+    if not handle or not app_pw:
+        print("  [INFO] BSKY_HANDLE or BSKY_APP_PASSWORD not configured. Skipping inbound reply worker.")
+        return 0
+
+    try:
+        jwt, my_did = create_session(handle, app_pw)
+    except Exception as e:
+        print(f"  [Warning] Failed to authenticate with Bluesky: {e}")
+        return 0
 
     # 1. Check daily pacing
     replied_ids = load_replied_ids()

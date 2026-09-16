@@ -136,7 +136,7 @@ def get_credentials() -> tuple[str, str]:
                 pass
 
     if not handle or not app_pw:
-        sys.exit("Error: BSKY_HANDLE or BSKY_APP_PASSWORD not configured.")
+        return "", ""
 
     if "." not in handle:
         handle = f"{handle}.bsky.social"
@@ -213,15 +213,25 @@ def publish_text_post(text: str, dry_run: bool = False) -> Dict[str, Any]:
     print(f"  Type: Text-Only (No images, No promotional links)")
     print(f"============================================================\n")
 
+    handle, app_pw = get_credentials()
+    if not handle or not app_pw:
+        print("  [INFO] BSKY_HANDLE or BSKY_APP_PASSWORD not set. Skipping text post.")
+        return {}
+
     if dry_run:
         print("[DRY-RUN] Authenticating and validating AT Protocol record...")
-        handle, app_pw = get_credentials()
-        jwt, did = create_session(handle, app_pw)
-        print(f"[DRY-RUN] Session OK for DID: {did}. Simulation successful.")
+        try:
+            jwt, did = create_session(handle, app_pw)
+            print(f"[DRY-RUN] Session OK for DID: {did}. Simulation successful.")
+        except Exception as e:
+            print(f"[DRY-RUN] Session failed: {e}")
         return {"dry_run": True, "text": text}
 
-    handle, app_pw = get_credentials()
-    jwt, did = create_session(handle, app_pw)
+    try:
+        jwt, did = create_session(handle, app_pw)
+    except Exception as e:
+        print(f"  [Warning] Failed to authenticate with Bluesky: {e}")
+        return {}
 
     now_iso = dt.datetime.now(dt.timezone.utc).isoformat().replace("+00:00", "Z")
     record = {
