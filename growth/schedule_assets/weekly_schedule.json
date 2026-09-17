@@ -464,7 +464,7 @@
     ],
     "slot": "evening",
     "time_kst": "19:45",
-    "status": "ready",
+    "status": "published",
     "label": "suggestive",
     "media_type": "image",
     "media_file": "growth/schedule_assets/w38_thu_silk_robe.png",
@@ -480,7 +480,9 @@
     ],
     "fanvue_status": "published",
     "fanvue_price_cents": null,
-    "fanvue_post_uuid": "cda2f9c4-bcb3-45ca-a04d-28e8f852c77f"
+    "fanvue_post_uuid": "cda2f9c4-bcb3-45ca-a04d-28e8f852c77f",
+    "uri": "at://did:plc:qmzkrqxywyhq4ar4k3nxdbvg/app.bsky.feed.post/3mvpu5wzfa72n",
+    "published_at": "2026-09-17T14:23:40.923518Z"
   },
   {
     "id": "w38_fri_navy_slip",
