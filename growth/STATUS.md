@@ -267,3 +267,9 @@ blocked by: nothing
 - permalink: https://www.instagram.com/p/DdWQ6HwnKlE/
 conclusion: tier-1 post published and recorded in weekly_schedule.json
 blocked by: nothing
+
+## 2026-09-17 12:36 UTC — ig_schedule_worker
+- published w38_river_pears at 2026-09-17T19:00+09:00 (slot time)
+- permalink: https://www.instagram.com/p/DdY4A7oESBm/
+conclusion: tier-1 post published and recorded in weekly_schedule.json
+blocked by: nothing

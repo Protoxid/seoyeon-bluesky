@@ -651,10 +651,13 @@
     "media_file": "personas/seoyeon/content/w38_2026-09-14/w38_river_pears.png",
     "caption_file": "personas/seoyeon/caps/w38_river_pears.txt",
     "publish_at": "2026-09-17T19:00+09:00",
-    "status": "ready",
+    "status": "published",
     "platforms": [
       "instagram"
-    ]
+    ],
+    "published_at": "2026-09-17T12:36:46.230601+00:00",
+    "published_media_id": "17998390110006058",
+    "permalink": "https://www.instagram.com/p/DdY4A7oESBm/"
   },
   {
     "id": "w38_study_light",
