@@ -673,10 +673,13 @@
     "media_file": "personas/seoyeon/content/w38_2026-09-14/w38_study_light.png",
     "caption_file": "personas/seoyeon/caps/w38_study_light.txt",
     "publish_at": "2026-09-18T22:00+09:00",
-    "status": "ready",
+    "status": "published",
     "platforms": [
       "instagram"
-    ]
+    ],
+    "published_at": "2026-09-18T15:17:26.075366+00:00",
+    "published_media_id": "18085343942693446",
+    "permalink": "https://www.instagram.com/p/DdbvNHiFoeX/"
   },
   {
     "id": "w38_hallway_tired",
