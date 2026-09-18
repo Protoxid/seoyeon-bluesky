@@ -501,7 +501,7 @@
     ],
     "slot": "night",
     "time_kst": "22:00",
-    "status": "ready",
+    "status": "published",
     "label": "suggestive",
     "media_type": "image",
     "media_file": "growth/schedule_assets/w38_fri_navy_slip.png",
@@ -517,7 +517,9 @@
     ],
     "fanvue_status": "published",
     "fanvue_price_cents": null,
-    "fanvue_post_uuid": "e43d4d3d-1af2-44be-9f3e-d1205bede268"
+    "fanvue_post_uuid": "e43d4d3d-1af2-44be-9f3e-d1205bede268",
+    "uri": "at://did:plc:qmzkrqxywyhq4ar4k3nxdbvg/app.bsky.feed.post/3mvsbjuwmit2x",
+    "published_at": "2026-09-18T13:28:19.539734Z"
   },
   {
     "id": "w38_sat_black_lace",
