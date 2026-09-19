@@ -691,10 +691,13 @@
     "media_file": "personas/seoyeon/content/w38_2026-09-14/w38_hallway_tired.png",
     "caption_file": "personas/seoyeon/caps/w38_hallway_tired.txt",
     "publish_at": "2026-09-19T20:30+09:00",
-    "status": "ready",
+    "status": "published",
     "platforms": [
       "instagram"
-    ]
+    ],
+    "published_at": "2026-09-19T11:40:26.636978+00:00",
+    "published_media_id": "18179063950427116",
+    "permalink": "https://www.instagram.com/p/Ddd7Kg4G0ez/"
   },
   {
     "id": "w38_sunday_floor",
