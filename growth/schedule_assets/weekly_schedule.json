@@ -538,7 +538,7 @@
     ],
     "slot": "night",
     "time_kst": "23:45",
-    "status": "ready",
+    "status": "published",
     "label": "suggestive",
     "media_type": "image",
     "media_file": "growth/schedule_assets/w38_sat_black_lace.png",
@@ -554,7 +554,9 @@
     ],
     "fanvue_status": "published",
     "fanvue_price_cents": null,
-    "fanvue_post_uuid": "1da82d0c-8870-4724-9c39-c5ba824c2e0b"
+    "fanvue_post_uuid": "1da82d0c-8870-4724-9c39-c5ba824c2e0b",
+    "uri": "at://did:plc:qmzkrqxywyhq4ar4k3nxdbvg/app.bsky.feed.post/3mvvumb25km2i",
+    "published_at": "2026-09-19T23:47:39.631681Z"
   },
   {
     "id": "w38_sun_waffle_henley",
