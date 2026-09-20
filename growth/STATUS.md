@@ -285,3 +285,9 @@ blocked by: nothing
 - permalink: https://www.instagram.com/p/Ddd7Kg4G0ez/
 conclusion: tier-1 post published and recorded in weekly_schedule.json
 blocked by: nothing
+
+## 2026-09-20 01:53 UTC — ig_schedule_worker
+- published w38_sunday_floor at 2026-09-20T10:30+09:00 (slot time)
+- permalink: https://www.instagram.com/p/Ddfcwc-ILHH/
+conclusion: tier-1 post published and recorded in weekly_schedule.json
+blocked by: nothing

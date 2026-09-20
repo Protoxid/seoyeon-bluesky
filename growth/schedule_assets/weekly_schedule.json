@@ -711,10 +711,13 @@
     "media_file": "personas/seoyeon/content/w38_2026-09-14/w38_sunday_floor.png",
     "caption_file": "personas/seoyeon/caps/w38_sunday_floor.txt",
     "publish_at": "2026-09-20T10:30+09:00",
-    "status": "ready",
+    "status": "published",
     "platforms": [
       "instagram"
-    ]
+    ],
+    "published_at": "2026-09-20T01:53:13.989331+00:00",
+    "published_media_id": "18621666946035347",
+    "permalink": "https://www.instagram.com/p/Ddfcwc-ILHH/"
   },
   {
     "id": "w39_mon_ribbed_knit",
