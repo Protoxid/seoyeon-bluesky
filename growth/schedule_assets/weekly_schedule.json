@@ -575,7 +575,7 @@
     ],
     "slot": "morning",
     "time_kst": "09:15",
-    "status": "ready",
+    "status": "published",
     "label": "suggestive",
     "media_type": "image",
     "media_file": "growth/schedule_assets/w38_sun_waffle_henley.png",
@@ -591,7 +591,9 @@
     ],
     "fanvue_status": "published",
     "fanvue_price_cents": null,
-    "fanvue_post_uuid": "456db97c-aadf-484a-bc7b-4d0c5d22b2c3"
+    "fanvue_post_uuid": "456db97c-aadf-484a-bc7b-4d0c5d22b2c3",
+    "uri": "at://did:plc:qmzkrqxywyhq4ar4k3nxdbvg/app.bsky.feed.post/3mvwc7y55zz2e",
+    "published_at": "2026-09-20T03:51:19.919756Z"
   },
   {
     "id": "w38_morning_light",
