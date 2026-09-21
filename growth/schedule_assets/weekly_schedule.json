@@ -738,7 +738,7 @@
     ],
     "slot": "morning",
     "time_kst": "10:30",
-    "status": "ready",
+    "status": "published",
     "label": "suggestive",
     "media_type": "image",
     "media_file": "growth/schedule_assets/w39_mon_ribbed_knit.png",
@@ -754,7 +754,9 @@
     ],
     "fanvue_status": "scheduled",
     "fanvue_price_cents": null,
-    "fanvue_post_uuid": "0fabf45d-3b86-41a6-8e91-1e2891094554"
+    "fanvue_post_uuid": "0fabf45d-3b86-41a6-8e91-1e2891094554",
+    "uri": "at://did:plc:qmzkrqxywyhq4ar4k3nxdbvg/app.bsky.feed.post/3mvysj5yu6c2c",
+    "published_at": "2026-09-21T03:48:07.428757Z"
   },
   {
     "id": "w39_tue_charcoal_slip",
