@@ -284,3 +284,4 @@
 {"ts": "2026-09-20T23:43:24.158505+00:00", "surface": "bluesky", "action": "growth_follow", "target": "@aricrong.bsky.social", "note": "Followed targeted user @aricrong.bsky.social (did:plc:ia4j6mti3oa66msfyyhcsriv)"}
 {"ts": "2026-09-20T23:43:26.813070+00:00", "surface": "bluesky", "action": "growth_follow", "target": "@kimhan13.bsky.social", "note": "Followed targeted user @kimhan13.bsky.social (did:plc:3senw62tnqmwda4jqnh2u6vd)"}
 {"ts": "2026-09-20T23:43:29.611738+00:00", "surface": "bluesky", "action": "growth_follow", "target": "@ronpu.bsky.social", "note": "Followed targeted user @ronpu.bsky.social (did:plc:mgci2uiy227afk377ueocsj2)"}
+{"ts": "2026-09-21T01:53:56.552255+00:00", "surface": "instagram", "action": "slot_missed", "target": "instagram", "note": "w39_mon_studio_mat missed its window"}
