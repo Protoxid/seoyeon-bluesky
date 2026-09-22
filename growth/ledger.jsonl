@@ -317,3 +317,4 @@
 {"ts": "2026-09-22T09:07:27.067108+00:00", "surface": "bluesky", "action": "growth_follow", "target": "@jeremyross.bsky.social", "note": "Followed targeted user @jeremyross.bsky.social (did:plc:tdegsgylwvulsg5pwxjyyg5c)"}
 {"ts": "2026-09-22T09:07:29.920798+00:00", "surface": "bluesky", "action": "growth_follow", "target": "@ilovewil.bsky.social", "note": "Followed targeted user @ilovewil.bsky.social (did:plc:zyvbh4ukfsucfbswc6ex7l7t)"}
 {"ts": "2026-09-22T09:07:32.656394+00:00", "surface": "bluesky", "action": "growth_follow", "target": "@farnaznadim.bsky.social", "note": "Followed targeted user @farnaznadim.bsky.social (did:plc:nxdcnz5b43ash4ryix7hi45r)"}
+{"ts": "2026-09-22T12:52:39.357017+00:00", "surface": "instagram", "action": "slot_missed", "target": "instagram", "note": "w39_tue_market_figs missed its window"}
