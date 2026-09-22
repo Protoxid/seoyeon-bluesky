@@ -775,7 +775,7 @@
     ],
     "slot": "evening",
     "time_kst": "17:30",
-    "status": "ready",
+    "status": "published",
     "label": "suggestive",
     "media_type": "image",
     "media_file": "growth/schedule_assets/w39_tue_charcoal_slip.png",
@@ -791,7 +791,9 @@
     ],
     "fanvue_status": "scheduled",
     "fanvue_price_cents": null,
-    "fanvue_post_uuid": "ea3d6e59-3e1b-4cc0-906b-b7da78ae00ec"
+    "fanvue_post_uuid": "ea3d6e59-3e1b-4cc0-906b-b7da78ae00ec",
+    "uri": "at://did:plc:qmzkrqxywyhq4ar4k3nxdbvg/app.bsky.feed.post/3mw3usjfkiy23",
+    "published_at": "2026-09-22T09:07:08.221917Z"
   },
   {
     "id": "w39_wed_oversized_oxford",
