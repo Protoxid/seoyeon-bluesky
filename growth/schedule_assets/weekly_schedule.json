@@ -812,7 +812,7 @@
     ],
     "slot": "night",
     "time_kst": "23:15",
-    "status": "ready",
+    "status": "published",
     "label": "suggestive",
     "media_type": "image",
     "media_file": "growth/schedule_assets/w39_wed_oversized_oxford.png",
@@ -828,7 +828,9 @@
     ],
     "fanvue_status": "scheduled",
     "fanvue_price_cents": null,
-    "fanvue_post_uuid": "845ac254-9aae-4d33-8e18-d1311fa86503"
+    "fanvue_post_uuid": "845ac254-9aae-4d33-8e18-d1311fa86503",
+    "uri": "at://did:plc:qmzkrqxywyhq4ar4k3nxdbvg/app.bsky.feed.post/3mw6wqb2d6r2x",
+    "published_at": "2026-09-23T14:19:38.888953Z"
   },
   {
     "id": "w39_thu_terracotta_cami",
