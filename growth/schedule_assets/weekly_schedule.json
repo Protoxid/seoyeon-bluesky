@@ -1260,7 +1260,8 @@
     "media_file": "personas/seoyeon/content/w39_2026-09-21/w39_wed_balcony_breeze.png",
     "caption_file": "personas/seoyeon/caps/w39_wed_balcony_breeze.txt",
     "publish_at": "2026-09-23T18:30+09:00",
-    "status": "ready"
+    "status": "missed",
+    "missed_reason": "slot was 2026-09-23T18:30:00+09:00 but the scheduler only reached it at 2026-09-23T12:58:38.774260+00:00 — past the 3h window; a human decides whether this slot still makes sense"
   },
   {
     "id": "w39_thu_cafe_sketch",
