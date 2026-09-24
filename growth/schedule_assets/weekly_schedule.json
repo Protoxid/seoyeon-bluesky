@@ -849,7 +849,7 @@
     ],
     "slot": "evening",
     "time_kst": "19:45",
-    "status": "ready",
+    "status": "published",
     "label": "suggestive",
     "media_type": "image",
     "media_file": "growth/schedule_assets/w39_thu_terracotta_cami.png",
@@ -865,7 +865,9 @@
     ],
     "fanvue_status": "scheduled",
     "fanvue_price_cents": null,
-    "fanvue_post_uuid": "7b36ecff-3093-422a-9402-2d7b7332f0d0"
+    "fanvue_post_uuid": "7b36ecff-3093-422a-9402-2d7b7332f0d0",
+    "uri": "at://did:plc:qmzkrqxywyhq4ar4k3nxdbvg/app.bsky.feed.post/3mwbh5ycg4v2y",
+    "published_at": "2026-09-24T14:18:58.920356Z"
   },
   {
     "id": "w39_fri_emerald_silk",
