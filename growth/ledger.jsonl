@@ -423,3 +423,4 @@
 {"ts": "2026-09-25T14:42:59.849130+00:00", "surface": "bluesky", "action": "growth_unfollow", "target": "@blencathratim.bsky.social", "note": "Pruned non-reciprocating follow did:plc:opc46nq7ftqyrj7drvweqvyf"}
 {"ts": "2026-09-25T14:43:00.288840+00:00", "surface": "bluesky", "action": "growth_unfollow", "target": "@goodtoknowhq.bsky.social", "note": "Pruned non-reciprocating follow did:plc:g7jjzjvpwhrjdxwmpucfaee7"}
 {"ts": "2026-09-25T14:43:00.612128+00:00", "surface": "bluesky", "action": "growth_unfollow", "target": "@kakuriyo-lofi.bsky.social", "note": "Pruned non-reciprocating follow did:plc:gfdep6yi3mgqryscwcwlrn77"}
+{"ts": "2026-09-25T17:57:29.432300+00:00", "surface": "instagram", "action": "slot_missed", "target": "instagram", "note": "w39_fri_autumn_cardigan missed its window"}

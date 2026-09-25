@@ -1298,7 +1298,8 @@
     "media_file": "personas/seoyeon/content/w39_2026-09-21/w39_fri_autumn_cardigan.png",
     "caption_file": "personas/seoyeon/caps/w39_fri_autumn_cardigan.txt",
     "publish_at": "2026-09-25T22:00+09:00",
-    "status": "ready"
+    "status": "missed",
+    "missed_reason": "slot was 2026-09-25T22:00:00+09:00 but the scheduler only reached it at 2026-09-25T17:57:29.432300+00:00 — past the 3h window; a human decides whether this slot still makes sense"
   },
   {
     "id": "w39_sat_forest_steps",
