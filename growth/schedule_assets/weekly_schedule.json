@@ -886,7 +886,7 @@
     ],
     "slot": "night",
     "time_kst": "22:00",
-    "status": "ready",
+    "status": "published",
     "label": "suggestive",
     "media_type": "image",
     "media_file": "growth/schedule_assets/w39_fri_emerald_silk.png",
@@ -902,7 +902,9 @@
     ],
     "fanvue_status": "scheduled",
     "fanvue_price_cents": null,
-    "fanvue_post_uuid": "441e9242-2af5-4dee-b6ea-0ce9604665c6"
+    "fanvue_post_uuid": "441e9242-2af5-4dee-b6ea-0ce9604665c6",
+    "uri": "at://did:plc:qmzkrqxywyhq4ar4k3nxdbvg/app.bsky.feed.post/3mwdyx4wln52o",
+    "published_at": "2026-09-25T14:42:35.910110Z"
   },
   {
     "id": "w39_sat_midnight_sheer",
