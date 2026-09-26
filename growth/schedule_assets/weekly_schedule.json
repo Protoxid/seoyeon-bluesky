@@ -1314,7 +1314,8 @@
     "media_file": "personas/seoyeon/content/w39_2026-09-21/w39_sat_forest_steps.png",
     "caption_file": "personas/seoyeon/caps/w39_sat_forest_steps.txt",
     "publish_at": "2026-09-26T20:30+09:00",
-    "status": "ready"
+    "status": "missed",
+    "missed_reason": "slot was 2026-09-26T20:30:00+09:00 but the scheduler only reached it at 2026-09-26T16:42:41.747516+00:00 — past the 3h window; a human decides whether this slot still makes sense"
   },
   {
     "id": "w39_sun_evening_tea",
