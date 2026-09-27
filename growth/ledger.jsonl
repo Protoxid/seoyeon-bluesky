@@ -487,3 +487,4 @@
 {"ts": "2026-09-27T04:09:26.037391+00:00", "surface": "bluesky", "action": "growth_unfollow", "target": "@docfestival.bsky.social", "note": "Pruned non-reciprocating follow did:plc:b3phdogo7dpfesieomkevhlu"}
 {"ts": "2026-09-27T04:09:26.606997+00:00", "surface": "bluesky", "action": "growth_unfollow", "target": "@kawabangaaa.bsky.social", "note": "Pruned non-reciprocating follow did:plc:5zfuek26x4t5mctyykcxtt4g"}
 {"ts": "2026-09-27T04:09:27.174652+00:00", "surface": "bluesky", "action": "growth_unfollow", "target": "@wealthyrichking.bsky.social", "note": "Pruned non-reciprocating follow did:plc:qkepnq72exvjphx6ndtsxbq7"}
+{"ts": "2026-09-27T08:11:07.195899+00:00", "surface": "instagram", "action": "slot_missed", "target": "instagram", "note": "w39_sun_evening_tea missed its window"}
