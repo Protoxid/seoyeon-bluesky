@@ -960,7 +960,7 @@
     ],
     "slot": "morning",
     "time_kst": "09:15",
-    "status": "ready",
+    "status": "published",
     "label": "suggestive",
     "media_type": "image",
     "media_file": "growth/schedule_assets/w39_sun_waffle_lounge.png",
@@ -976,7 +976,9 @@
     ],
     "fanvue_status": "scheduled",
     "fanvue_price_cents": null,
-    "fanvue_post_uuid": "f4fca238-2575-4cd1-b1f4-2075ca69fd78"
+    "fanvue_post_uuid": "f4fca238-2575-4cd1-b1f4-2075ca69fd78",
+    "uri": "at://did:plc:qmzkrqxywyhq4ar4k3nxdbvg/app.bsky.feed.post/3mwhwi2i7tb2v",
+    "published_at": "2026-09-27T04:09:01.427324Z"
   },
   {
     "id": "w40_mon_heather_tank",
