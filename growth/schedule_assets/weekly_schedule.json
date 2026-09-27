@@ -923,7 +923,7 @@
     ],
     "slot": "night",
     "time_kst": "23:45",
-    "status": "ready",
+    "status": "published",
     "label": "suggestive",
     "media_type": "image",
     "media_file": "growth/schedule_assets/w39_sat_midnight_sheer.png",
@@ -939,7 +939,9 @@
     ],
     "fanvue_status": "scheduled",
     "fanvue_price_cents": 999,
-    "fanvue_post_uuid": "37bcd40b-a3a2-4229-a95d-801ba8c013cc"
+    "fanvue_post_uuid": "37bcd40b-a3a2-4229-a95d-801ba8c013cc",
+    "uri": "at://did:plc:qmzkrqxywyhq4ar4k3nxdbvg/app.bsky.feed.post/3mwhiruffmw2t",
+    "published_at": "2026-09-27T00:03:58.231240Z"
   },
   {
     "id": "w39_sun_waffle_lounge",
