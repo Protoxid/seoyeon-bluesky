@@ -997,7 +997,7 @@
     ],
     "slot": "morning",
     "time_kst": "10:30",
-    "status": "ready",
+    "status": "published",
     "label": "suggestive",
     "media_type": "image",
     "media_file": "growth/schedule_assets/w40_mon_heather_tank.png",
@@ -1013,7 +1013,9 @@
     ],
     "fanvue_status": "scheduled",
     "fanvue_price_cents": null,
-    "fanvue_post_uuid": "a9e4931a-6717-4ee8-be65-b28dafdb4f39"
+    "fanvue_post_uuid": "a9e4931a-6717-4ee8-be65-b28dafdb4f39",
+    "uri": "at://did:plc:qmzkrqxywyhq4ar4k3nxdbvg/app.bsky.feed.post/3mwkgzprwpj2q",
+    "published_at": "2026-09-28T04:10:33.592514Z"
   },
   {
     "id": "w40_tue_champagne_slip",
