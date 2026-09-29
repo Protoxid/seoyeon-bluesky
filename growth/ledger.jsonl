@@ -559,3 +559,4 @@
 {"ts": "2026-09-29T04:43:39.959095+00:00", "surface": "bluesky", "action": "growth_unfollow", "target": "@humave.bsky.social", "note": "Pruned non-reciprocating follow did:plc:y3dpf7hi7kaa43awmqu6p6t7"}
 {"ts": "2026-09-29T04:43:40.353233+00:00", "surface": "bluesky", "action": "growth_unfollow", "target": "@williamedw258.bsky.social", "note": "Pruned non-reciprocating follow did:plc:bs7pco3ixdhh4xzgjxg75tkx"}
 {"ts": "2026-09-29T04:43:40.750701+00:00", "surface": "bluesky", "action": "growth_unfollow", "target": "@jessieromigh.bsky.social", "note": "Pruned non-reciprocating follow did:plc:4gwc5c52n3he3rckycszhkqo"}
+{"ts": "2026-09-29T09:09:42.109301+00:00", "surface": "instagram", "action": "slot_missed", "target": "instagram", "note": "w40_tue_studio_empty missed its window"}
