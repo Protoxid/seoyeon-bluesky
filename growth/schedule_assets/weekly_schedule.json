@@ -1034,7 +1034,7 @@
     ],
     "slot": "evening",
     "time_kst": "17:30",
-    "status": "ready",
+    "status": "published",
     "label": "suggestive",
     "media_type": "image",
     "media_file": "growth/schedule_assets/w40_tue_champagne_slip.png",
@@ -1050,7 +1050,9 @@
     ],
     "fanvue_status": "scheduled",
     "fanvue_price_cents": null,
-    "fanvue_post_uuid": "cb7de943-1857-452f-99ec-b653da77ddfc"
+    "fanvue_post_uuid": "cb7de943-1857-452f-99ec-b653da77ddfc",
+    "uri": "at://did:plc:qmzkrqxywyhq4ar4k3nxdbvg/app.bsky.feed.post/3mwnoxndjje2y",
+    "published_at": "2026-09-29T11:10:33.066354Z"
   },
   {
     "id": "w40_wed_cashmere_shrug",
