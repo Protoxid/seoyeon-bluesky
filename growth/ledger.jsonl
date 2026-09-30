@@ -600,3 +600,4 @@
 {"ts": "2026-09-30T10:41:57.843478+00:00", "surface": "bluesky", "action": "growth_unfollow", "target": "@mermaidkalynn.bsky.social", "note": "Pruned non-reciprocating follow did:plc:ddlulxqioewwulng53uebukz"}
 {"ts": "2026-09-30T10:41:58.373611+00:00", "surface": "bluesky", "action": "growth_unfollow", "target": "@profesorgeorgie.bsky.social", "note": "Pruned non-reciprocating follow did:plc:augtlujmnwbeg5iit7etcyti"}
 {"ts": "2026-09-30T10:41:58.897487+00:00", "surface": "bluesky", "action": "growth_unfollow", "target": "@chelseybahe.bsky.social", "note": "Pruned non-reciprocating follow did:plc:wnjxnyollfdtd3oyxnmzu2l3"}
+{"ts": "2026-09-30T15:32:22.704166+00:00", "surface": "instagram", "action": "slot_missed", "target": "instagram", "note": "w40_wed_subway_autumn missed its window"}
