@@ -1108,7 +1108,7 @@
     ],
     "slot": "evening",
     "time_kst": "19:45",
-    "status": "ready",
+    "status": "published",
     "label": "suggestive",
     "media_type": "image",
     "media_file": "growth/schedule_assets/w40_thu_slate_cami.png",
@@ -1124,7 +1124,9 @@
     ],
     "fanvue_status": "scheduled",
     "fanvue_price_cents": null,
-    "fanvue_post_uuid": "cc23c356-77c8-4f0d-8f51-1108449e2397"
+    "fanvue_post_uuid": "cc23c356-77c8-4f0d-8f51-1108449e2397",
+    "uri": "at://did:plc:qmzkrqxywyhq4ar4k3nxdbvg/app.bsky.feed.post/3mwsqpsdxas2v",
+    "published_at": "2026-10-01T11:25:16.049307Z"
   },
   {
     "id": "w40_fri_burgundy_lace",
