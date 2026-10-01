@@ -1071,7 +1071,7 @@
     ],
     "slot": "night",
     "time_kst": "23:15",
-    "status": "ready",
+    "status": "published",
     "label": "suggestive",
     "media_type": "image",
     "media_file": "growth/schedule_assets/w40_wed_cashmere_shrug.png",
@@ -1087,7 +1087,9 @@
     ],
     "fanvue_status": "scheduled",
     "fanvue_price_cents": null,
-    "fanvue_post_uuid": "9f42f988-dbdb-47b3-9121-c96ee56c59d8"
+    "fanvue_post_uuid": "9f42f988-dbdb-47b3-9121-c96ee56c59d8",
+    "uri": "at://did:plc:qmzkrqxywyhq4ar4k3nxdbvg/app.bsky.feed.post/3mwrnjxdmmw2x",
+    "published_at": "2026-10-01T00:55:38.646165Z"
   },
   {
     "id": "w40_thu_slate_cami",
