@@ -635,3 +635,4 @@
 {"ts": "2026-10-01T11:25:41.969585+00:00", "surface": "bluesky", "action": "growth_unfollow", "target": "@newartist0.bsky.social", "note": "Pruned non-reciprocating follow did:plc:rg7egizymh3t66ua46i6taga"}
 {"ts": "2026-10-01T11:25:42.370661+00:00", "surface": "bluesky", "action": "growth_unfollow", "target": "@jcobb.coppermont.com", "note": "Pruned non-reciprocating follow did:plc:bwau5efxcytajfgroaph5snw"}
 {"ts": "2026-10-01T11:25:42.794794+00:00", "surface": "bluesky", "action": "growth_unfollow", "target": "@veblendirectors.bsky.social", "note": "Pruned non-reciprocating follow did:plc:oq445izpv6pocjhtr3d62zuv"}
+{"ts": "2026-10-01T16:40:18.089699+00:00", "surface": "instagram", "action": "slot_missed", "target": "instagram", "note": "w40_thu_chestnut_roast missed its window"}
