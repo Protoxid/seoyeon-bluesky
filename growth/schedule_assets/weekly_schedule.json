@@ -1145,7 +1145,7 @@
     ],
     "slot": "night",
     "time_kst": "22:00",
-    "status": "ready",
+    "status": "published",
     "label": "suggestive",
     "media_type": "image",
     "media_file": "growth/schedule_assets/w40_fri_burgundy_lace.png",
@@ -1161,7 +1161,9 @@
     ],
     "fanvue_status": "scheduled",
     "fanvue_price_cents": null,
-    "fanvue_post_uuid": "794d2a3a-4ae3-4bd6-8a4a-29fb8edc3a31"
+    "fanvue_post_uuid": "794d2a3a-4ae3-4bd6-8a4a-29fb8edc3a31",
+    "uri": "at://did:plc:qmzkrqxywyhq4ar4k3nxdbvg/app.bsky.feed.post/3mwwzj6ur6d2k",
+    "published_at": "2026-10-03T04:13:16.619132Z"
   },
   {
     "id": "w40_sat_velvet_midnight",
