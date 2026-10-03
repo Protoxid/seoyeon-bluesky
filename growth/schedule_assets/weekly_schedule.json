@@ -1422,7 +1422,8 @@
     "media_file": "personas/seoyeon/content/w40_2026-09-28/w40_fri_reading_desk.png",
     "caption_file": "personas/seoyeon/caps/w40_fri_reading_desk.txt",
     "publish_at": "2026-10-02T22:00+09:00",
-    "status": "ready"
+    "status": "missed",
+    "missed_reason": "slot was 2026-10-02T22:00:00+09:00 but the scheduler only reached it at 2026-10-03T00:49:32.622160+00:00 — past the 3h window; a human decides whether this slot still makes sense"
   },
   {
     "id": "w40_sat_chuseok_quiet",

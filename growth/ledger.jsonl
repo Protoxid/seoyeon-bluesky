@@ -673,3 +673,4 @@
 {"ts": "2026-10-02T16:32:05.683105+00:00", "surface": "bluesky", "action": "growth_unfollow", "target": "@monumentquest.bsky.social", "note": "Pruned non-reciprocating follow did:plc:2vvp5jayzayovvupgshs62vb"}
 {"ts": "2026-10-02T16:32:06.260215+00:00", "surface": "bluesky", "action": "growth_unfollow", "target": "@vishnu-dwi.bsky.social", "note": "Pruned non-reciprocating follow did:plc:cktcn4lcpbnwg4whguh7s67v"}
 {"ts": "2026-10-02T16:32:06.655037+00:00", "surface": "bluesky", "action": "growth_unfollow", "target": "@msbsongs.bsky.social", "note": "Pruned non-reciprocating follow did:plc:nt7gmjwlloo7twavnpp4ulbl"}
+{"ts": "2026-10-03T00:49:32.622160+00:00", "surface": "instagram", "action": "slot_missed", "target": "instagram", "note": "w40_fri_reading_desk missed its window"}
