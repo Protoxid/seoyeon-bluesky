@@ -99,7 +99,7 @@ class AgentConfig:
     )
     # Secondary resilient fallback on OpenRouter
     fallback_text_model: str = field(
-        default_factory=lambda: os.environ.get("FALLBACK_TEXT_MODEL", "deepseek/deepseek-chat")
+        default_factory=lambda: os.environ.get("FALLBACK_TEXT_MODEL", "deepseek-v4.1-flash")
     )
     # Image generator model via Kie.ai API (gpt-image-2.5-sunburst i2i)
     kie_image_model: str = field(
