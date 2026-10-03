@@ -1,0 +1,1 @@
+{"ts": 1787652505.9166086, "cmd": ["-u", "outside.py", "--grid", "--only", "n_noodles", "--model", "gpt", "--dry-run"], "ok": 0, "fail": 0, "estimated": 0.0, "reported": null, "pool": "grid", "model": "gpt", "ids": ["n_noodles"]}

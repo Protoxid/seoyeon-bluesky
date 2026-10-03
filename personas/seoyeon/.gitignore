@@ -1,0 +1,21 @@
+.env
+*.env
+seed/
+master/
+*.part
+manifest.jsonl
+__pycache__/
+
+# SECRETS. kie_key, fal_key and elevenlabs_key were missing from this file
+# until 5 Sep 2026 — three live API credentials with no ignore rule. Added by
+# pattern as well as by name so the next one is covered before it is created.
+*_key.txt
+*_token.txt
+*_secret.txt
+ig_token.txt
+ig_user_id.txt
+ftp_host.txt
+ftp_public.txt
+kie_key.txt
+fal_key.txt
+elevenlabs_key.txt

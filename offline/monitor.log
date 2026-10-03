@@ -1,0 +1,30 @@
+[2026-09-05 02:17:49] Running sync_lora check...
+[2026-09-05 02:17:59] Pod query failed: Expecting value: line 1 column 1 (char 0)
+[2026-09-05 02:18:34] Running sync_lora check...
+[2026-09-05 02:18:37] Progress: seoyeon_krea2_v1:  50%|?????     | 1250/2500 [41:10<25:41,  1.23s/it, lr: 5.0e-05 loss: 2.470e-01]
+[2026-09-05 02:18:37] Syncing checkpoint: seoyeon_krea2_v1_000000500.safetensors
+[2026-09-05 02:20:44] Saved: seoyeon_krea2_v1_000000500.safetensors (218.00 MB)
+[2026-09-05 02:20:44] Syncing checkpoint: seoyeon_krea2_v1_000000750.safetensors
+[2026-09-05 02:22:33] Saved: seoyeon_krea2_v1_000000750.safetensors (218.00 MB)
+[2026-09-05 02:22:33] Syncing checkpoint: seoyeon_krea2_v1_000001000.safetensors
+[2026-09-05 02:24:42] Saved: seoyeon_krea2_v1_000001000.safetensors (218.00 MB)
+[2026-09-05 02:24:42] Syncing checkpoint: seoyeon_krea2_v1_000001250.safetensors
+[2026-09-05 02:37:35] Saved: seoyeon_krea2_v1_000001250.safetensors (218.00 MB)
+[2026-09-05 02:37:35] Syncing sample image: 1788564767430__000000000_0.jpg
+[2026-09-05 02:37:56] Syncing sample image: 1788564785676__000000000_1.jpg
+[2026-09-05 02:37:57] Syncing sample image: 1788564803873__000000000_2.jpg
+[2026-09-05 02:37:57] Syncing sample image: 1788565338441__000000250_0.jpg
+[2026-09-05 02:38:39] Syncing sample image: 1788565356372__000000250_1.jpg
+[2026-09-05 02:38:40] Syncing sample image: 1788565374317__000000250_2.jpg
+[2026-09-05 02:38:40] Syncing sample image: 1788565884197__000000500_0.jpg
+[2026-09-05 02:38:41] Syncing sample image: 1788565902133__000000500_1.jpg
+[2026-09-05 02:39:23] Syncing sample image: 1788565920086__000000500_2.jpg
+[2026-09-05 02:39:23] Syncing sample image: 1788566437299__000000750_0.jpg
+[2026-09-05 02:39:23] Syncing sample image: 1788566455237__000000750_1.jpg
+[2026-09-05 02:39:24] Syncing sample image: 1788566473195__000000750_2.jpg
+[2026-09-05 02:39:24] Syncing sample image: 1788566983515__000001000_0.jpg
+[2026-09-05 02:39:45] Syncing sample image: 1788567001468__000001000_1.jpg
+[2026-09-05 02:39:45] Syncing sample image: 1788567019443__000001000_2.jpg
+[2026-09-05 02:40:33] Starting continuous overnight monitoring loop...
+[2026-09-05 02:40:35] Progress: seoyeon_krea2_v1:  73%|????????  | 1837/2500 [1:00:24<19:59,  1.81s/it, lr: 1.6e-05 loss: 1.810e-01]
+[2026-09-05 02:40:35] Syncing checkpoint: seoyeon_krea2_v1_000001500.safetensors

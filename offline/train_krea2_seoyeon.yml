@@ -1,0 +1,97 @@
+# ============================================================================
+# Krea 2 identity LoRA — Seo-yeon. Ostris AI-Toolkit, rented GPU.
+#
+# VALUES come from the community-calibrated Krea-2 recipe
+#   github.com/chengyansen-ai/krea2-lora-training
+# KEY NAMES come from ai-toolkit's general config schema.
+#
+# >>> THE VALUES ARE SOURCED. THE KEY NAMES ARE NOT VERIFIED FOR KREA 2. <<<
+# Before running, open ai-toolkit's own example config for Krea 2 in
+#   ai-toolkit/config/examples/
+# and diff it against this file. Where they disagree, THE REPO WINS — it is
+# the code that parses this. Fix the key, keep the value.
+# Every line marked ### CONFIRM is one I could not verify.
+# ============================================================================
+
+job: extension
+config:
+  name: "seoyeon_krea2_v1"
+  process:
+    - type: "sd_trainer"
+      training_folder: "/workspace/output"
+      device: cuda:0
+
+      network:
+        type: "lora"
+        linear: 32          # rank 32 — recipe
+        linear_alpha: 32    # alpha 32 — recipe ("no conv rank on this model")
+
+      save:
+        dtype: float16
+        save_every: 250     # checkpoints to compare; the best is often not the last
+        max_step_saves_to_keep: 6
+
+      datasets:
+        - folder_path: "/workspace/dataset"   # the _lora_dataset folder, flat
+          caption_ext: "txt"
+          caption_dropout_rate: 0.05
+          shuffle_tokens: false               # captions are schema-ordered, do not shuffle
+          cache_latents_to_disk: true
+          resolution: [512, 768, 1024]        # recipe: composition / quality / face detail
+
+      train:
+        batch_size: 1                   # recipe
+        gradient_accumulation_steps: 1  # recipe (2 for smoother gradients)
+        steps: 2500                     # recipe: first run. 3000-4000 if lr drops to 5e-5
+        gradient_checkpointing: true
+        train_unet: true
+        train_text_encoder: false       # recipe: Qwen3-VL-4B too large, and less stable
+
+        # ------------------------------------------------------------------
+        # THE TWO LINES THE RECIPE CALLS THE MOST COMMON MISTAKE.
+        # A default ai-toolkit config carries FLUX values here and will not
+        # warn you. Not sigmoid. Not weighted. If these are wrong the run
+        # completes and the LoRA is quietly bad.
+        noise_scheduler: "flowmatch"
+        timestep_type: "linear"
+        # ------------------------------------------------------------------
+
+        optimizer: "adamw8bit"          # recipe
+        lr: 1e-4                        # recipe: start here; 5e-5 if it overfits
+        lr_scheduler: "cosine"          # recipe
+        dtype: bf16
+        ema_config:
+          use_ema: false
+
+      model:
+        # Krea 2 **RAW**, not Turbo. Training on Turbo is the wrong base;
+        # Turbo is only for judging the result afterwards.
+        name_or_path: "PUT_THE_KREA2_RAW_REPO_OR_PATH_HERE"   ### CONFIRM
+        arch: "krea2"                                          ### CONFIRM
+        quantize: true
+        qtype: "qfloat8"        # recipe: qfloat8 on transformer
+        quantize_te: true       ### CONFIRM — recipe says qfloat8 on the text encoder too
+        low_vram: false         # renting; no reason to cripple it
+
+      sample:
+        sampler: "flowmatch"    ### CONFIRM
+        sample_every: 250
+        width: 896
+        height: 1152
+        seed: 42
+        walk_seed: false
+        guidance_scale: 1
+        sample_steps: 20
+        # THREE PROMPTS, and the third is the one people skip.
+        #   1. in distribution   2. a scene it never saw
+        #   3. NO TRIGGER — proves the base model is not contaminated.
+        # Samples render on RAW and will look FLAT AND PLASTIC. The recipe
+        # lists that as expected behaviour. Judge on Turbo, never on these.
+        prompts:
+          - "sy3nh, single person, half body, standing front, neutral, hair down, soft window light, plain room, sharp focus"
+          - "sy3nh, single person, full body, walking on a beach at sunset, hair down, warm low sun, sea behind her, sharp focus"
+          - "single person, half body, standing front, neutral, hair down, soft window light, plain room, sharp focus"
+
+meta:
+  name: "seoyeon_krea2_v1"
+  version: "1.0"

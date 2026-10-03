@@ -1,0 +1,162 @@
+{
+  "week": "2026-W37",
+  "tier": 1,
+  "lane": "instagram",
+  "planned_by": "Nova",
+  "planned_on": "2026-09-06",
+  "pool_dir": "personas/seoyeon/content/w37_2026-09-07/",
+  "week_thread": "personas/seoyeon/content/w37_2026-09-07/WEEK.md",
+  "entries": [
+    {
+      "id": "w37_class_bad",
+      "tier": 1,
+      "lanes": [
+        "instagram"
+      ],
+      "media_file": "content\\w37_2026-09-07\\w37_class_bad_250655_1.png",
+      "caption_file": "caps\\w37_class_bad.txt",
+      "publish_at": "2026-09-07T07:55+09:00",
+      "render_approved": true,
+      "renders_available": 1,
+      "plate": null,
+      "shot": null
+    },
+    {
+      "id": "w37_gimbap",
+      "tier": 1,
+      "lanes": [
+        "instagram"
+      ],
+      "media_file": "content\\w37_2026-09-07\\w37_gimbap_c3c9f3_1.png",
+      "caption_file": "caps\\w37_gimbap.txt",
+      "publish_at": "2026-09-08T13:20+09:00",
+      "render_approved": true,
+      "renders_available": 1,
+      "plate": null,
+      "shot": null
+    },
+    {
+      "id": "w37_fan",
+      "tier": 1,
+      "lanes": [
+        "instagram"
+      ],
+      "media_file": "content\\w37_2026-09-07\\w37_fan_5c020b_1.png",
+      "caption_file": "caps\\w37_fan.txt",
+      "publish_at": "2026-09-08T15:10+09:00",
+      "render_approved": true,
+      "renders_available": 1,
+      "plate": null,
+      "shot": null
+    },
+    {
+      "id": "w37_studio_after",
+      "tier": 1,
+      "lanes": [
+        "instagram"
+      ],
+      "media_file": "content\\w37_2026-09-07\\w37_studio_after_e29b43_1.png",
+      "caption_file": "caps\\w37_studio_after.txt",
+      "publish_at": "2026-09-09T08:05+09:00",
+      "render_approved": true,
+      "renders_available": 1,
+      "plate": null,
+      "shot": null
+    },
+    {
+      "id": "w37_jieun_roof",
+      "tier": 1,
+      "lanes": [
+        "instagram"
+      ],
+      "media_file": "content\\w37_2026-09-07\\w37_jieun_roof_7a5af3_1.png",
+      "caption_file": "caps\\w37_jieun_roof.txt",
+      "publish_at": "2026-09-10T20:40+09:00",
+      "render_approved": true,
+      "renders_available": 1,
+      "plate": null,
+      "shot": null
+    },
+    {
+      "id": "w37_market_peaches",
+      "tier": 1,
+      "lanes": [
+        "instagram"
+      ],
+      "media_file": "content\\w37_2026-09-07\\w37_market_peaches_e298db_1.png",
+      "caption_file": "caps\\w37_market_peaches.txt",
+      "publish_at": "2026-09-12T10:15+09:00",
+      "render_approved": true,
+      "renders_available": 1,
+      "plate": null,
+      "shot": null
+    },
+    {
+      "id": "w37_table_sunday",
+      "tier": 1,
+      "lanes": [
+        "instagram"
+      ],
+      "media_file": "content\\w37_2026-09-07\\w37_table_sunday_1d4ac8_1.png",
+      "caption_file": "caps\\w37_table_sunday.txt",
+      "publish_at": "2026-09-13T21:05+09:00",
+      "render_approved": true,
+      "renders_available": 1,
+      "plate": null,
+      "shot": null
+    }
+  ],
+  "blocked": [],
+  "blocked_note": "All 7 of 7 shots approved and shippable as of batch 5. Zero blocked. Batch 5 (vision-capable, main tree): w37_table_sunday approved end-to-end; w37_jieun_roof generated plate-less (no valid empty rooftop plate exists anywhere in the repo — see blockers) and gate-passed, checkpointed post-run by the orchestrator via checkpoint.py.",
+  "generation": {
+    "model": "gpt-image-2-image-to-image",
+    "provider": "kie",
+    "images_generated": 10,
+    "images_this_run": 2,
+    "spend_usd": 0.9,
+    "spend_this_run": 0.18,
+    "spend_to_date_week": 0.9,
+    "rerolls": 2,
+    "account_credit_seen": 260.03,
+    "approved": 7,
+    "batch": 5,
+    "note": "Batch 5 final: 2 images / $0.18 this run; week total 10 images / $0.90, 7 approved, 2 rerolls. w37_table_sunday (night selfie, 3rd face frame, screen turned away, no readable numerals) approved by eye. w37_jieun_roof generated plate-less after the rooftop plate bug was confirmed total (see blockers); identity checked vs master/a/a1_front.png + a2_tq_left.png, Jieun not rendered, women only, dusk roof matches grid n_roof_posed continuity. Credit read 260.03 (free status call). CORRECTION 6 Sep: Kie figures are CREDITS (200 = $1), not dollars — account drain 340.03->260.03 credits is $0.40, consistent with W37's own image spend; no external consumption."
+  },
+  "hashtags": [
+    "#seongsu",
+    "#seoul",
+    "#daily",
+    "#filmphoto",
+    "#everyday"
+  ],
+  "captions": {
+    "w37_class_bad": "the seven o'clock. i lost the count on the second set and someone said it out loud\n\nfour people in the room and i could feel every one of them looking at the wrong thing\n#seongsu #seoul #daily #filmphoto #everyday",
+    "w37_fan": "29 degrees in the flat and the fan has been on since this morning and it has achieved nothing\n\ni have started closing the window like it is the fan's fault\n#seongsu #seoul #daily #filmphoto #everyday",
+    "w37_gimbap": "2,500 won for lunch and i stood there doing the division\n\ndid no reading today. the fan won\n#seongsu #seoul #daily #filmphoto #everyday",
+    "w37_studio_after": "they asked me to cover a fourth slot next month\n\nthe reward for teaching it properly is more of it. i have been here for twenty minutes deciding whether that is a compliment\n\n#seongsu #seoul #daily #filmphoto #everyday",
+    "w37_jieun_roof": "jieun brought something her mother made and we ate it up here because the flat is warmer than outside\n\nshe left before nine. the cups stayed until i came down\n\n#seongsu #seoul #daily #filmphoto #everyday",
+    "w37_market_peaches": "peaches are going cheap, which means they are nearly gone\n\nbought eight. i will eat four before they turn\n\n#seongsu #seoul #daily #filmphoto #everyday",
+    "w37_table_sunday": "wrote the date down. i have known it since june and it is still worse in pencil\n\nnot posting the number. yes to the fourth slot\n\n#seongsu #seoul #daily #filmphoto #everyday"
+  },
+  "blockers": [
+    "ROOFTOP PLATE GAP (standing — owner direction received 6 Sep): plates live in personas/seoyeon/content/plates/ (locations/ is to be ignored entirely). The real plate set is bathroom, hallway, river, room, stairwell, studio_wide — and it contains NO rooftop plate, so the earlier conclusion stands with the correct source: no valid empty roof reference exists. W37 jieun_roof shipped plate-less and passed QC. Fix for future roof shots: generate a real empty rooftop plate into content/plates/ (one-off render), then reference it directly. Note pov.py's plate_path currently prefers locations/ — the owner's 'ignore locations/' rule makes that resolver path wrong in general; aligning it is an owner decision on shared code.",
+    "W37_TABLE_SUNDAY NOT GENERATED — the batch-4 run exhausted its turn budget after the market approval and the jieun_roof plate investigation. Spec is final and dry-run validated; only the render + eye review remain.",
+    "PIPELINE GAP — outside.py has --week3 but no console.POOLS row, so weekly_prep.py does not audit this pool yet. Not fixed here: console and outside.py are shared code, outside my lane.",
+    "CONFIG vs CODE MISMATCH — exclude_body_ref does not exist in the repo. The real mechanism is body=True / limb=True attaching master/c/c5_relax_front.png; clothed-torso shots set neither flag and never say 'tattoo'.",
+    "NOT READ, BY INSTRUCTION — playbook.md, offline/, growth/COMPLIANCE.md, archive/, PIPELINES.md §5, growth/RUNBOOK.md."
+  ],
+  "verified": [
+    "DISK TRUTH — BATCH 4 (this run, post-reconcile): 5 renders in the pool, all approved entries. w37_market_peaches_421923_1.png deleted as the failed batch-2 render; w37_market_peaches_e298db_1.png approved. Every entry's media_file and caption_file exist on disk; handoff captions for approved shots are byte-identical to caps/*.txt. w37_jieun_roof and w37_table_sunday have no render and are blocked with reasons above.",
+    "personas/seoyeon/locations/ is NON-EMPTY — 22 plates in seven subdirectories plus locations/cafe.png and locations/rooftop.png. Not a blocker; generation would have had real rooms to work from.",
+    "kie_api.py loads KIE_API_KEY from personas/seoyeon/kie_key.txt and the account has credit (340.03). kie_api.generate() routes reference-conditioned calls through model_schemas.build_input, which puts them in gpt-image-2's `input_urls`. Confirmed by reading, not by spending.",
+    "Face/body reference stack present: master/a/a1_front.png, a2_tq_left.png, master/b/b7_half.png, master/c/c5_relax_front.png.",
+    "CANON age rule applies: 25 in captions all week (birthday is 23 Oct). No caption in this file states an age.",
+    "No men, no held products, no legible packaging, nothing suggestive, no posed-as-achievement framing in any planned shot. Body incidental: 1 of 7 shows her face-to-torso in activewear and it is a floor sit after class, not a form demonstration.",
+    "w37_fan: same flat as plate_room_ecc050_1.png (kitchenette + microwave left, clothes rack, bed under the window, table and one chair, door handle right), window shut with the curtains back at either side, standing fan in its plate position with the blades spun to a blur, laptop screen unreadable, nobody in frame.",
+    "w37_gimbap: PACKAGING CHECK PASSED — the gimbap tray is plain clear plastic and the barley-tea bottle has no label at all, so there is no brand, logo or legible mark on anything in the foreground; the shop behind is out of focus. No person, no hand, no reflection.",
+    "All three renders are 3:4 at 2k (1744x2336 / 2016x2688), above the 1080px Instagram floor.",
+    "SPECS STAGED AND DRY-RUN VALIDATED (batch 3, $0.00): w37_jieun_roof (face-in, friend-taken per the n_cafe_jieun precedent, Jieun implied by the second cup, never rendered; plate_rooftop; safe=True), w37_table_sunday (face-in selfie, the third face frame, laptop back to the lens, pencil line too faint to read; plate_room; selfie=True), w37_market_peaches (price-card writing specced too small and loose to read). outside.py --week3 --only <all three> --dry-run assembles each prompt correctly: plate as Image 1, her face as Images 2-3, ARMS appended on the selfie only.",
+    "JIEUN PRECEDENT CONFIRMED FROM SHIPPED WORK: n_cafe_jieun (grid, week 1) is taken BY Jieun — she is behind the camera, implied only by the second glass nearest the lens, never rendered in any shipped frame. The re-specced w37_jieun_roof follows exactly this. No Jieun reference image exists and none may be invented.",
+    "BATCH-4 OBSERVATION (the reason the run stopped): the model CAN see images (verified by the read tool on the market pre-flight thumb). The market render was reviewable and was reviewed and approved. The stop was NOT a vision failure this time — it was a plate mismatch plus the turn budget."
+  ]
+}

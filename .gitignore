@@ -51,7 +51,15 @@ manifest.jsonl
 *.png
 *.jpg
 *.jpeg
+*.webp
+*.mp3
+*.wav
+*.npy
+*.xlsx
 *.safetensors
+*.tmp
+*.url
+.obsidian/
 
 # Whitelist scheduled funnel teaser assets so cloud runner can access them
 !growth/schedule_assets/*.png
@@ -81,3 +89,6 @@ nul
 .clinerules
 scratch/
 growth/scratch/
+test_*.txt
+run_pod.txt
+info.nfo

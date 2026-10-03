@@ -1,0 +1,24 @@
+{
+  "gpt-image-2-text-to-image": {
+    "ratio": "1:1",
+    "tier": "2k",
+    "extra": {
+      "resolution": "2K"
+    }
+  },
+  "nano-banana-pro": {
+    "ratio": "1:1",
+    "tier": "2k",
+    "extra": {}
+  },
+  "seedream/5-pro-text-to-image": {
+    "ratio": "1:1",
+    "tier": "2k",
+    "extra": {}
+  },
+  "flux-2/pro-text-to-image": {
+    "ratio": "1:1",
+    "tier": "2k",
+    "extra": {}
+  }
+}

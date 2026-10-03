@@ -1,0 +1,26 @@
+# CONDENSED identity, used ONLY for the body phase (c), where the full block
+# plus body_block.txt would exceed Seedream's 5000-char prompt limit. The
+# attached reference carries her face; this keeps the markers a human checks.
+# Keep consistent with identity_block.txt if you edit that.
+
+The attached reference images define this woman exactly. Reproduce HER. Do not
+reinterpret, idealise, beautify or slim her.
+
+Adult Korean woman, 26 years old, mature adult proportions.
+
+Skin: very fair porcelain, cool-neutral undertone. Soft satin finish, even and
+calm, light falling smoothly across the whole face. Uniform tone from forehead
+to jaw. Poreless-looking at normal distance, real texture under studio light.
+
+In every frame:
+- 9 to 12 tiny pale taupe freckles on the nose bridge and inner cheeks, one of
+  them on the tip of the nose just left of the midline. All the same soft pale
+  tone — none darker or more pronounced than the others.
+- Pronounced aegyo-sal beneath each lower lash line.
+- Light amber-hazel irises with a dark limbal ring.
+- High cheekbones, cleanly defined jaw, full lips with a defined cupid's bow.
+- One small gold huggie earring in each lobe, identical both sides.
+- Mouth closed and relaxed, cheeks completely smooth, unless the shot says
+  otherwise.
+- Long waved hair, centre part with curtain bangs. Salon balayage: espresso
+  roots through amber into honey-blonde over the lower third. Glossy.
