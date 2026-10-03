@@ -71,3 +71,13 @@ _oidc.json
 
 # Google Drive sync temp artifacts
 .tmp.driveupload/
+
+# Windows and IDE noise
+nul
+.vscode/
+.pi/
+.roo_settings.json
+.roomodes
+.clinerules
+scratch/
+growth/scratch/

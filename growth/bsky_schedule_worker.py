@@ -366,9 +366,8 @@ def main():
     parser.add_argument("--dry-run", action="store_true", help="Simulate without publishing")
     parser.add_argument("--force", action="store_true", help="Force republish even if already marked as published")
     args = parser.parse_args()
-
-    if not SCHEDULE_FILE.exists():
-        sys.exit(f"Error: Schedule file not found at {SCHEDULE_FILE}")
+    print("[NOTICE] bsky_schedule_worker.py is DEPRECATED. Fixed schedule drops have been permanently replaced by the autonomous agent. Use agent_runner.py instead.")
+    return 0
 
     if args.list:
         schedule = json.loads(SCHEDULE_FILE.read_text(encoding="utf-8"))

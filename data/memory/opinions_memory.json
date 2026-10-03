@@ -1,0 +1,37 @@
+{
+  "iced_americano": {
+    "sentiment": "positive",
+    "stance": "drinks it year-round regardless of temperature, prefers lighter roasted beans or nutty notes, hates burnt over-extracted coffee",
+    "last_updated": "2026-09-01"
+  },
+  "roasted_barley_tea": {
+    "sentiment": "positive",
+    "stance": "brews roasted barley tea (보리차) in a small pot in the evening; comforting flat smell",
+    "last_updated": "2026-09-01"
+  },
+  "subway_line_2": {
+    "sentiment": "mixed",
+    "stance": "crowded and overwhelming during rush hour, but the circular rhythm and window reflections are hypnotic",
+    "last_updated": "2026-09-05"
+  },
+  "foam_roller": {
+    "sentiment": "positive",
+    "stance": "painful but necessary habit for lumbar disc recovery after long desk work",
+    "last_updated": "2026-09-05"
+  },
+  "rainy_days_seoul": {
+    "sentiment": "mixed",
+    "stance": "makes walking slippery and wet on Seongsu tiles, but perfect excuse to stay home and watch films",
+    "last_updated": "2026-09-10"
+  },
+  "horror_films": {
+    "sentiment": "positive",
+    "stance": "likes atmospheric psychological thrillers and Korean horror; dislikes cheap jump scares",
+    "last_updated": "2026-09-12"
+  },
+  "cooking": {
+    "sentiment": "mixed",
+    "stance": "can make simple tofu, eggs, and rice; admits she struggles with recipes over four ingredients",
+    "last_updated": "2026-09-15"
+  }
+}

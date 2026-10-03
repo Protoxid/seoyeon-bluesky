@@ -1,0 +1,282 @@
+"""
+agent/decision_engine.py — Cognitive Decision Engine for Autonomous Action Selection.
+
+Implements the full Observe-Context-Recall-Evaluate-Decide loop:
+  - Treats NO_ACTION as a first-class, common, and valid natural outcome.
+  - Weights actions contextually by Seoul circadian rhythm, recency, and stimulus quality.
+  - Scores options with desirability and confidence metrics.
+  - Protects against bot-like hyperactivity, honoring human restraint.
+"""
+
+from __future__ import annotations
+
+import datetime as dt
+import enum
+from dataclasses import dataclass, field
+from typing import Any, Dict, List, Optional, Tuple
+
+from .config import config
+from .context_engine import EnvironmentContext
+from .memory_store import UserProfile, memory_store
+from .validator import ContentValidator
+
+
+class ActionType(enum.Enum):
+    NO_ACTION = "NO_ACTION"
+    REPLY_COMMENT = "REPLY_COMMENT"
+    ANSWER_MENTION = "ANSWER_MENTION"
+    ANSWER_DM = "ANSWER_DM"
+    BROWSE_AND_LIKE = "BROWSE_AND_LIKE"
+    BROWSE_AND_REPLY = "BROWSE_AND_REPLY"
+    PUBLISH_TEXT_POST = "PUBLISH_TEXT_POST"
+    PUBLISH_IMAGE_POST = "PUBLISH_IMAGE_POST"
+
+
+@dataclass
+class ActionCandidate:
+    action: ActionType
+    score: float  # [0.0, 1.0] desirability * confidence
+    confidence: float
+    reason: str
+    target_data: Dict[str, Any] = field(default_factory=dict)
+    intent: str = ""
+
+
+@dataclass
+class DecisionOutcome:
+    selected_action: ActionType
+    reason: str
+    target_data: Dict[str, Any]
+    intent: str
+    candidate_scores: Dict[str, float]
+    all_candidates: List[ActionCandidate]
+
+
+class DecisionEngine:
+    def evaluate(
+        self,
+        context: EnvironmentContext,
+        notifications: List[Dict[str, Any]],
+        dms: List[Dict[str, Any]],
+        feed_items: List[Dict[str, Any]],
+        can_image: bool = True,
+    ) -> DecisionOutcome:
+        """Evaluates current sensory inputs and decides the most natural action."""
+        candidates: List[ActionCandidate] = []
+
+        # -------------------------------------------------------------
+        # 1. Baseline: NO_ACTION (Restraint is human)
+        # -------------------------------------------------------------
+        base_no_action_score = 0.40
+        # If it's deep night (01:00 - 05:00 KST), bias heavily toward resting
+        if context.circadian_phase == "deep_night":
+            base_no_action_score = 0.88
+        elif context.hours_since_last_action < 1.0:
+            # Acted very recently, high likelihood of quiet browsing or resting
+            base_no_action_score = 0.65
+
+        candidates.append(
+            ActionCandidate(
+                action=ActionType.NO_ACTION,
+                score=base_no_action_score,
+                confidence=0.85,
+                reason=f"Resting or quiet offline moment (circadian: {context.circadian_phase}, last action {context.hours_since_last_action:.1f}h ago).",
+            )
+        )
+
+        # -------------------------------------------------------------
+        # 2. Inbound Direct Messages (DMs)
+        # -------------------------------------------------------------
+        if config.allow_dms and dms:
+            for dm in dms:
+                convo_id = dm.get("id")
+                unread = dm.get("unreadCount", 0)
+                if unread > 0 and convo_id:
+                    members = dm.get("members", [])
+                    other_member = next((m for m in members if m.get("did") != config.bsky_handle), {})
+                    handle = other_member.get("handle", "user")
+                    profile = memory_store.get_user_profile(handle)
+
+                    # Relationship weighting
+                    dm_score = 0.70 if profile.relationship in ("regular", "friendly_acquaintance") else 0.55
+                    candidates.append(
+                        ActionCandidate(
+                            action=ActionType.ANSWER_DM,
+                            score=dm_score,
+                            confidence=0.80,
+                            reason=f"Unread private message from @{handle} ({profile.relationship}).",
+                            target_data={"convo_id": convo_id, "handle": handle, "profile": profile},
+                            intent="warm_personal_reply",
+                        )
+                    )
+                    break  # Only consider top unread DM per tick
+
+        # -------------------------------------------------------------
+        # 3. Notifications (Replies & Mentions)
+        # -------------------------------------------------------------
+        if config.allow_replies and notifications:
+            for notif in notifications[:10]:
+                reason = notif.get("reason")
+                if reason not in ("reply", "mention"):
+                    continue
+
+                author = notif.get("author", {})
+                author_handle = author.get("handle", "")
+                if author_handle == config.bsky_handle:
+                    continue
+
+                record = notif.get("record", {})
+                user_text = record.get("text", "")
+                if not user_text.strip():
+                    continue
+
+                # Safety: check for prompt injection
+                is_inj, _ = ContentValidator.detect_prompt_injection(user_text)
+                if is_inj:
+                    continue
+
+                profile = memory_store.get_user_profile(author_handle)
+
+                if reason == "reply":
+                    # Comment under her post
+                    action_type = ActionType.REPLY_COMMENT
+                    score = 0.65 if profile.relationship != "stranger" else 0.50
+                    intent = "acknowledge_and_converse"
+                else:
+                    # Tagged in a post or mention
+                    action_type = ActionType.ANSWER_MENTION
+                    score = 0.55
+                    intent = "evaluate_mention_and_react"
+
+                # Check if she replied too many times today
+                if context.replies_today >= config.max_replies_per_day:
+                    score = 0.10
+
+                candidates.append(
+                    ActionCandidate(
+                        action=action_type,
+                        score=score,
+                        confidence=0.75,
+                        reason=f"{reason.capitalize()} from @{author_handle}: \"{user_text[:40]}...\"",
+                        target_data={"notification": notif, "profile": profile, "text": user_text},
+                        intent=intent,
+                    )
+                )
+                break  # Evaluate one inbound interaction at a time
+
+        # -------------------------------------------------------------
+        # 4. Spontaneous Organic Posting (Text or Image)
+        # -------------------------------------------------------------
+        if config.allow_posts and context.posts_today < config.max_posts_per_day:
+            # Probability depends on hours since last post and circadian phase
+            post_score = 0.20
+            if context.circadian_phase in ("morning", "afternoon", "evening"):
+                if context.hours_since_last_post >= 14.0:
+                    post_score = 0.72
+                elif context.hours_since_last_post >= 7.0:
+                    post_score = 0.58
+                elif context.hours_since_last_post >= 4.0:
+                    post_score = 0.35
+                else:
+                    post_score = 0.05
+            elif context.circadian_phase == "night" and context.hours_since_last_post >= 8.0:
+                post_score = 0.45
+            else:
+                post_score = 0.02
+
+            # Does weather or holiday add natural inspiration?
+            weather_inspire = context.weather.is_raining or context.weather.is_snowing
+            if weather_inspire:
+                post_score = min(0.85, post_score + 0.15)
+
+            # Determine whether to post image or text
+            if can_image and config.allow_images and post_score > 0.50 and context.hours_since_last_post > 10.0:
+                # Occasional visual snapshot
+                candidates.append(
+                    ActionCandidate(
+                        action=ActionType.PUBLISH_IMAGE_POST,
+                        score=post_score * 0.90,  # Slightly lower than text so text remains primary
+                        confidence=0.70,
+                        reason="Candid moment warrants an accompanying photo.",
+                        intent="share_visual_moment",
+                    )
+                )
+
+            candidates.append(
+                ActionCandidate(
+                    action=ActionType.PUBLISH_TEXT_POST,
+                    score=post_score,
+                    confidence=0.75,
+                    reason=f"Spontaneous thought ({context.hours_since_last_post:.1f}h since last post, {context.circadian_phase}).",
+                    intent="share_ordinary_thought",
+                )
+            )
+
+        # -------------------------------------------------------------
+        # 5. Feed Browsing & Light Engagement (Like or Thoughtful Reply)
+        # -------------------------------------------------------------
+        if feed_items and context.circadian_phase != "deep_night":
+            for item in feed_items[:5]:
+                post = item.get("post", {})
+                author = post.get("author", {}).get("handle", "")
+                if author == config.bsky_handle:
+                    continue
+
+                text = post.get("record", {}).get("text", "")
+                if not text or len(text) < 15:
+                    continue
+
+                is_inj, _ = ContentValidator.detect_prompt_injection(text)
+                if is_inj:
+                    continue
+
+                # Small chance to like or reply to an interesting timeline post
+                if config.allow_likes:
+                    candidates.append(
+                        ActionCandidate(
+                            action=ActionType.BROWSE_AND_LIKE,
+                            score=0.42,
+                            confidence=0.65,
+                            reason=f"Quietly like post by @{author} during feed browsing.",
+                            target_data={"post": post},
+                        )
+                    )
+
+                if config.allow_replies and context.replies_today < config.max_replies_per_day:
+                    candidates.append(
+                        ActionCandidate(
+                            action=ActionType.BROWSE_AND_REPLY,
+                            score=0.38,
+                            confidence=0.60,
+                            reason=f"Thoughtful reply to feed post by @{author}.",
+                            target_data={"post": post},
+                            intent="add_perspective",
+                        )
+                    )
+                break
+
+        # -------------------------------------------------------------
+        # Select winning action
+        # -------------------------------------------------------------
+        # Sort candidates descending by score
+        candidates.sort(key=lambda c: c.score, reverse=True)
+        winner = candidates[0] if candidates else ActionCandidate(
+            action=ActionType.NO_ACTION,
+            score=1.0,
+            confidence=1.0,
+            reason="No action candidate available."
+        )
+
+        score_dict = {c.action.value: round(c.score, 3) for c in candidates}
+
+        return DecisionOutcome(
+            selected_action=winner.action,
+            reason=winner.reason,
+            target_data=winner.target_data,
+            intent=winner.intent,
+            candidate_scores=score_dict,
+            all_candidates=candidates,
+        )
+
+
+decision_engine = DecisionEngine()

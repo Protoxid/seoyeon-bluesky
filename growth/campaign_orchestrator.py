@@ -459,16 +459,8 @@ def dispatch_auto(dry_run: bool = False, force: bool = False) -> None:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Synchronized Fanvue <-> Bluesky Campaign Orchestrator")
-    parser.add_argument("--status", action="store_true", help="Display cross-platform campaign coherence matrix")
-    parser.add_argument("--sync-fanvue", action="store_true", help="Upload and publish all missing drops to Fanvue")
-    parser.add_argument("--sync-drop", type=str, help="Upload and publish a specific drop's full set to Fanvue")
-    parser.add_argument("--dispatch", type=str, help="Dispatch a synchronized drop (Fanvue check -> Bluesky post)")
-    parser.add_argument("--auto", action="store_true", help="Auto-detect current day and dispatch synchronized drop")
-    parser.add_argument("--dry-run", action="store_true", help="Simulate actions without publishing")
-    parser.add_argument("--force", action="store_true", help="Force republish even if already marked as published")
-
-    args = parser.parse_args()
+    print("[NOTICE] campaign_orchestrator.py is DEPRECATED. Fanvue integration and synchronized drops have been permanently removed. Use agent_runner.py instead.")
+    return
 
     if args.sync_drop:
         schedule = load_schedule()

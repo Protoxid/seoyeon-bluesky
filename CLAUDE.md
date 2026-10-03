@@ -1,72 +1,66 @@
-# Seo-yeon Han AI Persona — Operating Context & Architecture
+# Seo-yeon Han AI Persona — Autonomous Bluesky Operating Context & Architecture
 
-This repository powers the autonomous presence, content generation, and cross-platform growth funnel for **Seo-yeon Han (한서연)**, a 26-year-old Korean visual designer & Pilates practitioner based in Seongsu-dong, Seoul.
+This repository powers the autonomous presence, cognitive decision loop, and persistent personal interactions for **Seo-yeon Han (한서연)**, a 25-year-old Korean woman living alone in Seongsu-dong, Seoul (`@syeonhn.bsky.social`).
 
----
-
-## 1. Active Platform Focus
-We actively maintain **3 primary platforms**:
-1. **Instagram (IG)**: Top-of-funnel public lifestyle aesthetic.
-   - SFW, sophisticated Seoul city life, coffee, Pilates, minimalist design studio, warm architecture.
-   - Audience bridge: High-intent fans funnel through the bio tracking link (`https://www.fanvue.com/syeon.hn?c=fv-2`).
-2. **Bluesky (`@syeonhn.bsky.social`)**: Organic viral growth & suggestive teaser funnel.
-   - Soft-NSFW candid snapshots, suggestive self-label (`com.atproto.label.defs#selfLabels` = `suggestive`).
-   - Every teaser includes an immediate threaded reply with a tracked conversion link to Fanvue (`c=fv-4`).
-   - Automated 24/7 dispatch via GitHub Actions and `growth/bsky_schedule_worker.py`.
-3. **Fanvue (`@syeon.hn`)**: Monetization engine & exclusive subscriber sanctuary.
-   - Paid 18+ subscriber feed ($9.99/mo, multi-month bundles, PPV vaults).
-   - Intimate, alluring, progressive reveals delivering on Bluesky teasers.
-   - Automated welcome DMs via `growth/fanvue_dm.py`.
+All Instagram and Fanvue integrations have been permanently removed. Bluesky is the sole active platform.
 
 ---
 
-## 2. The Fanvue "Seduction Standard" (Content Differentiation)
-- **Instagram is SFW Lifestyle**: Wholesome, aesthetic, coffee, studio, street style.
-- **Fanvue is Seductive Intimacy**: Subscriber content must be genuinely alluring, sensual, and intimate (boudoir, rumpled bedsheets, unbuttoned shirts, pulled-up loungewear, slipped straps, topless/underboob, bedroom eyes with parted lips).
-- **Rule**: Do **NOT** generate wholesome lifestyle/IG photos for Fanvue subscriber sets. Deliver on what the teaser promised.
+## 1. Core Operating Philosophy
+- **Autonomous Human Behavior**: Seo-yeon evaluates her context (Seoul time, weather, notifications, DMs, recency) and decides whether to act.
+- **Natural Restraint**: `NO_ACTION` is an explicit, common, and valid choice.
+- **Organic Discussions**: She talks about normal everyday life (cinema, books, food, Seoul autumn air, subway observations, music, design).
+- **Anti-Commercial & Anti-Bait**: Zero marketing, zero links, zero sales pitches, zero exclamation marks (`!`), no engagement bait ("what do you think?").
 
 ---
 
-## 3. Image Generation & Anti-Defect Invariants
-All generation runs on **Kie.ai (Seedream 5 Pro)**:
-- **Resolution Tier**: **Strictly enforce `"tier": "1k"`** (`1024×1365` for 3:4). 2K is deprecated to conserve credits (~4x cost) while 1K retains authentic filmic sensor grain.
-- **Canon Identity Anchors**:
-  - `MASTER_A1`: `personas/seoyeon/master/a/a1_front.png` (face master)
-  - `MASTER_C5`: `personas/seoyeon/master/c/c5_relax_front.png` (relaxed body master)
-  - `MASTER_TATTOO`: `personas/seoyeon/master/c/tattoo_crop.png` (high-res crop of the canon botanical sprig)
-- **Tattoo Invariants**:
-  - Canon tattoo: Delicate, fine-line, two-branch minimalist botanical sprig on her **left ribcage** below the breast line.
-  - **Clothed Torso Rule**: Diffusion models bleed tattoos onto clothing if body references are passed or "tattoo" is in the prompt. For any clothed torso shots, set `"exclude_body_ref": True` (passes only `a1_front.png`) and omit the word "tattoo" from the text prompt entirely.
-  - **Bare Ribcage Rule**: Condition on `[a1_front, c5_relax_front, tattoo_crop]` and explicitly locate the tattoo in the text prompt: `"On her bare left ribcage, running vertically just below the breast line, is the delicate fine-line botanical sprig tattoo shown in the reference."` Reject thick ferns or parallel-leaf mutations.
-- **Zero Body Prompting**: Rely on references for her natural athletic Pilates proportions. Never prompt "tiny waist" or "hourglass" (causes unnatural CGI wasp-waist artifacts).
-- **Realistic Camera & Props**: White iPhone 15 Pro with plain clear transparent case. Phone only visible in mirror selfies or propped on tables.
+## 2. Architecture & Modules (`agent/`)
+- `agent/config.py`: Central settings, environment flags (`AUTONOMOUS_MODE`, `DRY_RUN`, `ALLOW_POSTS`, `DAILY_AI_BUDGET`).
+- `agent/context_engine.py`: Real-world Seoul context (time in KST, live weather via Open-Meteo with cache, Korean holidays, activity recency).
+- `agent/memory_store.py`: Persistent multi-tiered memory (`identity_memory.json`, `user_memory.json`, `opinions_memory.json`, `recent_context.json`, `episodic_memory.jsonl`).
+- `agent/decision_engine.py`: Cognitive action evaluation (scoring `NO_ACTION`, text post, image post, comment reply, mention reply, DM response, feed like).
+- `agent/generator.py`: Multi-tier LLM content generation with prompt injection protection.
+- `agent/image_engine.py`: Kie.ai (`gpt-image-2-5-sunburst-image-to-image`) generation conditioned on canonical master face reference (`a1_front.png`).
+- `agent/visual_identity.py`: Canon visual description maintaining consistent facial geometry, balayage hair, and aesthetic smartphone photography.
+- `agent/validator.py`: The Critic (verifies zero exclamation marks, anti-repetition Jaccard overlap, no forbidden marketing terms, prompt injection defense).
+- `agent/budget_manager.py`: Spending caps (daily/monthly limits, image generation limits, emergency stop).
+- `agent/bsky_client.py`: Full AT Protocol XRPC client for posts, images, replies, threads, and direct messages (`chat.bsky.convo.*`).
+- `agent/runner.py`: Master cognitive tick runner.
 
 ---
 
-## 4. Weekly Funnel & Cloud Orchestration
-- **Single Source of Truth**: [`growth/schedule_assets/weekly_schedule.json`](file:///c:/AI-Project/growth/schedule_assets/weekly_schedule.json).
-- **Policy — Fanvue First**: Fanvue full companion sets must publish or be scheduled (`publishAt`) **15 minutes before** the Bluesky teaser goes live.
-- **Integrity Invariant**: Never tease on Bluesky what is not live on Fanvue.
-- **Idempotency Guardrails**: Published posts have `"status": "published"` and their AT Protocol URI in `weekly_schedule.json`. Both `bsky_schedule_worker.py` and `campaign_orchestrator.py` skip published drops automatically to prevent duplicate posts.
-- **GitHub Privacy Policy**: Subscriber sets in `growth/schedule_assets/sets/` are strictly ignored by Git (`.gitignore`). Whitelist only public teasers (`*.png`, `*.mp4`, `*.json`).
+## 3. GitHub Actions Cloud Automation
+- Workflow: `.github/workflows/bluesky_scheduler.yml`.
+- Schedule: Runs every 30 minutes during Seoul waking hours (07:00–01:30 KST).
+- State Persistence: Commits updated memory files in `data/memory/` and `data/logs/` automatically.
+- Required GitHub Secrets:
+  - `BSKY_HANDLE`
+  - `BSKY_APP_PASSWORD`
+  - `KIE_API_KEY`
+  - `OPENROUTER_API_KEY`
+  - `OPENAI_API_KEY` (optional)
+  - `GEMINI_API_KEY` (optional)
+
 
 ---
 
-## 5. Daily Command Cheatsheet
+## 4. Daily Command Cheatsheet
 From project root:
 ```powershell
-# 1. Campaign matrix status check
-python growth/campaign_orchestrator.py --status
+# 1. Live status dashboard
+python agent_runner.py --status
 
-# 2. Check Fanvue account identity & balance
-python growth/fanvue_api.py --whoami
+# 2. Run single cognitive tick in DRY_RUN mode (simulation)
+python agent_runner.py --dry-run
 
-# 3. Process new Fanvue subscriber welcome DMs
-python growth/fanvue_dm.py --welcome
+# 3. Run live autonomous cognitive tick
+python agent_runner.py --auto
 
-# 4. Generate companion reveal shots (1K resolution)
-python growth/generate_weekly_companion_sets.py --day [tue|wed|thu|fri|sat|sun|all]
+# 4. Force specific action in dry-run mode
+python agent_runner.py --dry-run --force-action PUBLISH_TEXT_POST
+python agent_runner.py --dry-run --force-action PUBLISH_IMAGE_POST
+python agent_runner.py --dry-run --force-action NO_ACTION
 
-# 5. Dispatch / test synchronized drop
-python growth/campaign_orchestrator.py --dispatch [drop_id]
+# 5. Run automated test suite
+python -m unittest discover -s tests -p "test_*.py"
 ```

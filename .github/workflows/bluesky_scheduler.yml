@@ -1,4 +1,4 @@
-name: Cross-Platform Campaign Scheduler (Fanvue + Bluesky)
+name: Seo-yeon Autonomous Social Agent (Bluesky)
 
 on:
   schedule:
@@ -7,26 +7,27 @@ on:
     - cron: '*/30 0-16 * * *'
   workflow_dispatch:
     inputs:
-      drop_id:
-        description: 'Specific Drop ID to dispatch (e.g. tue_cozy_knit, fri_morning_window). Leave blank for auto day detection.'
-        required: false
-        type: string
       dry_run:
-        description: 'Dry run simulation (validates Fanvue existence & Bluesky assets without publishing)'
+        description: 'Dry run simulation (evaluates context without publishing to Bluesky)'
         required: false
         type: boolean
         default: false
+      force_action:
+        description: 'Force specific ActionType (e.g. PUBLISH_TEXT_POST, PUBLISH_IMAGE_POST, NO_ACTION)'
+        required: false
+        type: string
+        default: ''
 
 permissions:
   contents: write
 
-# Prevent overlapping scheduler runs
+# Prevent overlapping runner executions
 concurrency:
-  group: bluesky-scheduler
+  group: seoyeon-agent-runner
   cancel-in-progress: false
 
 jobs:
-  dispatch_campaign:
+  autonomous_tick:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -42,126 +43,44 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Verify Bluesky Credentials
-        id: bsky_creds
+      - name: Execute Autonomous Agent Cognitive Tick
         env:
           BSKY_HANDLE: ${{ secrets.BSKY_HANDLE }}
           BSKY_APP_PASSWORD: ${{ secrets.BSKY_APP_PASSWORD }}
-        run: |
-          if [ -z "$BSKY_HANDLE" ] || [ -z "$BSKY_APP_PASSWORD" ]; then
-            echo "configured=false" >> "$GITHUB_OUTPUT"
-            echo "::warning::Bluesky credentials (BSKY_HANDLE / BSKY_APP_PASSWORD) not configured in repository secrets."
-          else
-            echo "configured=true" >> "$GITHUB_OUTPUT"
-          fi
+          KIE_API_KEY: ${{ secrets.KIE_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          DRY_RUN: ${{ github.event.inputs.dry_run }}
 
-      - name: Verify Fanvue Credentials
-        id: fanvue_creds
-        env:
-          FANVUE_API_KEY: ${{ secrets.FANVUE_API_KEY }}
-          FANVUE_TOKENS_JSON: ${{ secrets.FANVUE_TOKENS_JSON }}
         run: |
-          if [ -n "$FANVUE_API_KEY" ] || [ -n "$FANVUE_TOKENS_JSON" ]; then
-            echo "configured=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "configured=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::Fanvue credentials not configured on this runner. Skipping Fanvue subscriber chat retention."
-          fi
-
-      - name: Execute Synchronized Campaign Dispatch
-        # Fanvue sets are pre-scheduled natively on Fanvue servers with publishAt.
-        # GitHub Actions only needs Bluesky credentials to trigger the matching teaser.
-        if: ${{ !cancelled() && steps.bsky_creds.outputs.configured == 'true' }}
-        continue-on-error: true
-        env:
-          BSKY_HANDLE: ${{ secrets.BSKY_HANDLE }}
-          BSKY_APP_PASSWORD: ${{ secrets.BSKY_APP_PASSWORD }}
-        run: |
-          EXTRA_FLAGS=""
+          FLAGS="--auto"
           if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
-            EXTRA_FLAGS="--dry-run"
+            FLAGS="--dry-run"
+          fi
+          if [ -n "${{ github.event.inputs.force_action }}" ]; then
+            FLAGS="$FLAGS --force-action ${{ github.event.inputs.force_action }}"
           fi
 
-          if [ -n "${{ github.event.inputs.drop_id }}" ]; then
-            python growth/campaign_orchestrator.py --dispatch "${{ github.event.inputs.drop_id }}" $EXTRA_FLAGS
-          else
-            python growth/campaign_orchestrator.py --auto $EXTRA_FLAGS
-          fi
+          python agent_runner.py $FLAGS
 
-      - name: Execute Organic Voice Dispatch (Lyra Thoughts)
-        if: ${{ !cancelled() && steps.bsky_creds.outputs.configured == 'true' && github.event.inputs.dry_run != 'true' }}
-        continue-on-error: true
-        env:
-          BSKY_HANDLE: ${{ secrets.BSKY_HANDLE }}
-          BSKY_APP_PASSWORD: ${{ secrets.BSKY_APP_PASSWORD }}
-        run: |
-          python growth/bsky_text_post.py --auto
-
-      - name: Execute Organic Engagement (Lyra Comments)
-        if: ${{ !cancelled() && steps.bsky_creds.outputs.configured == 'true' && github.event.inputs.dry_run != 'true' }}
-        continue-on-error: true
-        env:
-          BSKY_HANDLE: ${{ secrets.BSKY_HANDLE }}
-          BSKY_APP_PASSWORD: ${{ secrets.BSKY_APP_PASSWORD }}
-          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          BSKY_ENGAGE_MAX_COMMENTS: "5"
-        run: |
-          python growth/bsky_engage.py --auto
-
-      - name: Execute Inbound Two-Way Engagement (Lyra Replies)
-        if: ${{ !cancelled() && steps.bsky_creds.outputs.configured == 'true' && github.event.inputs.dry_run != 'true' }}
-        continue-on-error: true
-        env:
-          BSKY_HANDLE: ${{ secrets.BSKY_HANDLE }}
-          BSKY_APP_PASSWORD: ${{ secrets.BSKY_APP_PASSWORD }}
-          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-        run: |
-          python growth/bsky_reply_worker.py --auto
-
-      - name: Execute Audience Harvester & Follower Growth (Lyra Sourcing)
-        if: ${{ !cancelled() && steps.bsky_creds.outputs.configured == 'true' && github.event.inputs.dry_run != 'true' }}
-        continue-on-error: true
-        env:
-          BSKY_HANDLE: ${{ secrets.BSKY_HANDLE }}
-          BSKY_APP_PASSWORD: ${{ secrets.BSKY_APP_PASSWORD }}
-        run: |
-          python growth/bsky_growth_engine.py --auto
-
-      - name: Execute Fanvue Subscriber Retention & Chat Agent (Apex Sanctuary)
-        if: ${{ !cancelled() && steps.fanvue_creds.outputs.configured == 'true' && github.event.inputs.dry_run != 'true' }}
-        continue-on-error: true
-        env:
-          FANVUE_API_KEY: ${{ secrets.FANVUE_API_KEY }}
-          FANVUE_TOKENS_JSON: ${{ secrets.FANVUE_TOKENS_JSON }}
-          OAUTH_CLIENT_ID: ${{ secrets.FANVUE_CLIENT_ID }}
-          OAUTH_CLIENT_SECRET: ${{ secrets.FANVUE_CLIENT_SECRET }}
-          OAUTH_SCOPES: "read:self read:chat write:chat read:fan read:creator read:media write:media read:post write:post read:insights read:tracking_links write:tracking_links offline_access"
-          OAUTH_REDIRECT_URI: "https://protoxiderpg.it/api/oauth/callback"
-          OAUTH_ISSUER_BASE_URL: "https://auth.fanvue.com"
-          API_BASE_URL: "https://api.fanvue.com"
-          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-        run: |
-          python growth/fanvue_chat_agent.py --auto
-
-      - name: Commit updated schedule and ledger
+      - name: Commit updated memory, logs, and audit ledger
         if: ${{ !cancelled() && github.event.inputs.dry_run != 'true' }}
         continue-on-error: true
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          for f in growth/schedule_assets/weekly_schedule.json \
-                   growth/ledger.jsonl \
-                   growth/bsky_organic_posts.jsonl \
-                   growth/bsky_comments.jsonl \
-                   growth/bsky_growth_follows.jsonl \
-                   growth/bsky_replied_notifications.jsonl \
-                   growth/welcomed.json \
-                   growth/fanvue_chat_history.jsonl \
-                   .pi/agent-memory/lyra/MEMORY.md; do
+          for f in data/memory/identity_memory.json \
+                   data/memory/user_memory.json \
+                   data/memory/opinions_memory.json \
+                   data/memory/episodic_memory.jsonl \
+                   data/memory/recent_context.json \
+                   data/logs/tick_history.jsonl \
+                   data/logs/telegram_outbox.jsonl \
+                   data/budget_ledger.json \
+                   data/weather_cache.json; do
             if [ -f "$f" ]; then
               git add "$f"
             fi
           done
-          git diff --staged --quiet || (git commit -m "chore(scheduler): update live post status and audit ledger [skip ci]" && git pull --rebase --autostash origin main && git push origin main)
+          git diff --staged --quiet || (git commit -m "chore(agent): persist autonomous memory and audit ledger [skip ci]" && git pull --rebase --autostash origin main && git push origin main)

@@ -227,12 +227,6 @@ def post_funnel(image_path: str, post_text: str, reply_text: str = "", dry_run: 
     return {"main_uri": main_uri}
 
 if __name__ == "__main__":
-    import argparse
-    parser = argparse.ArgumentParser(description="Bluesky Soft-NSFW Funnel Publisher")
-    parser.add_argument("--image", type=str, required=True, help="Path to soft-NSFW image")
-    parser.add_argument("--text", type=str, required=True, help="Main post copy")
-    parser.add_argument("--reply", type=str, default="", help="Optional thread reply with tracking link")
-    parser.add_argument("--dry-run", action="store_true", help="Simulate without posting")
-    args = parser.parse_args()
+    print("[NOTICE] bsky_funnel_post.py is DEPRECATED. Fanvue tracking funnels have been permanently removed. Use agent_runner.py instead.")
+    sys.exit(0)
 
-    post_funnel(args.image, args.text, args.reply, dry_run=args.dry_run)

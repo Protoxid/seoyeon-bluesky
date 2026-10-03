@@ -1,0 +1,89 @@
+{
+ "pipeline": "apex→sentry→atlas",
+ "scope": "2026-09-08 (tue_cozy_knit) + 2026-09-10 (thu_silk_slip) only",
+ "drops": [
+  {
+   "id": "tue_cozy_knit",
+   "day": "Tuesday",
+   "date": "2026-09-08",
+   "week": "2026-W37",
+   "slot": "evening",
+   "time_kst": "20:00",
+   "tier": 2,
+   "fanvue_tier": 3,
+   "lanes": [
+    "bluesky",
+    "fanvue"
+   ],
+   "platforms": [
+    "bluesky",
+    "fanvue"
+   ],
+   "status": "ready",
+   "label": "suggestive",
+   "media_type": "image",
+   "media_file": "growth/schedule_assets/tue_cozy_knit.png",
+   "renders_available": 1,
+   "main_text": "rain in seongsu tonight. boiled water for barley tea, pulled on this knit. too warm for it now.",
+   "reply_text": "slipped into something lighter once the room warmed up. the full set is on my private feed... come say hi 🖤 https://www.fanvue.com/syeon.hn?c=fv-4",
+   "fanvue_post_uuid": "02a350c3-7941-4df6-98a3-a4f34e566fac",
+   "fanvue_status": "published",
+   "fanvue_audience": "subscribers",
+   "fanvue_price_cents": null,
+   "fanvue_publish_at": null,
+   "fanvue_text": "slipped out of the knit once the flat warmed up. rain sounds through the window. what are you listening to tonight? 🖤",
+   "fanvue_gallery_files": [
+    "growth/schedule_assets/tue_cozy_knit.png",
+    "growth/schedule_assets/sets/tue_cozy_knit/02_knit_slide.png",
+    "growth/schedule_assets/sets/tue_cozy_knit/03_lace_lounge.png"
+   ],
+   "integrity_note": "Fanvue side already LIVE at time of handoff. Bluesky teaser not yet published (20:00 KST slot has passed). Bluesky 'ready' — needs arming for next available slot. Fanvue→Bluesky integrity coherent (Fanvue live before any teaser went up, as the teaser was never published). No re-publish needed on Fanvue side."
+  },
+  {
+   "id": "thu_silk_slip",
+   "day": "Thursday",
+   "date": "2026-09-10",
+   "week": "2026-W37",
+   "slot": "evening",
+   "time_kst": "18:30",
+   "tier": 2,
+   "fanvue_tier": 3,
+   "lanes": [
+    "bluesky",
+    "fanvue"
+   ],
+   "platforms": [
+    "bluesky",
+    "fanvue"
+   ],
+   "status": "ready",
+   "label": "suggestive",
+   "media_type": "image",
+   "media_file": "growth/schedule_assets/thu_silk_slip.png",
+   "renders_available": 1,
+   "main_text": "late sun in the flat. this slip is almost too light for late summer.",
+   "reply_text": "took a few before changing. private camera roll is here 🍯 https://www.fanvue.com/syeon.hn?c=fv-4",
+   "fanvue_post_uuid": "5455fa6c-8f68-4830-86a2-2dccd2247ca0",
+   "fanvue_status": "scheduled",
+   "fanvue_audience": "subscribers",
+   "fanvue_price_cents": null,
+   "fanvue_publish_at": "2026-09-10T09:15:00.000Z",
+   "fanvue_text": "late sun in the flat. this slip is almost too light for late summer. took these before the light went completely. are you watching the sunset where you are? 🍯",
+   "fanvue_gallery_files": [
+    "growth/schedule_assets/thu_silk_slip.png",
+    "growth/schedule_assets/sets/thu_silk_slip/02_rooftop_sunset.png",
+    "growth/schedule_assets/sets/thu_silk_slip/03_terrace_twilight.png"
+   ]
+  }
+ ],
+ "blocked": [],
+ "summary": {
+  "total_drops": 2,
+  "note": "wed_towel_steam (Sep 9) excluded from this QC/publish scope per operator instruction; entries in weekly_schedule.json left as-is.",
+  "fanvue": {
+   "tue_cozy_knit": "published",
+   "thu_silk_slip": "scheduled"
+  },
+  "schedule_file": "growth/schedule_assets/weekly_schedule.json"
+ }
+}

@@ -261,21 +261,8 @@ def run_autonomous_cycle(dry_run: bool = False) -> None:
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description="Fanvue Autonomous Retention & Chat Agent")
-    ap.add_argument("--auto", action="store_true", help="Run full welcome + chat retention loop")
-    ap.add_argument("--status", action="store_true", help="Display Fanvue agent status")
-    ap.add_argument("--dry-run", action="store_true", help="Simulate welcome and chat actions without writes")
-    args = ap.parse_args()
-
-    if args.status:
-        return show_status()
-
-    if args.auto or args.dry_run:
-        run_autonomous_cycle(dry_run=args.dry_run)
-        return 0
-
-    ap.print_help()
-    return 1
+    print("[NOTICE] fanvue_chat_agent.py is DEPRECATED. Fanvue integration has been permanently removed. Use agent_runner.py instead.")
+    return 0
 
 
 if __name__ == "__main__":

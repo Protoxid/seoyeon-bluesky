@@ -1,124 +1,113 @@
-# Seo-yeon Han AI Persona — Operating Context & Architecture
+# Seo-yeon Han AI Persona — Autonomous Bluesky Operating Context & Architecture
 
-This repository powers the autonomous presence, content generation, and cross-platform growth funnel for **Seo-yeon Han (한서연)**, a 26-year-old Korean visual designer & Pilates practitioner based in Seongsu-dong, Seoul.
+This repository powers the fully autonomous presence, natural social interactions, and persistent cognitive life of **Seo-yeon Han (한서연)**, a 25-year-old Korean woman living alone in Seongsu-dong, Seoul (`@syeonhn.bsky.social`).
 
----
-
-## 1. Active Platform Focus
-We actively maintain **3 primary platforms**:
-1. **Instagram (IG)**: Top-of-funnel public lifestyle aesthetic.
-   - SFW, sophisticated Seoul city life, coffee, Pilates, minimalist design studio, warm architecture.
-   - Audience bridge: High-intent fans funnel through the bio tracking link (`https://www.fanvue.com/syeon.hn?c=fv-2`).
-2. **Bluesky (`@syeonhn.bsky.social`)**: Organic viral growth & suggestive teaser funnel.
-   - Soft-NSFW candid snapshots, suggestive self-label (`com.atproto.label.defs#selfLabels` = `suggestive`).
-   - Every teaser includes an immediate threaded reply with a tracked conversion link to Fanvue (`c=fv-4`).
-   - Automated 24/7 dispatch via GitHub Actions and `growth/bsky_schedule_worker.py`.
-3. **Fanvue (`@syeon.hn`)**: Monetization engine & exclusive subscriber sanctuary.
-   - Paid 18+ subscriber feed ($9.99/mo, multi-month bundles, PPV vaults).
-   - Intimate, alluring, progressive reveals delivering on Bluesky teasers.
-   - Automated welcome DMs via `growth/fanvue_dm.py`.
+All Instagram and Fanvue integrations have been permanently removed. The project focuses exclusively on Seo-yeon's Bluesky account as her sole window to the social world.
 
 ---
 
-## 2. The Fanvue "Seduction Standard" (Content Differentiation)
-- **Instagram is SFW Lifestyle**: Wholesome, aesthetic, coffee, studio, street style.
-- **Fanvue is Seductive Intimacy**: Subscriber content must be genuinely alluring, sensual, and intimate (boudoir, rumpled bedsheets, unbuttoned shirts, pulled-up loungewear, slipped straps, topless/underboob, bedroom eyes with parted lips).
-- **Rule**: Do **NOT** generate wholesome lifestyle/IG photos for Fanvue subscriber sets. Deliver on what the teaser promised.
+## 1. Operating Objective: An Autonomous Person, Not a Bot
+Seo-yeon operates her account independently without rigid schedules or predictable cron events:
+- **No fixed schedules**: No "08:00 coffee", "13:00 lunch", or "20:00 pilates" clockwork.
+- **Cognitive Decision Loop**: Each cycle evaluates the current Seoul environment (time, weather, season), inbound notifications, unread DMs, recent actions, and her memory store before deciding what to do.
+- **Natural Restraint (`NO_ACTION`)**: "Doing nothing" is a common, valid, and prominent outcome. If she has no organic reason to act, she stays quietly offline.
+- **Ordinary Topics**: Her thoughts cover everyday life (cinema, books, food, Korean autumn air, quiet evenings, subway observations, music, design). Pilates and coffee are part of her life, not constant catchphrases.
 
 ---
 
-## 3. Image Generation & Anti-Defect Invariants
-All generation runs on **Kie.ai**:
-- **Generators**:
-  - **Tier 1 (SFW / Lifestyle)**: `gpt-image-2-5-sunburst-image-to-image` (or `gpt-image-2-text-to-image` for no-face still-life).
-  - **Tiers 2 & 3 (Suggestive / Intimate)**: `seedream/5-pro-image-to-image`.
-- **Resolution Tier**: **Strictly enforce `"tier": "1k"`** (`1024×1365` for 3:4). 2K is deprecated to conserve credits (~4x cost) while 1K retains authentic filmic sensor grain.
-- **Plate Policy (Plateless Default)**: Avoid using plates as much as possible; use only a couple (~2) per week. Plates are strictly for recurring indoor anchors (studio reformer room, flat). Never attach plates to outdoor walks, cafes, streets, rivers, or markets, which causes glued-on composite artifacts.
-- **Canon Identity Anchors**:
-  - `MASTER_A1`: `personas/seoyeon/master/a/a1_front.png` (face master)
-  - `MASTER_C5`: `personas/seoyeon/master/c/c5_relax_front.png` (relaxed body master)
-  - `MASTER_TATTOO`: `personas/seoyeon/master/c/tattoo_crop.png` (high-res crop of the canon botanical sprig)
-- **Tattoo Invariants**:
-  - Canon tattoo: Delicate, fine-line, two-branch minimalist botanical sprig on her **left ribcage** below the breast line.
-  - **Zero-Tattoo Prompt Rule**: Do **NOT** mention the word "tattoo" anywhere in the text prompts (clothed or bare). Mentioning "tattoo" in text prompts triggers diffusion hallucinations and spatial flipping.
-  - **Reference Anchoring**: Pass `[a1_front, c5_relax_front, tattoo_crop]` for bare-torso shots. The visual master references (`c5_relax_front.png` and `tattoo_crop.png`) permanently and accurately anchor the marking directly to HER anatomical left ribcage.
-  - **Clothed Torso Rule**: For clothed torso shots, set `"exclude_body_ref": True` (passes only `a1_front.png`) so no tattoo reference is sent.
-- **Zero Body Prompting**: Rely on references for her natural athletic Pilates proportions. Never prompt "tiny waist" or "hourglass" (causes unnatural CGI wasp-waist artifacts).
-- **Realistic Camera & Props**: White iPhone 15 Pro with plain clear transparent case. Phone only visible in mirror selfies or propped on tables.
+## 2. The Cognitive Loop Architecture
+The system runs via `agent_runner.py` following this high-level loop:
 
----
-
-## 4. Weekly Funnel & Cloud Orchestration
-- **Single Source of Truth**: [`growth/schedule_assets/weekly_schedule.json`](file:///c:/AI-Project/growth/schedule_assets/weekly_schedule.json).
-- **Policy — Fanvue First**: Fanvue full companion sets must publish or be scheduled (`publishAt`) **15 minutes before** the Bluesky teaser goes live.
-- **Integrity Invariant**: Never tease on Bluesky what is not live on Fanvue.
-- **Idempotency Guardrails**: Published posts have `"status": "published"` and their AT Protocol URI in `weekly_schedule.json`. Both `bsky_schedule_worker.py` and `campaign_orchestrator.py` skip published drops automatically to prevent duplicate posts.
-- **GitHub Privacy Policy**: Subscriber sets in `growth/schedule_assets/sets/` are strictly ignored by Git (`.gitignore`). Whitelist only public teasers (`*.png`, `*.mp4`, `*.json`).
-
----
-
-## 5. Organic Bluesky Presence & Engagement Suite
-Lyra (@syeonhn.bsky.social) maintains active, authentic organic engagement alongside scheduled campaign teasers:
-- **Daily Quota**: **Strictly 2 comments per day** on relevant community posts (Korean coffee/cafe, Seongsu neighborhood, Pilates, commute textures).
-- **Pacing & Cadence**:
-  - Comment 1: Morning / midday active window (07:00–13:30 KST).
-  - Comment 2: Afternoon / evening active window (14:00–23:30 KST).
-  - Cooldown: Minimum 3.5h spacing (relaxed to 2.5h late evening).
-- **Voice Invariants**:
-  - Zero promotional copy, zero Fanvue mentions, zero links, zero exclamation marks.
-  - Lowercase, dry, understated humor, authentic Seoul sensory textures.
-  - Generated via DeepSeek Flash (OpenRouter) with Gemini 3.6 Flash and deterministic offline canon fallbacks.
-- **Workflow Decoupling**: Runs independently in `.github/workflows/bluesky_scheduler.yml` with `continue-on-error` on teaser drops, guaranteeing daily execution regardless of upstream campaign states.
-
----
-
-## 6. Autonomous Follower Growth & Two-Way Community Loops
-To solve the cold-start problem (0 to 1,000+ followers) and maximize conversion into Fanvue:
-1. **Audience Sourcing (`growth/bsky_growth_engine.py`)**:
-   - Discovers real active accounts engaging with Seoul culture, coffee, pilates, and illustration.
-   - Executes 15–20 curated follows/day (yielding ~5–8 follow-backs/day, ~150–240 followers/month).
-   - Automatically unfollows non-reciprocating accounts after 7 days (max 5/day).
-2. **Two-Way Reply Acceleration (`growth/bsky_reply_worker.py`)**:
-   - Continuously monitors follower comments and mentions.
-   - Replies in Seo-yeon's signature dry, lowercase voice to double thread engagement velocity.
-3. **Feed & Tag Optimization**:
-   - Injects `langs: ["ko", "en"]` into all post records.
-   - Emits richtext hashtag facets (`app.bsky.richtext.facet#tag`) for all `#hashtags` to index into Bluesky topic feeds.
-4. **Profile Anchor**:
-   - Hero soft-NSFW teaser post pinned at the top of `@syeonhn.bsky.social` with threaded Fanvue link (`c=fv-4`).
-5. **Fanvue Autonomous Retention (`growth/fanvue_chat_agent.py`)**:
-   - Greets all new paying subscribers ($9.99/mo) with Option 1 welcome DM from `fanvue_profile.md`.
-   - Polls active subscriber chats and delivers intimate, personal, lowercase conversational replies.
-
----
-
-## 7. Daily Command Cheatsheet
-From project root:
-```powershell
-# 1. Master cross-platform dashboard status
-python growth/daily_tick.py --status
-
-# 2. Run master autonomous growth tick (safe dry-run)
-python growth/daily_tick.py --dry-run
-
-# 3. Follower growth engine status and auto tick
-python growth/bsky_growth_engine.py --status
-python growth/bsky_growth_engine.py --auto
-
-# 4. Inbound Bluesky reply worker
-python growth/bsky_reply_worker.py --status
-python growth/bsky_reply_worker.py --auto
-
-# 5. Outbound organic comment engagement
-python growth/bsky_engage.py --status
-python growth/bsky_engage.py --auto
-
-# 6. Fanvue autonomous welcome DMs and chat responder
-python growth/fanvue_chat_agent.py --status
-python growth/fanvue_chat_agent.py --auto
-
-# 7. Campaign matrix status check
-python growth/campaign_orchestrator.py --status
+```text
+       OBSERVE
+          │  (Sensory inputs: Seoul time & weather, notifications, DMs, feed)
+          ▼
+    BUILD CONTEXT
+          │  (Temporal phase, weather, holidays, recency of actions)
+          ▼
+   RECALL MEMORY
+          │  (Identity facts, user profile, established opinions, recent posts)
+          ▼
+EVALUATE CANDIDATES
+          │  (Scores possible actions: NO_ACTION, post, reply, DM, like)
+          ▼
+        DECIDE
+          │  (Selects highest-scoring organic action)
+          ▼
+   GENERATE CONTENT
+          │  (Multi-tier LLM generation grounded in her dry, lowercase voice)
+          ▼
+ CRITIC / VALIDATOR
+          │  (Enforces zero '!', no marketing, anti-repetition, anti-injection)
+          ▼
+       EXECUTE
+          │  (Publishes to Bluesky via AT Protocol XRPC)
+          ▼
+    STORE IN MEMORY
+             (Updates user memory, episodic memory, recent context, budget)
 ```
 
+---
 
+## 3. Persistent Memory System (`data/memory/`)
+1. **Identity Memory (`identity_memory.json`)**:
+   - Canonical facts from `CANON.md`: 25 years old (turns 26 on 23 Oct), lives in Seongsu, retrained from corporate marketing to pilates instructor, tight budget, dry understated voice.
+2. **User Memory (`user_memory.json`)**:
+   - Relationship tracking (`stranger` → `friendly_acquaintance` → `regular` → `trusted_friend`), interaction count, known facts learned about the user.
+3. **Opinion Memory (`opinions_memory.json`)**:
+   - Established stances on cinema, music, food, and Seoul life to prevent contradictory statements.
+4. **Recent Context (`recent_context.json`)**:
+   - Rolling history of past posts and replies. Tested via Jaccard and n-gram similarity to prevent repetitive themes, opening words, or selfie frequency.
+5. **Episodic Memory (`episodic_memory.jsonl`)**:
+   - Chronological log of notable interactions, milestones, and reflections.
+6. **Creator Relationship ("my master" / "my human")**:
+   - Seo-yeon always refers to her human creator and operator as `"my master"` or `"my human"`.
+   - Direct Telegram messenger (`agent/notifier.py`): If she needs to ask her master for anything, she sends an immediate Telegram message to `@Protoxide`.
+
+---
+
+## 4. Text Generation (OpenRouter Exclusive) & Kie.ai Image Generation
+- **Text Generation**: Routed **EXCLUSIVELY** through OpenRouter API (`https://openrouter.ai/api/v1/chat/completions`).
+  - Primary Model: `anthropic/claude-3.5-sonnet` (state-of-the-art intelligence, nuanced character adherence, natural dry tone without robotic exclamation marks).
+  - Fallback Model: `deepseek/deepseek-chat` (fast, highly intelligent secondary on OpenRouter).
+- **Image Generation**: Conditioned on the canonical face master through **Kie.ai** API (`https://api.kie.ai`) with `gpt-image-2-5-sunburst-image-to-image`. Identity-anchored to `personas/seoyeon/master/a/a1_front.png`.
+- **Telegram Escalation**: When sensitive inquiries occur (e.g. users asking for real-life meetups, personal contact details) or when agent decisions require master approval, she notifies `@Protoxide` via Telegram Bot API.
+
+---
+
+## 5. Cloud Automation (Runs 24/7 with PC Off)
+The system is fully deployed on **GitHub Actions**:
+- Workflow: `.github/workflows/bluesky_scheduler.yml`.
+- Schedule: Runs every 30 minutes during Seoul waking hours (07:00–01:30 KST = 22:00–16:30 UTC).
+- Commits state: Automatically commits updated `data/memory/`, `data/logs/`, and `data/budget_ledger.json` back to the repository with `[skip ci]`.
+- Required GitHub Secrets:
+  - `BSKY_HANDLE`: `syeonhn.bsky.social`
+  - `BSKY_APP_PASSWORD`: Bluesky App Password (with DM access enabled)
+  - `KIE_API_KEY`: Kie.ai API key (for GPT Image 2.5 image generation)
+  - `OPENROUTER_API_KEY`: OpenRouter API key (sole text provider for Claude 3.5 Sonnet / DeepSeek)
+  - `TELEGRAM_BOT_TOKEN`: Telegram bot token (for outbound messages to `@Protoxide`)
+  - `TELEGRAM_CHAT_ID`: Telegram chat ID / recipient for `@Protoxide` (optional, defaults to `@Protoxide`)
+
+
+---
+
+## 6. Daily Command Cheatsheet
+From project root:
+```powershell
+# 1. View live agent dashboard (Seoul time, weather, memory, budget)
+python agent_runner.py --status
+
+# 2. Run single autonomous tick in safe DRY-RUN mode (no publishing)
+python agent_runner.py --dry-run
+
+# 3. Run live autonomous tick
+python agent_runner.py --auto
+
+# 4. Force a specific action in dry-run mode (for verification)
+python agent_runner.py --dry-run --force-action PUBLISH_TEXT_POST
+python agent_runner.py --dry-run --force-action PUBLISH_IMAGE_POST
+python agent_runner.py --dry-run --force-action NO_ACTION
+
+# 5. Run full test suite
+python -m unittest discover -s tests -p "test_*.py"
+```

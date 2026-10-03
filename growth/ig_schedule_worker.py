@@ -163,11 +163,8 @@ def main() -> int:
     ap.add_argument("--window", type=float, default=WINDOW_HOURS,
                     help="hours after slot time before a row is 'missed' not late-published")
     a = ap.parse_args()
-
-    rows = load_rows()
-    ig_rows = [r for r in rows if is_tier1_ig(r)]
-
-    if a.list:
+    print("[NOTICE] ig_schedule_worker.py is DEPRECATED. Instagram integration has been permanently removed. Use agent_runner.py instead.")
+    return 0
         now = _now()
         print(f"{'id':24} {'publish_at':26} {'status':10} due?  media  caption")
         for r in ig_rows:

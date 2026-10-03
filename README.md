@@ -1,39 +1,40 @@
-# Seo-yeon Han — start here
-An AI persona operated across Instagram, Bluesky and Fanvue.
-**Read the file for your job. Do not read the whole repository.**
+# Seo-yeon Han (한서연) — Autonomous Bluesky Agent
 
-## IF YOU ARE AN AGENT, FIND YOUR ROLE
-| your job | read |
-|---|---|
-| Plan the weekly Fanvue + Bluesky drops | `roles/weekly_planner.md` |
-| Publish to Bluesky / Fanvue, run DMs | `roles/adult_ops.md` |
-| Publish to Instagram | `roles/instagram_ops.md` |
+An autonomous, living AI persona operating independently on Bluesky (`@syeonhn.bsky.social`).
 
-Each role file names the two or three documents you need and tells you what
-**not** to open. That list is a contract, not a suggestion — this repo is
-~9,500 lines of markdown and most of it is history.
+---
 
-## THE FOUR CANONICAL DOCUMENTS
-Everything else is history, evidence, or code.
+## Overview
+This repository powers the cognitive loop, persistent multi-tier memory, sensory context evaluation, and content generation for **Seo-yeon Han**, a 25-year-old Korean woman living alone in Seongsu-dong, Seoul.
 
-| file | owns |
-|---|---|
-| `CANON.md` | who she is. Identity, life, voice, hard rules. |
-| `PLATFORMS.md` | the tier model. Which rules apply where. Live status. |
-| `PIPELINES.md` | how an image gets made. Both generator stacks. |
-| `growth/RUNBOOK.md` | the commands and the weekly loop. |
+All Instagram and Fanvue integrations have been removed. The system is designed to behave like an authentic person rather than a scheduled social media bot:
+- **Autonomous Decisions**: Evaluates environment (Seoul time, weather, holidays), incoming mentions, DMs, and memory to decide whether to act.
+- **Natural Restraint**: "Doing nothing" (`NO_ACTION`) is a valid and common outcome.
+- **Persistent Memory**: Retains identity facts, user relationship progression, topic opinions, and rolling context to avoid repetition.
+- **Continuous Cloud Execution**: Runs 24/7 on GitHub Actions with the user's PC completely powered off.
 
-Supporting, read only when the rule is in question:
-- `growth/COMPLIANCE.md` — every platform rule quoted, with its source URL
-- `personas/seoyeon/wiki/domains/persona/character.md` — the character bible
-- `personas/seoyeon/wiki/domains/pipeline/playbook.md` — why each prompt rule exists
+---
 
-## THE RULE THAT KEEPS THIS TIDY
-**One fact, one home.** A document that restates a fact from another document
-will drift from it, and then a reader has two answers and no way to choose.
-Link instead. This repo had three `HANDOFF.md` files that were 85% verbatim
-copies of each other, and they disagreed about her age, her job and which
-image generator to use.
+## Quickstart
 
-If you find a contradiction: fix it in the file that **owns** the fact per the
-table above, and delete it from the other. Never patch both.
+```powershell
+# 1. Inspect live agent dashboard & Seoul environment context
+python agent_runner.py --status
+
+# 2. Run an autonomous cognitive cycle in safe simulation mode (DRY-RUN)
+python agent_runner.py --dry-run
+
+# 3. Run live autonomous tick
+python agent_runner.py --auto
+
+# 4. Run test suite
+python -m unittest discover -s tests -p "test_*.py"
+```
+
+---
+
+## Documentation
+- `AGENTS.md` — Full operating context, cognitive architecture, memory model, and cloud deployment.
+- `CANON.md` — Seo-yeon's biographical identity, life facts, voice rules, and character constraints.
+- `PLATFORMS.md` — Platform strategy (exclusive Bluesky focus, legacy platforms retired).
+- `CLAUDE.md` — Developer commands, module directory, and cheatsheet.

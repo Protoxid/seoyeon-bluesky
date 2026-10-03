@@ -621,10 +621,8 @@ def main() -> int:
     ap.add_argument("--promo-group", choices=["new_subscribers", "expired_subscribers", "all", "followers"], default="new_subscribers", help="Target group for promo")
     ap.add_argument("--dry-run", action="store_true", help="Simulate write calls without modifying remote state")
     args = ap.parse_args()
-
-    if not (args.whoami or args.make_links or args.post or args.list_automated or args.setup_automated or args.set_price or args.create_promo):
-        ap.print_help()
-        return 1
+    print("[NOTICE] fanvue_api.py is DEPRECATED. Fanvue integration has been permanently removed. Use agent_runner.py instead.")
+    return 0
 
     key = load_key()
     client = FanvueClient(api_key=key)
