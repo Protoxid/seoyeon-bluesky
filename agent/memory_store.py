@@ -290,12 +290,113 @@ class MemoryStore:
         with open(self.episodic_file, "a", encoding="utf-8") as f:
             f.write(json.dumps(entry, ensure_ascii=False) + "\n")
 
-    # --- Recent Context Memory (Repetition Protection) ---
-    def get_recent_context(self) -> Dict[str, List[Dict[str, Any]]]:
+    # --- Recent Context Memory (Repetition & Duplicate Protection) ---
+    def _seed_historical_replied_uris(self) -> Set[str]:
+        uris: Set[str] = set()
+        p1 = self.memory_dir.parent.parent / "growth" / "bsky_replied_notifications.jsonl"
+        if p1.exists():
+            try:
+                for line in p1.read_text(encoding="utf-8", errors="ignore").splitlines():
+                    if line.strip():
+                        e = json.loads(line)
+                        if e.get("reply_to_uri"):
+                            uris.add(e["reply_to_uri"])
+                        if e.get("published_uri"):
+                            uris.add(e["published_uri"])
+            except Exception:
+                pass
+        p2 = self.memory_dir.parent.parent / "growth" / "bsky_comments.jsonl"
+        if p2.exists():
+            try:
+                for line in p2.read_text(encoding="utf-8", errors="ignore").splitlines():
+                    if line.strip():
+                        e = json.loads(line)
+                        if e.get("target_uri"):
+                            uris.add(e["target_uri"])
+                        if e.get("reply_uri"):
+                            uris.add(e["reply_uri"])
+            except Exception:
+                pass
+        return uris
+
+    def get_recent_context(self) -> Dict[str, Any]:
         try:
-            return json.loads(self.recent_context_file.read_text(encoding="utf-8"))
+            ctx = json.loads(self.recent_context_file.read_text(encoding="utf-8"))
         except Exception:
-            return {"posts": [], "replies": [], "dms": []}
+            ctx = {"posts": [], "replies": [], "dms": []}
+
+        changed = False
+        if "posts" not in ctx:
+            ctx["posts"] = []
+            changed = True
+        if "replies" not in ctx:
+            ctx["replies"] = []
+            changed = True
+        if "dms" not in ctx:
+            ctx["dms"] = []
+            changed = True
+        if "replied_notification_uris" not in ctx or "replied_post_uris" not in ctx:
+            historical = self._seed_historical_replied_uris()
+            # Also include any URIs found in current replies array
+            for r in ctx.get("replies", []):
+                for k in ("notification_uri", "target_uri", "uri"):
+                    v = r.get(k)
+                    if v:
+                        historical.add(v)
+            if "replied_notification_uris" not in ctx:
+                ctx["replied_notification_uris"] = list(historical)
+                changed = True
+            if "replied_post_uris" not in ctx:
+                ctx["replied_post_uris"] = list(historical)
+                changed = True
+
+        if changed:
+            try:
+                self.recent_context_file.write_text(json.dumps(ctx, indent=2, ensure_ascii=False), encoding="utf-8")
+            except Exception:
+                pass
+        return ctx
+
+    def has_replied_to_notification(self, notif_uri: str) -> bool:
+        if not notif_uri:
+            return False
+        ctx = self.get_recent_context()
+        if notif_uri in ctx.get("replied_notification_uris", []):
+            return True
+        if notif_uri in ctx.get("replied_post_uris", []):
+            return True
+        for r in ctx.get("replies", []):
+            if r.get("notification_uri") == notif_uri or r.get("target_uri") == notif_uri or r.get("uri") == notif_uri:
+                return True
+        return False
+
+    def has_replied_to_post(self, post_uri: str) -> bool:
+        if not post_uri:
+            return False
+        ctx = self.get_recent_context()
+        if post_uri in ctx.get("replied_post_uris", []):
+            return True
+        if post_uri in ctx.get("replied_notification_uris", []):
+            return True
+        for r in ctx.get("replies", []):
+            if r.get("target_uri") == post_uri or r.get("uri") == post_uri:
+                return True
+        return False
+
+    def mark_notification_handled(self, notif_uri: str, target_post_uri: str = "") -> None:
+        if not notif_uri and not target_post_uri:
+            return
+        ctx = self.get_recent_context()
+        notif_set = set(ctx.get("replied_notification_uris", []))
+        post_set = set(ctx.get("replied_post_uris", []))
+        if notif_uri:
+            notif_set.add(notif_uri)
+        if target_post_uri:
+            post_set.add(target_post_uri)
+            notif_set.add(target_post_uri)
+        ctx["replied_notification_uris"] = list(notif_set)[-300:]
+        ctx["replied_post_uris"] = list(post_set)[-300:]
+        self.recent_context_file.write_text(json.dumps(ctx, indent=2, ensure_ascii=False), encoding="utf-8")
 
     def record_recent_post(self, text: str, topic: str, post_id: str = "", has_image: bool = False) -> None:
         ctx = self.get_recent_context()
@@ -312,7 +413,16 @@ class MemoryStore:
         ctx["posts"] = posts[:25]
         self.recent_context_file.write_text(json.dumps(ctx, indent=2, ensure_ascii=False), encoding="utf-8")
 
-    def record_recent_reply(self, target_handle: str, user_text: str, reply_text: str, uri: str = "") -> None:
+    def record_recent_reply(
+        self,
+        target_handle: str,
+        user_text: str,
+        reply_text: str,
+        uri: str = "",
+        target_uri: str = "",
+        root_uri: str = "",
+        notification_uri: str = "",
+    ) -> None:
         ctx = self.get_recent_context()
         replies = ctx.get("replies", [])
         now_iso = dt.datetime.now(dt.timezone.utc).isoformat()
@@ -321,9 +431,25 @@ class MemoryStore:
             "user_text": user_text,
             "reply_text": reply_text,
             "uri": uri,
+            "target_uri": target_uri,
+            "root_uri": root_uri,
+            "notification_uri": notification_uri,
             "created_at": now_iso
         })
         ctx["replies"] = replies[:30]
+
+        notif_set = set(ctx.get("replied_notification_uris", []))
+        post_set = set(ctx.get("replied_post_uris", []))
+        if notification_uri:
+            notif_set.add(notification_uri)
+        if target_uri:
+            post_set.add(target_uri)
+            notif_set.add(target_uri)
+        if uri:
+            post_set.add(uri)
+        ctx["replied_notification_uris"] = list(notif_set)[-300:]
+        ctx["replied_post_uris"] = list(post_set)[-300:]
+
         self.recent_context_file.write_text(json.dumps(ctx, indent=2, ensure_ascii=False), encoding="utf-8")
 
     def get_hours_since_last_post(self) -> float:

@@ -292,6 +292,24 @@ def post_reply(
         print(f"  [DRY-RUN] Would post reply: \"{reply_text}\" to {parent_uri}")
         return True, "simulated-uri"
 
+    # Pre-flight check: prevent commenting twice on the same post without another comment in between
+    try:
+        encoded_parent = urllib.parse.quote(parent_uri)
+        chk_req = urllib.request.Request(
+            f"{XRPC_BASE}/app.bsky.feed.getPostThread?uri={encoded_parent}&depth=2",
+            headers={"Authorization": f"Bearer {jwt}"}
+        )
+        with urllib.request.urlopen(chk_req, timeout=10) as r:
+            t_data = json.loads(r.read().decode("utf-8")).get("thread", {})
+            replies = t_data.get("replies", [])
+            for rep in replies:
+                rep_did = rep.get("post", {}).get("author", {}).get("did", "")
+                if rep_did == my_did:
+                    print(f"  [SAFETY ABORT] Already replied to {parent_uri}. Preventing duplicate comment.")
+                    return False, "aborted_duplicate"
+    except Exception:
+        pass
+
     now_iso = dt.datetime.now(dt.timezone.utc).isoformat().replace("+00:00", "Z")
     record = {
         "$type": "app.bsky.feed.post",

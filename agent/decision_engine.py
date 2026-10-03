@@ -115,10 +115,15 @@ class DecisionEngine:
         # 3. Notifications (Replies & Mentions)
         # -------------------------------------------------------------
         if config.allow_replies and notifications:
-            for notif in notifications[:10]:
+            for notif in notifications[:15]:
                 reason = notif.get("reason")
                 if reason not in ("reply", "mention"):
                     continue
+
+                notif_uri = notif.get("uri", "")
+                if notif_uri:
+                    if memory_store.has_replied_to_notification(notif_uri) or memory_store.has_replied_to_post(notif_uri):
+                        continue
 
                 author = notif.get("author", {})
                 author_handle = author.get("handle", "")
@@ -243,16 +248,18 @@ class DecisionEngine:
                     )
 
                 if config.allow_replies and context.replies_today < config.max_replies_per_day:
-                    candidates.append(
-                        ActionCandidate(
-                            action=ActionType.BROWSE_AND_REPLY,
-                            score=0.38,
-                            confidence=0.60,
-                            reason=f"Thoughtful reply to feed post by @{author}.",
-                            target_data={"post": post},
-                            intent="add_perspective",
+                    post_uri = post.get("uri", "")
+                    if not memory_store.has_replied_to_post(post_uri):
+                        candidates.append(
+                            ActionCandidate(
+                                action=ActionType.BROWSE_AND_REPLY,
+                                score=0.38,
+                                confidence=0.60,
+                                reason=f"Thoughtful reply to feed post by @{author}.",
+                                target_data={"post": post},
+                                intent="add_perspective",
+                            )
                         )
-                    )
                 break
 
         # -------------------------------------------------------------

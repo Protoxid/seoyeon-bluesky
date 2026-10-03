@@ -172,7 +172,7 @@ class BlueskyClient:
         including root post, intermediate parents, and author details.
         """
         encoded_uri = urllib.parse.quote(uri)
-        res = self.xrpc_get(f"app.bsky.feed.getPostThread?uri={encoded_uri}&depth={depth}")
+        res = self.xrpc_get("app.bsky.feed.getPostThread", {"uri": uri, "depth": depth})
         thread = res.get("thread", {})
 
         posts_chain: List[Dict[str, Any]] = []
@@ -184,6 +184,7 @@ class BlueskyClient:
                     "uri": p.get("uri"),
                     "cid": p.get("cid"),
                     "author": p.get("author", {}).get("handle", ""),
+                    "author_did": p.get("author", {}).get("did", ""),
                     "text": p.get("record", {}).get("text", ""),
                 })
             parent_node = curr.get("parent")
@@ -200,6 +201,75 @@ class BlueskyClient:
             "root": posts_chain[0] if posts_chain else None,
             "current": posts_chain[-1] if posts_chain else None,
         }
+
+    def can_reply_to_thread(
+        self,
+        target_uri: str,
+        thread_ctx: Optional[Dict[str, Any]] = None,
+    ) -> Tuple[bool, str]:
+        """
+        In-situ verification against the live AT Protocol post thread:
+        Enforces the invariant:
+        'Never comment on the same post twice without another comment in between by another user.'
+
+        Returns (True, "OK") if safe, or (False, reason) if replying would violate the invariant.
+        """
+        if not target_uri:
+            return False, "Empty target URI"
+
+        if not thread_ctx:
+            thread_ctx = self.get_thread_context(target_uri)
+
+        thread = thread_ctx.get("thread", {}) if isinstance(thread_ctx, dict) else {}
+        if not thread or thread.get("$type") != "app.bsky.feed.defs#threadViewPost":
+            # If thread structure is not accessible (e.g. simulated dry-run or deleted post),
+            # allow default progression (memory layer acts as defense).
+            return True, "Thread unverified or unavailable"
+
+        target_post = thread.get("post", {})
+        target_author = target_post.get("author", {})
+        target_handle = (target_author.get("handle") or "").lower()
+        target_did = target_author.get("did") or ""
+
+        my_handle = (self.handle or config.bsky_handle or "").lower()
+        my_did = self.did or ""
+
+        # 1. Target post authored by self -> cannot reply to self
+        if (my_handle and target_handle == my_handle) or (my_did and target_did == my_did):
+            return False, "Target post was authored by Seo-yeon herself"
+
+        # 2. Check direct replies under target_post
+        replies = thread.get("replies", [])
+        if isinstance(replies, list):
+            for rep in replies:
+                if not isinstance(rep, dict) or rep.get("$type") != "app.bsky.feed.defs#threadViewPost":
+                    continue
+                rep_post = rep.get("post", {})
+                rep_author = rep_post.get("author", {})
+                rep_handle = (rep_author.get("handle") or "").lower()
+                rep_did = rep_author.get("did") or ""
+
+                if (my_handle and rep_handle == my_handle) or (my_did and rep_did == my_did):
+                    # Seo-yeon has already posted a reply to this target_post!
+                    # Check if another user has replied to Seo-yeon's reply:
+                    child_replies = rep.get("replies", [])
+                    has_subsequent_user_reply = False
+                    if isinstance(child_replies, list):
+                        for cr in child_replies:
+                            if isinstance(cr, dict) and cr.get("$type") == "app.bsky.feed.defs#threadViewPost":
+                                cr_author = cr.get("post", {}).get("author", {})
+                                cr_handle = (cr_author.get("handle") or "").lower()
+                                cr_did = cr_author.get("did") or ""
+                                if (my_handle and cr_handle != my_handle) and (not my_did or cr_did != my_did):
+                                    has_subsequent_user_reply = True
+                                    break
+
+                    if not has_subsequent_user_reply:
+                        return False, "Seo-yeon already commented on this post without another comment in between by another user"
+                    else:
+                        return False, "Seo-yeon already commented directly on this post; any reply must target the subsequent comment"
+
+        return True, "Safe to reply"
 
     # --- Notifications ---
     def list_notifications(self, limit: int = 30) -> List[Dict[str, Any]]:

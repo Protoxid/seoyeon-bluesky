@@ -191,7 +191,51 @@ def run_tick(
         print(f"\n[Processing Inbound Mention/Comment from @{target_author}...]")
         print(f"  User said: \"{user_text}\"")
 
+        # 1. Pre-execution Safety: Check memory store
+        if memory_store.has_replied_to_notification(target_uri) or memory_store.has_replied_to_post(target_uri):
+            print(f"  [SAFETY ABORT] Target {target_uri} already marked as replied in memory. Preventing duplicate comment.")
+            memory_store.mark_notification_handled(notif.get("uri", ""), target_post_uri=target_uri)
+            if auth_ok:
+                bsky_client.update_seen()
+            executed = True
+            result_details = {"status": "aborted_duplicate_comment", "target_uri": target_uri}
+            now_iso = dt.datetime.now(dt.timezone.utc).isoformat()
+            log_tick({
+                "ts": now_iso,
+                "seoul_time": context.seoul_time_display,
+                "action": "NO_ACTION",
+                "reason": f"Safety abort: already replied to {target_author}'s comment ({target_uri}).",
+                "dry_run": is_dry,
+                "executed": True,
+                "details": result_details,
+                "budget": budget_manager.get_summary(),
+            })
+            return 0
+
+        # 2. Pre-execution Safety: Inspect live thread context
         thread_ctx = bsky_client.get_thread_context(target_uri)
+        can_reply, block_reason = bsky_client.can_reply_to_thread(target_uri, thread_ctx)
+        if not can_reply:
+            print(f"  [SAFETY ABORT] {block_reason}. Preventing duplicate comment on same post.")
+            memory_store.mark_notification_handled(notif.get("uri", ""), target_post_uri=target_uri)
+            if auth_ok:
+                bsky_client.update_seen()
+            executed = True
+            result_details = {"status": "aborted_thread_safety", "reason": block_reason, "target_uri": target_uri}
+            now_iso = dt.datetime.now(dt.timezone.utc).isoformat()
+            log_tick({
+                "ts": now_iso,
+                "seoul_time": context.seoul_time_display,
+                "action": "NO_ACTION",
+                "reason": f"Safety abort: {block_reason}.",
+                "dry_run": is_dry,
+                "executed": True,
+                "details": result_details,
+                "budget": budget_manager.get_summary(),
+            })
+            return 0
+
+        # 3. Draft in-character reply
         reply_text, model_used = generator.generate_reply(target_author, user_text, thread_ctx, profile, context)
         print(f"  Draft Reply ({model_used}): \"{reply_text}\"")
 
@@ -209,7 +253,15 @@ def run_tick(
                 bsky_client.like_post(target_uri, target_cid)
 
             memory_store.record_user_interaction(target_author, user_text, reply_text, "reply", did=notif.get("author", {}).get("did", ""))
-            memory_store.record_recent_reply(target_author, user_text, reply_text, uri=res.get("uri", ""))
+            memory_store.record_recent_reply(
+                target_handle=target_author,
+                user_text=user_text,
+                reply_text=reply_text,
+                uri=res.get("uri", ""),
+                target_uri=target_uri,
+                root_uri=root_uri,
+                notification_uri=notif.get("uri", "")
+            )
             budget_manager.record_spend(0.002, "reply", f"to @{target_author}")
             executed = True
             result_details = {"reply_uri": res.get("uri"), "reply_text": reply_text}
@@ -252,6 +304,59 @@ def run_tick(
         print(f"  [SUCCESS] Liked: {post_uri}")
         executed = True
         result_details = {"liked_post": post_uri}
+
+    elif outcome.selected_action == ActionType.BROWSE_AND_REPLY:
+        post = outcome.target_data.get("post", {})
+        target_author = post.get("author", {}).get("handle", "user")
+        target_uri = post.get("uri", "")
+        target_cid = post.get("cid", "")
+        user_text = post.get("record", {}).get("text", "")
+        profile = memory_store.get_user_profile(target_author)
+
+        print(f"\n[Thoughtfully Replying to Feed Post by @{target_author}...]")
+        print(f"  Post said: \"{user_text}\"")
+
+        # 1. Pre-execution Safety: Check memory store
+        if memory_store.has_replied_to_post(target_uri):
+            print(f"  [SAFETY ABORT] Feed post {target_uri} already replied to in memory. Preventing duplicate comment.")
+            executed = True
+            result_details = {"status": "aborted_duplicate_feed_reply", "target_uri": target_uri}
+            return 0
+
+        # 2. Pre-execution Safety: Inspect live thread context
+        thread_ctx = bsky_client.get_thread_context(target_uri)
+        can_reply, block_reason = bsky_client.can_reply_to_thread(target_uri, thread_ctx)
+        if not can_reply:
+            print(f"  [SAFETY ABORT] {block_reason}. Aborting feed reply.")
+            memory_store.mark_notification_handled(target_uri, target_post_uri=target_uri)
+            executed = True
+            result_details = {"status": "aborted_thread_safety", "reason": block_reason, "target_uri": target_uri}
+            return 0
+
+        reply_text, model_used = generator.generate_reply(target_author, user_text, thread_ctx, profile, context)
+        print(f"  Draft Reply ({model_used}): \"{reply_text}\"")
+
+        record = post.get("record", {})
+        reply_meta = record.get("reply", {})
+        root_uri = reply_meta.get("root", {}).get("uri", target_uri) if reply_meta else target_uri
+        root_cid = reply_meta.get("root", {}).get("cid", target_cid) if reply_meta else target_cid
+
+        res = bsky_client.publish_reply(reply_text, target_uri, target_cid, root_uri, root_cid)
+        if res.get("uri"):
+            print(f"  [SUCCESS] Published Feed Reply: {res.get('uri')}")
+            memory_store.record_user_interaction(target_author, user_text, reply_text, "reply", did=post.get("author", {}).get("did", ""))
+            memory_store.record_recent_reply(
+                target_handle=target_author,
+                user_text=user_text,
+                reply_text=reply_text,
+                uri=res.get("uri", ""),
+                target_uri=target_uri,
+                root_uri=root_uri,
+                notification_uri=target_uri
+            )
+            budget_manager.record_spend(0.002, "browse_reply", f"to @{target_author}")
+            executed = True
+            result_details = {"reply_uri": res.get("uri"), "reply_text": reply_text}
 
     # 8. Record Tick History & Observability
     now_iso = dt.datetime.now(dt.timezone.utc).isoformat()

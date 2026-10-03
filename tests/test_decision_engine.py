@@ -117,6 +117,106 @@ class TestDecisionEngine(unittest.TestCase):
         self.assertEqual(outcome.selected_action, ActionType.ANSWER_DM)
         self.assertEqual(outcome.target_data.get("convo_id"), "convo_test_123")
 
+    def test_skips_already_replied_notification(self):
+        from agent.memory_store import memory_store
+
+        notif_uri = "at://did:plc:other/app.bsky.feed.post/already_done"
+        memory_store.mark_notification_handled(notif_uri)
+
+        fake_notif = {
+            "uri": notif_uri,
+            "cid": "cid_done",
+            "reason": "reply",
+            "author": {"did": "did:plc:other", "handle": "friend.bsky.social"},
+            "record": {"text": "hello again", "reply": {}}
+        }
+
+        day_context = EnvironmentContext(
+            seoul_time_iso="2026-10-03T16:00:00+09:00",
+            seoul_time_display="16:00 KST",
+            date_display="2026-10-03",
+            day_of_week="Saturday",
+            is_weekend=True,
+            circadian_phase="afternoon",
+            season="autumn",
+            holiday_note=None,
+            weather=self.dummy_weather,
+            hours_since_last_post=4.0,
+            hours_since_last_action=2.0,
+            posts_today=1,
+            replies_today=1,
+            dms_today=0,
+        )
+
+        outcome = self.engine.evaluate(
+            context=day_context,
+            notifications=[fake_notif],
+            dms=[],
+            feed_items=[],
+            can_image=True,
+        )
+        # Must NOT choose REPLY_COMMENT for already handled notification
+        self.assertNotEqual(outcome.selected_action, ActionType.REPLY_COMMENT)
+
+    def test_bsky_client_can_reply_to_thread(self):
+        from agent.bsky_client import bsky_client
+        bsky_client.handle = "syeonhn.bsky.social"
+        bsky_client.did = "did:plc:self"
+
+        # Case 1: Target post is authored by self -> cannot reply
+        thread_self = {
+            "thread": {
+                "$type": "app.bsky.feed.defs#threadViewPost",
+                "post": {
+                    "uri": "at://did:plc:self/app.bsky.feed.post/p1",
+                    "author": {"handle": "syeonhn.bsky.social", "did": "did:plc:self"}
+                },
+                "replies": []
+            }
+        }
+        can_r, reason = bsky_client.can_reply_to_thread("at://did:plc:self/app.bsky.feed.post/p1", thread_self)
+        self.assertFalse(can_r)
+        self.assertIn("authored by Seo-yeon herself", reason)
+
+        # Case 2: Target post already has a direct reply from self and no subsequent user reply -> cannot reply
+        thread_already_replied = {
+            "thread": {
+                "$type": "app.bsky.feed.defs#threadViewPost",
+                "post": {
+                    "uri": "at://did:plc:user1/app.bsky.feed.post/p2",
+                    "author": {"handle": "user1.bsky.social", "did": "did:plc:user1"}
+                },
+                "replies": [
+                    {
+                        "$type": "app.bsky.feed.defs#threadViewPost",
+                        "post": {
+                            "uri": "at://did:plc:self/app.bsky.feed.post/rep1",
+                            "author": {"handle": "syeonhn.bsky.social", "did": "did:plc:self"}
+                        },
+                        "replies": []
+                    }
+                ]
+            }
+        }
+        can_r, reason = bsky_client.can_reply_to_thread("at://did:plc:user1/app.bsky.feed.post/p2", thread_already_replied)
+        self.assertFalse(can_r)
+        self.assertIn("already commented on this post without another comment in between", reason)
+
+        # Case 3: Target post has no reply from self -> SAFE to reply
+        thread_clean = {
+            "thread": {
+                "$type": "app.bsky.feed.defs#threadViewPost",
+                "post": {
+                    "uri": "at://did:plc:user1/app.bsky.feed.post/p3",
+                    "author": {"handle": "user1.bsky.social", "did": "did:plc:user1"}
+                },
+                "replies": []
+            }
+        }
+        can_r, reason = bsky_client.can_reply_to_thread("at://did:plc:user1/app.bsky.feed.post/p3", thread_clean)
+        self.assertTrue(can_r)
+        self.assertEqual(reason, "Safe to reply")
+
 
 if __name__ == "__main__":
     unittest.main()

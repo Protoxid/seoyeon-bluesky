@@ -241,6 +241,34 @@ def get_post_thread(jwt: str, uri: str) -> Optional[Dict[str, Any]]:
         return None
 
 
+def check_can_comment_thread(jwt: str, uri: str, my_did: str) -> Tuple[bool, str]:
+    """Inspects live thread to verify Lyra has not already commented without another comment in between."""
+    encoded_uri = urllib.parse.quote(uri)
+    req = urllib.request.Request(
+        f"{XRPC_BASE}/app.bsky.feed.getPostThread?uri={encoded_uri}&depth=3",
+        headers={"Authorization": f"Bearer {jwt}"}
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=15) as r:
+            data = json.loads(r.read().decode("utf-8"))
+            thread = data.get("thread", {})
+            post = thread.get("post", {})
+            post_author_did = post.get("author", {}).get("did", "")
+            post_handle = (post.get("author", {}).get("handle", "") or "").lower()
+            if post_author_did == my_did or "syeonhn" in post_handle:
+                return False, "Target post was authored by self"
+            replies = thread.get("replies", [])
+            for rep in replies:
+                rep_post = rep.get("post", {})
+                rep_did = rep_post.get("author", {}).get("did", "")
+                rep_handle = (rep_post.get("author", {}).get("handle", "") or "").lower()
+                if rep_did == my_did or "syeonhn" in rep_handle:
+                    return False, "Already commented on this post"
+            return True, "OK"
+    except Exception as e:
+        return True, f"Thread check skipped due to error: {e}"
+
+
 def get_already_commented_uris() -> set[str]:
     """Reads URIs of posts Lyra has already replied to."""
     uris = set()
@@ -557,6 +585,13 @@ def publish_comment(
     """Publishes the comment record to AT Protocol as a threaded reply."""
     target_uri = target_post.get("uri", "")
     target_cid = target_post.get("cid", "")
+
+    # Pre-flight check: verify no duplicate comment in thread
+    can_comment, reason = check_can_comment_thread(jwt, target_uri, did)
+    if not can_comment:
+        print(f"[SAFETY ABORT] {reason}. Aborting duplicate comment on {target_uri}.")
+        return {"aborted": True, "reason": reason}
+
     record_obj = target_post.get("record", {})
     existing_reply = record_obj.get("reply")
 

@@ -76,6 +76,35 @@ class TestMemoryStore(unittest.TestCase):
         self.assertEqual(posts[0]["text"], "post two")
         self.assertAlmostEqual(self.store.get_hours_since_last_post(), 0.0, delta=0.1)
 
+    def test_replied_notification_and_post_tracking(self):
+        target_post = "at://did:plc:other/app.bsky.feed.post/12345"
+        notif_uri = "at://did:plc:other/app.bsky.feed.post/notif_999"
+
+        # Initially False
+        self.assertFalse(self.store.has_replied_to_notification(notif_uri))
+        self.assertFalse(self.store.has_replied_to_post(target_post))
+
+        # Record reply
+        self.store.record_recent_reply(
+            target_handle="user.bsky.social",
+            user_text="loved the class!",
+            reply_text="glad you enjoyed it.",
+            uri="at://did:plc:self/app.bsky.feed.post/my_reply_1",
+            target_uri=target_post,
+            root_uri=target_post,
+            notification_uri=notif_uri,
+        )
+
+        # Now should be True
+        self.assertTrue(self.store.has_replied_to_notification(notif_uri))
+        self.assertTrue(self.store.has_replied_to_post(target_post))
+
+        # Test mark_notification_handled
+        another_notif = "at://did:plc:other/app.bsky.feed.post/notif_888"
+        self.assertFalse(self.store.has_replied_to_notification(another_notif))
+        self.store.mark_notification_handled(another_notif)
+        self.assertTrue(self.store.has_replied_to_notification(another_notif))
+
 
 if __name__ == "__main__":
     unittest.main()
