@@ -1,6 +1,13 @@
 {
   "posts": [
     {
+      "post_id": "at://did:plc:qmzkrqxywyhq4ar4k3nxdbvg/app.bsky.feed.post/3mwz4ng6z7k2r",
+      "text": "sunday morning, 16 degrees, and the window is finally open without the room turning into a fridge. the barley tea on the counter has gone lukewarm and i'm drinking it anyway because the kettle is eleven steps away.",
+      "topic": "general_thought",
+      "created_at": "2026-10-04T00:14:39.730733+00:00",
+      "has_image": false
+    },
+    {
       "post_id": "post_test_1",
       "text": "boiled roasted barley tea and left the kettle lid off so the steam warms the flat.",
       "topic": "evening_routine",

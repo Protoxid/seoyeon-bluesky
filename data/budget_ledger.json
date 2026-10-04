@@ -1,9 +1,9 @@
 {
-  "current_day": "2026-10-03",
+  "current_day": "2026-10-04",
   "current_month": "2026-10",
-  "daily_spend_usd": 0.102,
-  "monthly_spend_usd": 0.102,
-  "daily_images_count": 2,
+  "daily_spend_usd": 0.002,
+  "monthly_spend_usd": 0.104,
+  "daily_images_count": 0,
   "history": [
     {
       "ts": "2026-10-03T04:47:57.219129+00:00",
@@ -52,6 +52,12 @@
       "cost_usd": 0.002,
       "action_type": "reply",
       "details": "to @harbourlightgame.bsky.social"
+    },
+    {
+      "ts": "2026-10-04T00:14:39.731440+00:00",
+      "cost_usd": 0.002,
+      "action_type": "text_post",
+      "details": "sunday morning, 16 degrees, an"
     }
   ]
 }
