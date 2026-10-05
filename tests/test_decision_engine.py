@@ -217,6 +217,142 @@ class TestDecisionEngine(unittest.TestCase):
         self.assertTrue(can_r)
         self.assertEqual(reason, "Safe to reply")
 
+    def test_browse_and_reply_discovery(self):
+        # Daytime, 2.5h since last action, post recently published so no new post due, feed item available
+        day_context = EnvironmentContext(
+            seoul_time_iso="2026-10-05T14:30:00+09:00",
+            seoul_time_display="14:30 KST",
+            date_display="2026-10-05",
+            day_of_week="Monday",
+            is_weekend=False,
+            circadian_phase="afternoon",
+            season="autumn",
+            holiday_note=None,
+            weather=self.dummy_weather,
+            hours_since_last_post=2.0,
+            hours_since_last_action=2.5,
+            posts_today=1,
+            replies_today=1,
+            dms_today=0,
+        )
+
+        feed_item = {
+            "post": {
+                "uri": "at://did:plc:someone/app.bsky.feed.post/community_1",
+                "cid": "cid_c1",
+                "author": {"handle": "coffee_lover.bsky.social", "did": "did:plc:someone"},
+                "record": {"text": "seoul forest weather is lovely today, drinking cold brew by the lake"},
+            }
+        }
+
+        outcome = self.engine.evaluate(
+            context=day_context,
+            notifications=[],
+            dms=[],
+            feed_items=[feed_item],
+            can_image=False,
+        )
+        self.assertEqual(outcome.selected_action, ActionType.BROWSE_AND_REPLY)
+        self.assertEqual(outcome.target_data.get("post", {}).get("uri"), "at://did:plc:someone/app.bsky.feed.post/community_1")
+
+    def test_browse_and_reply_skips_already_replied(self):
+        from agent.memory_store import memory_store
+
+        already_replied_uri = "at://did:plc:someone/app.bsky.feed.post/already_seen_post"
+        memory_store.mark_notification_handled(already_replied_uri, target_post_uri=already_replied_uri)
+
+        day_context = EnvironmentContext(
+            seoul_time_iso="2026-10-05T15:00:00+09:00",
+            seoul_time_display="15:00 KST",
+            date_display="2026-10-05",
+            day_of_week="Monday",
+            is_weekend=False,
+            circadian_phase="afternoon",
+            season="autumn",
+            holiday_note=None,
+            weather=self.dummy_weather,
+            hours_since_last_post=2.0,
+            hours_since_last_action=2.5,
+            posts_today=1,
+            replies_today=1,
+            dms_today=0,
+        )
+
+        feed_items = [
+            {
+                "post": {
+                    "uri": already_replied_uri,
+                    "author": {"handle": "user1.bsky.social"},
+                    "record": {"text": "already commented post from yesterday morning"},
+                }
+            },
+            {
+                "post": {
+                    "uri": "at://did:plc:newuser/app.bsky.feed.post/fresh_post",
+                    "author": {"handle": "newuser.bsky.social"},
+                    "record": {"text": "anyone walking in seongsu today? the breeze is chilly"},
+                }
+            }
+        ]
+
+        outcome = self.engine.evaluate(
+            context=day_context,
+            notifications=[],
+            dms=[],
+            feed_items=feed_items,
+            can_image=False,
+        )
+        self.assertEqual(outcome.selected_action, ActionType.BROWSE_AND_REPLY)
+        self.assertEqual(outcome.target_data.get("post", {}).get("uri"), "at://did:plc:newuser/app.bsky.feed.post/fresh_post")
+
+    def test_multiple_notifications_evaluation(self):
+        from agent.memory_store import memory_store
+
+        old_notif_uri = "at://did:plc:old/app.bsky.feed.post/old_comment"
+        memory_store.mark_notification_handled(old_notif_uri)
+
+        notifications = [
+            {
+                "uri": old_notif_uri,
+                "reason": "reply",
+                "author": {"handle": "harbourlightgame.bsky.social"},
+                "record": {"text": "old comment that was already replied to"},
+            },
+            {
+                "uri": "at://did:plc:fresh/app.bsky.feed.post/fresh_comment",
+                "reason": "reply",
+                "author": {"handle": "friendly_neighbor.bsky.social"},
+                "record": {"text": "have you tried that new bakery near seoul forest?"},
+            }
+        ]
+
+        day_context = EnvironmentContext(
+            seoul_time_iso="2026-10-05T15:30:00+09:00",
+            seoul_time_display="15:30 KST",
+            date_display="2026-10-05",
+            day_of_week="Monday",
+            is_weekend=False,
+            circadian_phase="afternoon",
+            season="autumn",
+            holiday_note=None,
+            weather=self.dummy_weather,
+            hours_since_last_post=2.0,
+            hours_since_last_action=2.0,
+            posts_today=1,
+            replies_today=1,
+            dms_today=0,
+        )
+
+        outcome = self.engine.evaluate(
+            context=day_context,
+            notifications=notifications,
+            dms=[],
+            feed_items=[],
+            can_image=False,
+        )
+        self.assertEqual(outcome.selected_action, ActionType.REPLY_COMMENT)
+        self.assertEqual(outcome.target_data.get("notification", {}).get("uri"), "at://did:plc:fresh/app.bsky.feed.post/fresh_comment")
+
 
 if __name__ == "__main__":
     unittest.main()

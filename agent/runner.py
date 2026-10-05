@@ -105,13 +105,24 @@ def run_tick(
     feed_items = []
 
     if auth_ok:
-        notifications = bsky_client.list_notifications(limit=15)
+        notifications = bsky_client.list_notifications(limit=30)
         dms = bsky_client.list_convos(limit=10)
-        feed_items = bsky_client.get_timeline(limit=10)
+        feed_items = bsky_client.get_discovery_feed(limit=25)
+    elif is_dry:
+        feed_items = [
+            {
+                "post": {
+                    "uri": "at://did:plc:simulated/post/1",
+                    "cid": "simcid1",
+                    "author": {"handle": "seoul_life.bsky.social", "did": "did:plc:simulated_user"},
+                    "record": {"text": "autumn in seoul forest is cold today, drinking roasted barley tea"},
+                }
+            }
+        ]
 
     print(f"  Notifications: {len(notifications)} received")
     print(f"  Conversations: {len(dms)} direct message threads")
-    print(f"  Feed Items:    {len(feed_items)} timeline posts")
+    print(f"  Feed Items:    {len(feed_items)} community & timeline posts")
 
     # 5. Check Budget & Image Constraints
     can_img, img_reason = budget_manager.can_generate_image()
@@ -124,6 +135,11 @@ def run_tick(
             outcome = decision_engine.evaluate(context, notifications, dms, feed_items, can_image=can_img)
             outcome.selected_action = chosen_action
             outcome.reason = reason
+            for cand in outcome.all_candidates:
+                if cand.action == chosen_action and cand.target_data:
+                    outcome.target_data = cand.target_data
+                    outcome.intent = cand.intent
+                    break
         except ValueError:
             print(f"[ERROR] Invalid force action: {force_action}")
             return 1
@@ -152,9 +168,10 @@ def run_tick(
         res = bsky_client.publish_text_post(post_text)
         if res.get("uri"):
             print(f"  [SUCCESS] Published: {res.get('uri')}")
-            memory_store.record_recent_post(post_text, topic="general_thought", post_id=res.get("uri", ""))
-            memory_store.log_episode("post", "Published spontaneous thought", {"text": post_text, "uri": res.get("uri")})
-            budget_manager.record_spend(0.002, "text_post", post_text[:30])
+            if not is_dry:
+                memory_store.record_recent_post(post_text, topic="general_thought", post_id=res.get("uri", ""))
+                memory_store.log_episode("post", "Published spontaneous thought", {"text": post_text, "uri": res.get("uri")})
+                budget_manager.record_spend(0.002, "text_post", post_text[:30])
             executed = True
             result_details = {"uri": res.get("uri"), "text": post_text, "model": model_used}
 
@@ -171,8 +188,9 @@ def run_tick(
             res = bsky_client.publish_image_post(post_text, img_bytes, alt_text="Han Seo-yeon candid moment")
             if res.get("uri"):
                 print(f"  [SUCCESS] Published Image Post: {res.get('uri')}")
-                memory_store.record_recent_post(post_text, topic="image_post", post_id=res.get("uri", ""), has_image=True)
-                budget_manager.record_spend(0.045, "image_generation", prompt_used[:40])
+                if not is_dry:
+                    memory_store.record_recent_post(post_text, topic="image_post", post_id=res.get("uri", ""), has_image=True)
+                    budget_manager.record_spend(0.045, "image_generation", prompt_used[:40])
                 executed = True
                 result_details = {"uri": res.get("uri"), "text": post_text, "image_prompt": prompt_used}
         else:
@@ -252,17 +270,18 @@ def run_tick(
             if config.allow_likes and not is_dry:
                 bsky_client.like_post(target_uri, target_cid)
 
-            memory_store.record_user_interaction(target_author, user_text, reply_text, "reply", did=notif.get("author", {}).get("did", ""))
-            memory_store.record_recent_reply(
-                target_handle=target_author,
-                user_text=user_text,
-                reply_text=reply_text,
-                uri=res.get("uri", ""),
-                target_uri=target_uri,
-                root_uri=root_uri,
-                notification_uri=notif.get("uri", "")
-            )
-            budget_manager.record_spend(0.002, "reply", f"to @{target_author}")
+            if not is_dry:
+                memory_store.record_user_interaction(target_author, user_text, reply_text, "reply", did=notif.get("author", {}).get("did", ""))
+                memory_store.record_recent_reply(
+                    target_handle=target_author,
+                    user_text=user_text,
+                    reply_text=reply_text,
+                    uri=res.get("uri", ""),
+                    target_uri=target_uri,
+                    root_uri=root_uri,
+                    notification_uri=notif.get("uri", "")
+                )
+                budget_manager.record_spend(0.002, "reply", f"to @{target_author}")
             executed = True
             result_details = {"reply_uri": res.get("uri"), "reply_text": reply_text}
 
@@ -289,8 +308,9 @@ def run_tick(
         res = bsky_client.send_dm(convo_id, reply_text)
         if res:
             print(f"  [SUCCESS] Direct Message Sent to @{handle}")
-            memory_store.record_user_interaction(handle, dm_history[-1]["text"] if dm_history else "", reply_text, "dm")
-            budget_manager.record_spend(0.002, "dm", f"to @{handle}")
+            if not is_dry:
+                memory_store.record_user_interaction(handle, dm_history[-1]["text"] if dm_history else "", reply_text, "dm")
+                budget_manager.record_spend(0.002, "dm", f"to @{handle}")
             executed = True
             result_details = {"dm_sent": True, "to": handle, "text": reply_text}
 
@@ -300,8 +320,11 @@ def run_tick(
         post_cid = post.get("cid", "")
         author = post.get("author", {}).get("handle", "")
         print(f"\n[Liking Feed Post from @{author}...]")
-        res = bsky_client.like_post(post_uri, post_cid)
-        print(f"  [SUCCESS] Liked: {post_uri}")
+        if not is_dry:
+            res = bsky_client.like_post(post_uri, post_cid)
+            print(f"  [SUCCESS] Liked: {post_uri}")
+        else:
+            print(f"  [DRY-RUN] Would like post: {post_uri}")
         executed = True
         result_details = {"liked_post": post_uri}
 
@@ -321,6 +344,17 @@ def run_tick(
             print(f"  [SAFETY ABORT] Feed post {target_uri} already replied to in memory. Preventing duplicate comment.")
             executed = True
             result_details = {"status": "aborted_duplicate_feed_reply", "target_uri": target_uri}
+            now_iso = dt.datetime.now(dt.timezone.utc).isoformat()
+            log_tick({
+                "ts": now_iso,
+                "seoul_time": context.seoul_time_display,
+                "action": "NO_ACTION",
+                "reason": f"Safety abort: already replied to feed post ({target_uri}).",
+                "dry_run": is_dry,
+                "executed": True,
+                "details": result_details,
+                "budget": budget_manager.get_summary(),
+            })
             return 0
 
         # 2. Pre-execution Safety: Inspect live thread context
@@ -331,6 +365,17 @@ def run_tick(
             memory_store.mark_notification_handled(target_uri, target_post_uri=target_uri)
             executed = True
             result_details = {"status": "aborted_thread_safety", "reason": block_reason, "target_uri": target_uri}
+            now_iso = dt.datetime.now(dt.timezone.utc).isoformat()
+            log_tick({
+                "ts": now_iso,
+                "seoul_time": context.seoul_time_display,
+                "action": "NO_ACTION",
+                "reason": f"Safety abort: {block_reason}.",
+                "dry_run": is_dry,
+                "executed": True,
+                "details": result_details,
+                "budget": budget_manager.get_summary(),
+            })
             return 0
 
         reply_text, model_used = generator.generate_reply(target_author, user_text, thread_ctx, profile, context)
@@ -344,17 +389,18 @@ def run_tick(
         res = bsky_client.publish_reply(reply_text, target_uri, target_cid, root_uri, root_cid)
         if res.get("uri"):
             print(f"  [SUCCESS] Published Feed Reply: {res.get('uri')}")
-            memory_store.record_user_interaction(target_author, user_text, reply_text, "reply", did=post.get("author", {}).get("did", ""))
-            memory_store.record_recent_reply(
-                target_handle=target_author,
-                user_text=user_text,
-                reply_text=reply_text,
-                uri=res.get("uri", ""),
-                target_uri=target_uri,
-                root_uri=root_uri,
-                notification_uri=target_uri
-            )
-            budget_manager.record_spend(0.002, "browse_reply", f"to @{target_author}")
+            if not is_dry:
+                memory_store.record_user_interaction(target_author, user_text, reply_text, "reply", did=post.get("author", {}).get("did", ""))
+                memory_store.record_recent_reply(
+                    target_handle=target_author,
+                    user_text=user_text,
+                    reply_text=reply_text,
+                    uri=res.get("uri", ""),
+                    target_uri=target_uri,
+                    root_uri=root_uri,
+                    notification_uri=target_uri
+                )
+                budget_manager.record_spend(0.002, "browse_reply", f"to @{target_author}")
             executed = True
             result_details = {"reply_uri": res.get("uri"), "reply_text": reply_text}
 

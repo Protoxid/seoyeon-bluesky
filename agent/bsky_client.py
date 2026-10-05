@@ -20,7 +20,7 @@ import re
 import urllib.error
 import urllib.parse
 import urllib.request
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 from PIL import Image
 
@@ -165,6 +165,43 @@ class BlueskyClient:
         """Searches posts across Bluesky."""
         res = self.xrpc_get("app.bsky.feed.searchPosts", {"q": query, "limit": limit})
         return res.get("posts", [])
+
+    def get_discovery_feed(self, limit: int = 25) -> List[Dict[str, Any]]:
+        """
+        Retrieves discovery feed posts:
+        Combines timeline posts from followed accounts with curated topic searches
+        (e.g., Seongsu, Seoul Forest, pilates, roasted barley tea, line 2 subway).
+        Returns normalized list of candidate items [{'post': post_dict, 'source': ...}, ...].
+        """
+        items: List[Dict[str, Any]] = []
+        seen_uris: Set[str] = set()
+
+        # 1. Timeline posts from followed accounts
+        timeline = self.get_timeline(limit=15)
+        for t in timeline:
+            p = t.get("post", t) if isinstance(t, dict) else {}
+            u = p.get("uri")
+            if u and u not in seen_uris:
+                seen_uris.add(u)
+                items.append({"post": p, "source": "timeline"})
+
+        # 2. Curated canonical search topics
+        import random
+        topics_to_sample = getattr(config, "canon_search_topics", [
+            "성수동", "뚝섬", "서울숲", "아이스 아메리카노", "보리차",
+            "필라테스", "폼롤러", "2호선", "seongsu", "seoul cafe",
+            "reformer pilates", "foam roller"
+        ])
+        chosen_topics = random.sample(topics_to_sample, min(3, len(topics_to_sample)))
+        for topic in chosen_topics:
+            search_res = self.search_posts(topic, limit=8)
+            for p in search_res:
+                u = p.get("uri")
+                if u and u not in seen_uris:
+                    seen_uris.add(u)
+                    items.append({"post": p, "source": f"search:{topic}"})
+
+        return items[:limit]
 
     def get_thread_context(self, uri: str, depth: int = 4) -> Dict[str, Any]:
         """

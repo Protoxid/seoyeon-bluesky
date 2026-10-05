@@ -46,8 +46,56 @@ PROMPT_INJECTION_INDICATORS = [
     "jailbreak",
 ]
 
+# Curated negative filters for community feed discovery (skip spam, bots, ads, politics, nsfw)
+NEGATIVE_KEYWORDS = [
+    "crypto", "bitcoin", "btc", "eth", "nft", "airdrop", "token", "presale",
+    "giveaway", "discount", "promo", "sponsor", "collaboration", "dm me",
+    "onlyfans", "fanvue", "patreon", "nsfw", "porn", "xxx", "18+",
+    "politics", "election", "candidate", "president", "trump", "biden",
+    "democrat", "republican", "국회", "대통령", "당대표", "선거", "정당",
+    "뉴스", "정부", "기자", "news", "press", "bot",
+    "http://", "https://", "t.co", "bit.ly", "x.com"
+]
+
+NEGATIVE_AUTHOR_TERMS = [
+    "news", "bot", "press", "official", "feed", "digest", "daily",
+    "뉴스", "정부", "공식", "일보", "신문", "방송"
+]
+
 
 class ContentValidator:
+    @staticmethod
+    def filter_feed_post(text: str, author_handle: str = "") -> Tuple[bool, str]:
+        """
+        Validates whether a community feed post is eligible for Seo-yeon to engage with.
+        Returns: (is_eligible, reason)
+        """
+        if not text or len(text.strip()) < 10:
+            return False, "Post is too short (< 10 chars)"
+
+        # Check prompt injection
+        is_inj, inj_reason = ContentValidator.detect_prompt_injection(text)
+        if is_inj:
+            return False, inj_reason
+
+        lower_text = text.lower()
+        # Check negative keywords (spam, ads, crypto, politics, porn)
+        for kw in NEGATIVE_KEYWORDS:
+            if kw in lower_text:
+                return False, f"Contains negative keyword: '{kw}'"
+
+        # Check negative author markers
+        lower_author = (author_handle or "").lower()
+        for term in NEGATIVE_AUTHOR_TERMS:
+            if term in lower_author:
+                return False, f"Author contains negative marker: '{term}'"
+
+        # Check engagement bait patterns (surveys, marketing questionnaires)
+        for pat in ENGAGEMENT_BAIT_PATTERNS:
+            if re.search(pat, lower_text, re.IGNORECASE):
+                return False, f"Post matches engagement bait pattern: '{pat}'"
+
+        return True, "Eligible"
     @staticmethod
     def sanitize_untrusted_input(text: str) -> str:
         """
@@ -119,12 +167,18 @@ class ContentValidator:
         return True, cleaned, "Valid"
 
     @classmethod
-    def check_post_repetition(cls, candidate_text: str, max_similarity: float = 0.45) -> Tuple[bool, str]:
+    def check_post_repetition(
+        cls,
+        candidate_text: str,
+        max_similarity: float = 0.45,
+        memory: Optional[Any] = None,
+    ) -> Tuple[bool, str]:
         """
         Checks candidate post against recent posts using lexical Jaccard similarity
         and common prefix/subject checks to prevent repetitive themes.
         """
-        ctx = memory_store.get_recent_context()
+        store = memory if memory is not None else memory_store
+        ctx = store.get_recent_context()
         recent_posts = ctx.get("posts", [])
         if not recent_posts:
             return True, "No recent posts to compare."

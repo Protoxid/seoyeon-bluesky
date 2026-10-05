@@ -116,6 +116,24 @@ class AgentConfig:
     bsky_xrpc_base: str = "https://bsky.social/xrpc"
     bsky_chat_base: str = "https://api.bsky.chat/xrpc"
 
+    # --- Discovery & Engagement Topics ---
+    canon_search_topics: List[str] = field(
+        default_factory=lambda: [
+            "성수동",
+            "뚝섬",
+            "서울숲",
+            "아이스 아메리카노",
+            "보리차",
+            "필라테스",
+            "폼롤러",
+            "2호선",
+            "seongsu",
+            "seoul cafe",
+            "reformer pilates",
+            "foam roller",
+        ]
+    )
+
     # --- Outbound Master Communication (Telegram) ---
     # If Seo-yeon needs guidance, approval, or unknown facts, she sends a Telegram message
     telegram_bot_token: Optional[str] = field(

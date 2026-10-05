@@ -114,8 +114,9 @@ class DecisionEngine:
         # -------------------------------------------------------------
         # 3. Notifications (Replies & Mentions)
         # -------------------------------------------------------------
-        if config.allow_replies and notifications:
-            for notif in notifications[:15]:
+        if config.allow_replies and notifications and context.circadian_phase != "deep_night":
+            valid_notif_candidates: List[ActionCandidate] = []
+            for notif in notifications[:20]:
                 reason = notif.get("reason")
                 if reason not in ("reply", "mention"):
                     continue
@@ -126,8 +127,9 @@ class DecisionEngine:
                         continue
 
                 author = notif.get("author", {})
-                author_handle = author.get("handle", "")
-                if author_handle == config.bsky_handle:
+                author_handle = (author.get("handle") or "").lower().lstrip("@")
+                my_handle = (config.bsky_handle or "").lower().lstrip("@")
+                if author_handle == my_handle:
                     continue
 
                 record = notif.get("record", {})
@@ -140,34 +142,37 @@ class DecisionEngine:
                 if is_inj:
                     continue
 
-                profile = memory_store.get_user_profile(author_handle)
+                profile = memory_store.get_user_profile(author.get("handle", ""))
 
                 if reason == "reply":
                     # Comment under her post
                     action_type = ActionType.REPLY_COMMENT
-                    score = 0.65 if profile.relationship != "stranger" else 0.50
+                    score = 0.70 if profile.relationship != "stranger" else 0.58
                     intent = "acknowledge_and_converse"
                 else:
                     # Tagged in a post or mention
                     action_type = ActionType.ANSWER_MENTION
-                    score = 0.55
+                    score = 0.58
                     intent = "evaluate_mention_and_react"
 
                 # Check if she replied too many times today
                 if context.replies_today >= config.max_replies_per_day:
                     score = 0.10
 
-                candidates.append(
+                valid_notif_candidates.append(
                     ActionCandidate(
                         action=action_type,
                         score=score,
                         confidence=0.75,
-                        reason=f"{reason.capitalize()} from @{author_handle}: \"{user_text[:40]}...\"",
+                        reason=f"{reason.capitalize()} from @{author.get('handle')}: \"{user_text[:40]}...\"",
                         target_data={"notification": notif, "profile": profile, "text": user_text},
                         intent=intent,
                     )
                 )
-                break  # Evaluate one inbound interaction at a time
+                if len(valid_notif_candidates) >= 3:
+                    break
+
+            candidates.extend(valid_notif_candidates)
 
         # -------------------------------------------------------------
         # 4. Spontaneous Organic Posting (Text or Image)
@@ -218,49 +223,91 @@ class DecisionEngine:
             )
 
         # -------------------------------------------------------------
-        # 5. Feed Browsing & Light Engagement (Like or Thoughtful Reply)
+        # 5. Feed Browsing & Community Engagement (Thoughtful Reply or Like)
         # -------------------------------------------------------------
         if feed_items and context.circadian_phase != "deep_night":
-            for item in feed_items[:5]:
-                post = item.get("post", {})
-                author = post.get("author", {}).get("handle", "")
-                if author == config.bsky_handle:
+            best_reply_candidate: Optional[ActionCandidate] = None
+            best_like_candidate: Optional[ActionCandidate] = None
+
+            for item in feed_items:
+                post = item.get("post", item) if isinstance(item, dict) else {}
+                if not isinstance(post, dict):
                     continue
 
-                text = post.get("record", {}).get("text", "")
-                if not text or len(text) < 15:
+                post_uri = post.get("uri", "")
+                if not post_uri:
                     continue
 
-                is_inj, _ = ContentValidator.detect_prompt_injection(text)
-                if is_inj:
+                author = post.get("author", {})
+                author_handle = (author.get("handle") or "").lower().lstrip("@")
+                my_handle = (config.bsky_handle or "").lower().lstrip("@")
+                if author_handle == my_handle:
                     continue
 
-                # Small chance to like or reply to an interesting timeline post
-                if config.allow_likes:
-                    candidates.append(
-                        ActionCandidate(
-                            action=ActionType.BROWSE_AND_LIKE,
-                            score=0.42,
-                            confidence=0.65,
-                            reason=f"Quietly like post by @{author} during feed browsing.",
-                            target_data={"post": post},
-                        )
+                record = post.get("record", {})
+                text = record.get("text", "") if isinstance(record, dict) else ""
+                if not text or len(text.strip()) < 10:
+                    continue
+
+                # Content filter (prompt injection, spam, ads, crypto, politics, bots/news)
+                is_eligible, _ = ContentValidator.filter_feed_post(text, author_handle)
+                if not is_eligible:
+                    continue
+
+                # 5a. Thoughtful Reply Candidate
+                if (
+                    best_reply_candidate is None
+                    and config.allow_replies
+                    and context.replies_today < config.max_replies_per_day
+                    and not memory_store.has_replied_to_post(post_uri)
+                ):
+                    # Natural human pacing and circadian distribution:
+                    # When she has had 1.5h - 2h+ downtime during the day, organic commenting is highly natural
+                    if context.circadian_phase in ("morning", "afternoon", "evening"):
+                        if context.hours_since_last_action >= 2.0:
+                            reply_score = 0.60
+                        elif context.hours_since_last_action >= 1.5:
+                            reply_score = 0.54
+                        elif context.hours_since_last_action >= 1.0:
+                            reply_score = 0.46
+                        else:
+                            reply_score = 0.25
+                    elif context.circadian_phase == "night" and context.hours_since_last_action >= 2.5:
+                        reply_score = 0.48
+                    else:
+                        reply_score = 0.15
+
+                    best_reply_candidate = ActionCandidate(
+                        action=ActionType.BROWSE_AND_REPLY,
+                        score=reply_score,
+                        confidence=0.65,
+                        reason=f"Thoughtful reply to feed post by @{author.get('handle')}: \"{text[:40]}...\"",
+                        target_data={"post": post},
+                        intent="add_perspective",
                     )
 
-                if config.allow_replies and context.replies_today < config.max_replies_per_day:
-                    post_uri = post.get("uri", "")
-                    if not memory_store.has_replied_to_post(post_uri):
-                        candidates.append(
-                            ActionCandidate(
-                                action=ActionType.BROWSE_AND_REPLY,
-                                score=0.38,
-                                confidence=0.60,
-                                reason=f"Thoughtful reply to feed post by @{author}.",
-                                target_data={"post": post},
-                                intent="add_perspective",
-                            )
-                        )
-                break
+                # 5b. Quiet Like Candidate
+                if (
+                    best_like_candidate is None
+                    and config.allow_likes
+                    and getattr(context, "likes_today", 0) < config.max_likes_per_day
+                ):
+                    like_score = 0.46 if context.hours_since_last_action >= 1.0 else 0.32
+                    best_like_candidate = ActionCandidate(
+                        action=ActionType.BROWSE_AND_LIKE,
+                        score=like_score,
+                        confidence=0.65,
+                        reason=f"Quietly like post by @{author.get('handle')} during feed browsing.",
+                        target_data={"post": post},
+                    )
+
+                if best_reply_candidate and best_like_candidate:
+                    break
+
+            if best_reply_candidate:
+                candidates.append(best_reply_candidate)
+            if best_like_candidate:
+                candidates.append(best_like_candidate)
 
         # -------------------------------------------------------------
         # Select winning action

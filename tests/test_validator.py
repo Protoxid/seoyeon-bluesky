@@ -60,23 +60,32 @@ class TestValidator(unittest.TestCase):
         self.assertIn("Can you recommend a coffee place?", sanitized)
 
     def test_repetition_detection(self):
-        # Seed memory with a post
-        memory_store.record_recent_post(
-            text="boiled roasted barley tea and left the kettle lid off so the steam warms the flat.",
-            topic="evening_routine",
-            post_id="post_test_1"
-        )
+        import shutil
+        import tempfile
+        import pathlib
+        from agent.memory_store import MemoryStore
 
-        # High lexical overlap should be rejected
-        duplicate_cand = "boiled roasted barley tea and left the kettle lid off so the steam warms the flat."
-        rep_ok, rep_reason = validator.check_post_repetition(duplicate_cand)
-        self.assertFalse(rep_ok)
-        self.assertIn("similar", rep_reason.lower())
+        tmp_dir = pathlib.Path(tempfile.mkdtemp())
+        try:
+            temp_store = MemoryStore(memory_dir=tmp_dir)
+            temp_store.record_recent_post(
+                text="boiled roasted barley tea and left the kettle lid off so the steam warms the flat.",
+                topic="evening_routine",
+                post_id="post_test_1"
+            )
 
-        # Unique post should pass
-        unique_cand = "late night rain tapping softly against the metal railing outside the window."
-        rep_ok, _ = validator.check_post_repetition(unique_cand)
-        self.assertTrue(rep_ok)
+            # High lexical overlap should be rejected
+            duplicate_cand = "boiled roasted barley tea and left the kettle lid off so the steam warms the flat."
+            rep_ok, rep_reason = validator.check_post_repetition(duplicate_cand, memory=temp_store)
+            self.assertFalse(rep_ok)
+            self.assertIn("similar", rep_reason.lower())
+
+            # Unique post should pass
+            unique_cand = "late night rain tapping softly against the metal railing outside the window."
+            rep_ok, _ = validator.check_post_repetition(unique_cand, memory=temp_store)
+            self.assertTrue(rep_ok)
+        finally:
+            shutil.rmtree(tmp_dir, ignore_errors=True)
 
 
 if __name__ == "__main__":
