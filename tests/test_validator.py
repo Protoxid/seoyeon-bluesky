@@ -87,6 +87,32 @@ class TestValidator(unittest.TestCase):
         finally:
             shutil.rmtree(tmp_dir, ignore_errors=True)
 
+    def test_xml_and_preamble_sanitization(self):
+        # LLM reasoning tags and conversational preambles must be stripped
+        raw_text = (
+            '<invoke name="x">\n</invoke>\n\n'
+            'Wait – I should output only the post. Let me do that properly.\n\n'
+            'after the 7am class the studio floor is still cold through my socks at eleven.'
+        )
+        ok, cleaned, reason = validator.validate_outgoing_text(raw_text, content_type="post", check_repetition=False)
+        self.assertTrue(ok)
+        self.assertNotIn("<invoke", cleaned)
+        self.assertNotIn("Wait", cleaned)
+        self.assertEqual(cleaned, "after the 7am class the studio floor is still cold through my socks at eleven.")
+
+    def test_incomplete_trailing_sentence(self):
+        # Text cut off mid-sentence should be trimmed to the last complete sentence
+        raw_cut = "quiet morning in seongsu. boiled water for roasted barley tea, cold breeze coming through the window and i"
+        ok, cleaned, reason = validator.validate_outgoing_text(raw_cut, content_type="post", check_repetition=False)
+        self.assertTrue(ok)
+        self.assertEqual(cleaned, "quiet morning in seongsu.")
+
+        # Text with no complete sentence should be rejected
+        unpunctuated = "standing in the kitchen holding a kettle with no water"
+        ok, _, reason = validator.validate_outgoing_text(unpunctuated, content_type="post", check_repetition=False)
+        self.assertFalse(ok)
+        self.assertIn("Incomplete", reason)
+
 
 if __name__ == "__main__":
     unittest.main()

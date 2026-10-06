@@ -102,7 +102,8 @@ class BlueskyClient:
         )
         try:
             with urllib.request.urlopen(req, timeout=15) as resp:
-                return json.loads(resp.read().decode("utf-8"))
+                raw = resp.read().decode("utf-8")
+                return json.loads(raw) if raw.strip() else {"success": True}
         except Exception as e:
             print(f"[BlueskyClient XRPC POST] {endpoint} error: {e}")
             return {}
@@ -529,6 +530,24 @@ class BlueskyClient:
             "com.atproto.repo.createRecord",
             {"repo": self.did, "collection": "app.bsky.feed.like", "record": record},
         )
+
+    def delete_post(self, post_uri_or_rkey: str) -> bool:
+        """Deletes a post by URI or rkey via com.atproto.repo.deleteRecord."""
+        if not self.ensure_session():
+            return False
+
+        rkey = post_uri_or_rkey.split("/")[-1]
+        if self.dry_run:
+            print(f"[DRY-RUN] Would delete post rkey: {rkey}")
+            return True
+
+        payload = {
+            "repo": self.did,
+            "collection": "app.bsky.feed.post",
+            "rkey": rkey,
+        }
+        res = self.xrpc_post("com.atproto.repo.deleteRecord", payload)
+        return bool(res)
 
 
 bsky_client = BlueskyClient()

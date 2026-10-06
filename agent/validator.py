@@ -133,32 +133,67 @@ class ContentValidator:
             return False, "", "Empty content."
 
         cleaned = text.strip()
-        # Remove enclosing quotes if model hallucinated them
+
+        # 1. Strip XML tag blocks like <invoke>...</invoke>, <thinking>...</thinking>, <scratchpad>...</scratchpad>
+        cleaned = re.sub(r"<([a-zA-Z0-9_\-]+)[^>]*>.*?</\1>", "", cleaned, flags=re.DOTALL | re.IGNORECASE)
+        # Strip any remaining stray tags
+        cleaned = re.sub(r"<[^>]+>", "", cleaned)
+        cleaned = cleaned.strip()
+
+        # 2. Strip conversational meta-commentary preamble lines (e.g. "Wait – I should output only the post...", "Here's the post:")
+        lines = [line.strip() for line in cleaned.split("\n") if line.strip()]
+        content_lines = []
+        meta_starters = (
+            "wait", "here is", "here's", "let me", "post:", "draft:", "thought:", "reply:",
+            "sure,", "sure!", "sure.", "certainly", "as seo-yeon", "i will", "i'll"
+        )
+        for line in lines:
+            lower_l = line.lower()
+            if not content_lines and any(lower_l.startswith(prefix) for prefix in meta_starters):
+                continue
+            content_lines.append(line)
+        cleaned = "\n\n".join(content_lines).strip()
+
+        # 3. Strip enclosing quotes if model hallucinated them
         if (cleaned.startswith('"') and cleaned.endswith('"')) or (cleaned.startswith("'") and cleaned.endswith("'")):
             cleaned = cleaned[1:-1].strip()
 
-        # 1. Seo-yeon NEVER uses exclamation marks
+        if not cleaned:
+            return False, "", "Empty content after sanitization."
+
+        # 4. Seo-yeon NEVER uses exclamation marks
         if "!" in cleaned:
-            # Cleanly replace exclamation mark with a full stop rather than failing outright
             cleaned = cleaned.replace("!", ".")
 
         lower = cleaned.lower()
 
-        # 2. Strict anti-commercial terms check
+        # 5. Strict anti-commercial terms check
         for term in FORBIDDEN_MARKETING_TERMS:
             if re.search(r"\b" + re.escape(term) + r"\b", lower) or term in lower:
                 return False, cleaned, f"Forbidden promotional term detected: '{term}'"
 
-        # 3. Check for cheap engagement bait
+        # 6. Check for cheap engagement bait
         for pattern in ENGAGEMENT_BAIT_PATTERNS:
             if re.search(pattern, lower):
                 return False, cleaned, f"Engagement farming pattern detected: '{pattern}'"
 
-        # 4. Length check (Bluesky post limit is 300 characters)
+        # 7. Length check (Bluesky post limit is 300 characters)
         if len(cleaned) > 300:
             return False, cleaned, f"Content exceeds Bluesky 300-char limit ({len(cleaned)} chars)"
 
-        # 5. Repetition check against recent posts/replies
+        # 8. Check for incomplete trailing sentence / token budget cutoff
+        terminal_punct = (".", "?", "~", "…", '"', "'", "”", "’")
+        if not cleaned.endswith(terminal_punct):
+            last_punct_idx = max(cleaned.rfind("."), cleaned.rfind("?"))
+            if last_punct_idx >= 20:
+                cleaned = cleaned[:last_punct_idx + 1].strip()
+            else:
+                return False, cleaned, "Incomplete trailing sentence or truncated output."
+
+        if len(cleaned) < 5:
+            return False, cleaned, "Content is too short."
+
+        # 9. Repetition check against recent posts/replies
         if check_repetition and content_type == "post":
             rep_ok, rep_reason = cls.check_post_repetition(cleaned)
             if not rep_ok:

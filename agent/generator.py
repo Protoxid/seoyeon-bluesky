@@ -180,7 +180,7 @@ class ContentGenerator:
             "Write in English (all lowercase, no exclamation marks) or casual Korean (반말/부드러운 어조, 마침표만 사용)."
         )
 
-        text, model = self._call_llm(sys_prompt, user_prompt, max_tokens=100)
+        text, model = self._call_llm(sys_prompt, user_prompt, max_tokens=160)
         if not text:
             text = random.choice(OFFLINE_POST_FALLBACKS)
 
@@ -232,7 +232,7 @@ class ContentGenerator:
             f"{'Write in natural casual Korean (마침표만 사용, 느낌표 금지).' if is_korean else 'Write in natural English (all lowercase, no exclamation marks).'}"
         )
 
-        text, model = self._call_llm(sys_prompt, user_prompt, max_tokens=120)
+        text, model = self._call_llm(sys_prompt, user_prompt, max_tokens=160)
         if not text:
             text = random.choice(OFFLINE_REPLY_FALLBACKS)
 
