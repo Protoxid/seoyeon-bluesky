@@ -152,6 +152,40 @@ class MasterNotifier:
 
         return success
 
+    def send_daily_summary(
+        self,
+        summary_text: str,
+        summary_data: Optional[Dict[str, Any]] = None,
+        dry_run: Optional[bool] = None,
+    ) -> bool:
+        """
+        Sends the end-of-day in-character check-in message to my master (@Protoxide).
+        """
+        seoul_now = get_seoul_datetime().strftime("%Y-%m-%d %H:%M:%S KST")
+        date_str = (summary_data or {}).get("date", get_seoul_datetime().strftime("%Y-%m-%d"))
+
+        formatted_msg = (
+            f"From: Han Seo-yeon (한서연) | @{config.bsky_handle}\n"
+            f"To: my master ({self.master_handle})\n"
+            f"Date: {date_str} (Late Evening Check-in — {seoul_now})\n\n"
+            f"{summary_text.strip()}"
+        )
+
+        success = self.send_telegram_message(formatted_msg, dry_run=dry_run)
+
+        # Record episodic memory
+        try:
+            from .memory_store import memory_store
+            memory_store.log_episode(
+                "daily_report_to_master",
+                f"Delivered evening daily summary to my master ({self.master_handle})",
+                {"date": date_str, "summary": summary_text[:120], "delivered": success},
+            )
+        except Exception:
+            pass
+
+        return success
+
 
 # Global singleton instance
 notifier = MasterNotifier()

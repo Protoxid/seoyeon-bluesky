@@ -177,9 +177,10 @@ class ContentValidator:
             if re.search(pattern, lower):
                 return False, cleaned, f"Engagement farming pattern detected: '{pattern}'"
 
-        # 7. Length check (Bluesky post limit is 300 characters)
-        if len(cleaned) > 300:
-            return False, cleaned, f"Content exceeds Bluesky 300-char limit ({len(cleaned)} chars)"
+        # 7. Length check (Bluesky post/reply limit is 300 characters; DMs/reports allow up to 3000)
+        max_len = 300 if content_type in ("post", "reply") else 3000
+        if len(cleaned) > max_len:
+            return False, cleaned, f"Content exceeds {max_len}-char limit ({len(cleaned)} chars)"
 
         # 8. Check for incomplete trailing sentence / token budget cutoff
         terminal_punct = (".", "?", "~", "…", '"', "'", "”", "’")

@@ -281,6 +281,58 @@ class ContentGenerator:
         ok, clean, _ = validator.validate_outgoing_text(text, content_type="dm", check_repetition=False)
         return clean, model
 
+    def generate_daily_report(
+        self,
+        summary_data: Dict[str, Any],
+        context: EnvironmentContext,
+    ) -> Tuple[str, str]:
+        """
+        Generates an authentic, in-character end-of-day message to her master (@Protoxide)
+        summarizing what she posted, replied to, liked, and observed that day.
+        """
+        date_str = summary_data.get("date", "")
+        posts = summary_data.get("posts", [])
+        replies = summary_data.get("replies", [])
+        likes_count = summary_data.get("likes_count", 0)
+        dms_count = summary_data.get("dms_count", 0)
+        posts_count = summary_data.get("posts_count", len(posts))
+        replies_count = summary_data.get("replies_count", len(replies))
+
+        post_desc = "; ".join(f'"{p.get("text", "")[:70]}"' for p in posts[:3]) if posts else "none published today"
+        reply_desc = "; ".join(f'"{r.get("reply_text", "")[:70]}"' for r in replies[:3]) if replies else "none made today"
+
+        sys_prompt = self._build_system_prompt(context)
+        user_prompt = (
+            f"It is late evening in your Seongsu flat. You are sending your daily evening check-in message to your master ({config.master_telegram_handle}) on Telegram.\n"
+            "This is a personal message in your authentic voice (dry, quiet, perceptive, observant, lowercase, full stops only, absolutely zero exclamation marks).\n"
+            "Address him as 'my master' or 'my human'.\n\n"
+            f"Here is what you actually did on Bluesky today ({date_str}):\n"
+            f"- Posts published ({posts_count}): {post_desc}\n"
+            f"- Replies / comments ({replies_count}): {reply_desc}\n"
+            f"- Posts liked on feed: {likes_count}\n"
+            f"- Direct messages: {dms_count}\n\n"
+            "Write a natural, understated personal note to your master (2-3 concise paragraphs) summarizing your day. "
+            "Tell him what you shared, conversations or thoughts you had, what you liked, and sign off quietly for the night. "
+            "Do NOT format it as a rigid corporate status report or dashboard. Output ONLY the raw message text."
+        )
+
+        text, model = self._call_llm(sys_prompt, user_prompt, max_tokens=350)
+        if text:
+            ok, clean, _ = validator.validate_outgoing_text(text, content_type="dm", check_repetition=False)
+            if ok and clean:
+                return clean, model
+
+        # Authentic persona fallback
+        post_mention = f"posted about {posts[0]['text'][:45]}..." if posts else "didn't post anything new today"
+        reply_mention = f"answered {replies_count} comment{'s' if replies_count != 1 else ''}" if replies_count else "didn't reply to any comments"
+        fallback = (
+            f"my master, wrapping up for the day from seongsu. the kettle has boiled and the flat is quiet.\n\n"
+            f"on bluesky today, i {post_mention}, {reply_mention}, and liked {likes_count} post{'s' if likes_count != 1 else ''} while browsing. "
+            f"{'no direct messages came in today.' if dms_count == 0 else f'answered {dms_count} private message.'}\n\n"
+            f"going to drink my barley tea and sleep. hope your evening is quiet too."
+        )
+        return fallback, "fallback"
+
     def determine_image_scene(self, post_text: str, context: EnvironmentContext) -> str:
         """Derives a realistic, aesthetically cohesive scene description for image generation."""
         circadian = context.circadian_phase

@@ -63,6 +63,7 @@ EVALUATE CANDIDATES
 6. **Creator Relationship ("my master" / "my human")**:
    - Seo-yeon always refers to her human creator and operator as `"my master"` or `"my human"`.
    - Direct Telegram messenger (`agent/notifier.py`): If she needs to ask her master for anything, she sends an immediate Telegram message to `@Protoxide`.
+   - **Daily Evening Check-in**: At the end of every day (late evening in Seoul, ≥ 22:00 KST), she sends an authentic, personal Telegram message in her dry voice to her master recounting what she did that day (posts published, comments answered, feed posts liked, DMs).
 
 ---
 
@@ -103,11 +104,15 @@ python agent_runner.py --dry-run
 # 3. Run live autonomous tick
 python agent_runner.py --auto
 
-# 4. Force a specific action in dry-run mode (for verification)
+# 4. Generate & send daily evening check-in to my master (dry-run or live)
+python agent_runner.py --daily-summary --dry-run
+python agent_runner.py --daily-summary
+
+# 5. Force a specific action in dry-run mode (for verification)
 python agent_runner.py --dry-run --force-action PUBLISH_TEXT_POST
 python agent_runner.py --dry-run --force-action PUBLISH_IMAGE_POST
 python agent_runner.py --dry-run --force-action NO_ACTION
 
-# 5. Run full test suite
+# 6. Run full test suite
 python -m unittest discover -s tests -p "test_*.py"
 ```

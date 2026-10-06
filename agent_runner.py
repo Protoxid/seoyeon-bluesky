@@ -6,6 +6,7 @@ Usage:
   python agent_runner.py --status
   python agent_runner.py --dry-run
   python agent_runner.py --auto
+  python agent_runner.py --daily-summary
   python agent_runner.py --force-action PUBLISH_TEXT_POST
 """
 

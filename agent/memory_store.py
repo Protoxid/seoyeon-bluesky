@@ -504,5 +504,144 @@ class MemoryStore:
             count_today(ctx.get("dms", [])),
         )
 
+    def get_last_daily_report_date(self) -> str:
+        ctx = self.get_recent_context()
+        return str(ctx.get("last_daily_report_date", ""))
+
+    def set_last_daily_report_date(self, date_str: str) -> None:
+        ctx = self.get_recent_context()
+        ctx["last_daily_report_date"] = date_str
+        try:
+            self.recent_context_file.write_text(json.dumps(ctx, indent=2, ensure_ascii=False), encoding="utf-8")
+        except Exception:
+            pass
+
+    def get_daily_activity_summary(self, target_date: Optional[dt.date] = None) -> Dict[str, Any]:
+        """
+        Aggregates everything Seo-yeon did on the specified Seoul date:
+        posts, replies, likes, DMs, quiet ticks, and spend.
+        """
+        kst_tz = dt.timezone(dt.timedelta(hours=9))
+        date_obj = target_date or dt.datetime.now(kst_tz).date()
+        date_str = date_obj.strftime("%Y-%m-%d")
+
+        posts: List[Dict[str, Any]] = []
+        replies: List[Dict[str, Any]] = []
+        likes: List[Dict[str, Any]] = []
+        dms: List[Dict[str, Any]] = []
+        quiet_ticks = 0
+        spend_usd = 0.0
+
+        # 1. Read from tick_history.jsonl if available
+        tick_file = self.memory_dir.parent / "logs" / "tick_history.jsonl"
+        if tick_file.exists():
+            try:
+                for line in tick_file.read_text(encoding="utf-8").splitlines():
+                    if not line.strip():
+                        continue
+                    entry = json.loads(line)
+                    ts_str = entry.get("ts", "")
+                    if not ts_str:
+                        continue
+                    try:
+                        entry_dt = dt.datetime.fromisoformat(ts_str).astimezone(kst_tz)
+                    except Exception:
+                        continue
+                    if entry_dt.date() != date_obj or not entry.get("executed"):
+                        continue
+
+                    action = entry.get("action")
+                    details = entry.get("details", {})
+                    budget_info = entry.get("budget", {})
+                    if budget_info.get("daily_spend_usd"):
+                        spend_usd = max(spend_usd, float(budget_info["daily_spend_usd"]))
+
+                    if action in ("PUBLISH_TEXT_POST", "PUBLISH_IMAGE_POST"):
+                        raw_text = details.get("text", "")
+                        from .validator import validator
+                        _, clean_text, _ = validator.validate_outgoing_text(raw_text, content_type="post", check_repetition=False)
+                        posts.append({
+                            "text": clean_text or raw_text,
+                            "has_image": action == "PUBLISH_IMAGE_POST",
+                            "uri": details.get("uri", ""),
+                            "model": details.get("model", ""),
+                        })
+                    elif action in ("REPLY_COMMENT", "BROWSE_AND_REPLY"):
+                        replies.append({
+                            "reply_text": details.get("reply_text", ""),
+                            "target_uri": details.get("reply_uri", ""),
+                            "reason": entry.get("reason", ""),
+                        })
+                    elif action == "BROWSE_AND_LIKE":
+                        likes.append({
+                            "post_uri": details.get("liked_post", ""),
+                            "reason": entry.get("reason", ""),
+                        })
+                    elif action == "ANSWER_DM":
+                        dms.append({
+                            "recipient": details.get("to", ""),
+                            "text": details.get("text", ""),
+                        })
+                    elif action == "NO_ACTION":
+                        quiet_ticks += 1
+            except Exception as e:
+                print(f"[MemoryStore] Error reading tick history for daily summary: {e}")
+
+        # 2. Cross-reference with recent_context.json
+        ctx = self.get_recent_context()
+        for p in ctx.get("posts", []):
+            p_ts = p.get("created_at")
+            if p_ts:
+                try:
+                    p_dt = dt.datetime.fromisoformat(p_ts).astimezone(kst_tz)
+                    if p_dt.date() == date_obj:
+                        raw_p_text = p.get("text", "")
+                        post_id = p.get("post_id", "")
+                        from .validator import validator
+                        _, clean_p_text, _ = validator.validate_outgoing_text(raw_p_text, content_type="post", check_repetition=False)
+                        p_text = clean_p_text or raw_p_text
+                        if p_text and not any(x.get("text") == p_text or (post_id and x.get("uri") == post_id) for x in posts):
+                            posts.append({
+                                "text": p_text,
+                                "has_image": bool(p.get("has_image")),
+                                "uri": post_id,
+                            })
+                except Exception:
+                    pass
+
+        for r in ctx.get("replies", []):
+            r_ts = r.get("created_at")
+            if r_ts:
+                try:
+                    r_dt = dt.datetime.fromisoformat(r_ts).astimezone(kst_tz)
+                    if r_dt.date() == date_obj:
+                        raw_r_text = r.get("reply_text", "")
+                        r_uri = r.get("uri", "")
+                        from .validator import validator
+                        _, clean_r_text, _ = validator.validate_outgoing_text(raw_r_text, content_type="reply", check_repetition=False)
+                        r_text = clean_r_text or raw_r_text
+                        if r_text and not any(x.get("reply_text") == r_text or (r_uri and x.get("target_uri") == r_uri) for x in replies):
+                            replies.append({
+                                "reply_text": r_text,
+                                "target_handle": r.get("target_handle", ""),
+                                "user_text": r.get("user_text", ""),
+                            })
+                except Exception:
+                    pass
+
+        return {
+            "date": date_str,
+            "posts_count": len(posts),
+            "posts": posts,
+            "replies_count": len(replies),
+            "replies": replies,
+            "likes_count": len(likes),
+            "likes": likes,
+            "dms_count": len(dms),
+            "dms": dms,
+            "quiet_ticks": quiet_ticks,
+            "spend_usd": spend_usd,
+        }
+
 
 memory_store = MemoryStore()

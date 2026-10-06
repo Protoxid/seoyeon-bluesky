@@ -421,6 +421,21 @@ def run_tick(
     summary = budget_manager.get_summary()
     print(f"  Daily Spend:   ${summary['daily_spend_usd']:.3f} / ${summary['daily_budget_usd']:.2f}")
     print(f"  Images Today:  {summary['daily_images_count']} / {summary['max_daily_images']}")
+
+    # 9. End-of-Day Evening Check-in to My Master (@Protoxide)
+    now_kst = get_seoul_datetime()
+    today_kst_str = now_kst.strftime("%Y-%m-%d")
+    last_report_date = memory_store.get_last_daily_report_date()
+
+    if now_kst.hour >= 22 and last_report_date != today_kst_str:
+        print(f"\n[End of Day in Seoul ({now_kst.strftime('%H:%M KST')})] Generating evening check-in for my master ({config.master_telegram_handle})...")
+        summary_data = memory_store.get_daily_activity_summary(now_kst.date())
+        report_text, model_used = generator.generate_daily_report(summary_data, context)
+        sent = notifier.send_daily_summary(report_text, summary_data, dry_run=is_dry)
+        if sent and not is_dry:
+            memory_store.set_last_daily_report_date(today_kst_str)
+            print(f"  [SUCCESS] Evening daily check-in delivered to my master ({config.master_telegram_handle}).")
+
     print("=" * 65 + "\n")
     return 0
 
@@ -478,6 +493,7 @@ def main() -> int:
     parser.add_argument("--status", action="store_true", help="Display agent metrics, memory stats, and environment context")
     parser.add_argument("--force-action", type=str, help="Force a specific ActionType (e.g. PUBLISH_TEXT_POST, NO_ACTION)")
     parser.add_argument("--ask-master", type=str, help="Send a direct Telegram question/inquiry to my master (@Protoxide)")
+    parser.add_argument("--daily-summary", action="store_true", help="Generate and send end-of-day Telegram check-in to my master (@Protoxide)")
     args = parser.parse_args()
 
     if args.status:
@@ -492,6 +508,20 @@ def main() -> int:
         else:
             print("  Failed to deliver Telegram message.")
             return 1
+
+    if args.daily_summary:
+        now_kst = get_seoul_datetime()
+        today_kst_str = now_kst.strftime("%Y-%m-%d")
+        context = build_environment_context()
+        summary_data = memory_store.get_daily_activity_summary(now_kst.date())
+        print(f"\n[Generating Daily Evening Summary for {today_kst_str} ({context.seoul_time_display})...]")
+        report_text, model = generator.generate_daily_report(summary_data, context)
+        print(f"  Model: {model}\n\n{report_text}\n")
+        sent = notifier.send_daily_summary(report_text, summary_data, dry_run=args.dry_run)
+        if sent and not args.dry_run:
+            memory_store.set_last_daily_report_date(today_kst_str)
+            print(f"  Delivered and recorded for {today_kst_str}.")
+        return 0
 
     if args.auto or args.dry_run or args.force_action:
         return run_tick(dry_run=args.dry_run, force_action=args.force_action)

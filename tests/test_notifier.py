@@ -80,6 +80,57 @@ class TestTelegramNotifier(unittest.TestCase):
         """Config primary text model must default to Claude Sonnet 5.5 on OpenRouter."""
         self.assertEqual(config.primary_text_model, "anthropic/claude-sonnet-5.5")
 
+    def test_send_daily_summary(self):
+        """send_daily_summary must deliver formatted message to master and record episodic memory."""
+        with patch.object(self.notifier, "send_telegram_message", return_value=True) as mock_send:
+            summary_data = {
+                "date": "2026-10-06",
+                "posts_count": 1,
+                "replies_count": 2,
+                "likes_count": 3,
+                "dms_count": 0,
+            }
+            summary_text = "my master, wrapping up for the day. posted once about the cold studio floor, answered two comments, liked three posts on the feed. going to sleep."
+            success = self.notifier.send_daily_summary(summary_text, summary_data, dry_run=True)
+            self.assertTrue(success)
+            mock_send.assert_called_once()
+            called_msg = mock_send.call_args[0][0]
+            self.assertIn("my master", called_msg)
+            self.assertIn("@Protoxide", called_msg)
+            self.assertIn("Late Evening Check-in", called_msg)
+            self.assertIn("cold studio floor", called_msg)
+
+    def test_generate_daily_report_fallback(self):
+        """generate_daily_report must return an in-character message adhering to persona rules."""
+        from agent.context_engine import build_environment_context
+        ctx = build_environment_context()
+        summary_data = {
+            "date": "2026-10-06",
+            "posts_count": 1,
+            "posts": [{"text": "cold studio floor in the morning."}],
+            "replies_count": 1,
+            "replies": [{"reply_text": "fair point on that."}],
+            "likes_count": 2,
+            "dms_count": 0,
+        }
+        # Mock _call_llm to None to test the persona fallback
+        with patch.object(generator, "_call_llm", return_value=(None, "fallback")):
+            text, model = generator.generate_daily_report(summary_data, ctx)
+            self.assertEqual(model, "fallback")
+            self.assertIn("my master", text)
+            self.assertNotIn("!", text)  # Zero exclamation marks
+            self.assertIn("bluesky", text.lower())
+
+    def test_get_daily_activity_summary(self):
+        """get_daily_activity_summary must return structured dict with all activity keys."""
+        summary = memory_store.get_daily_activity_summary()
+        self.assertIn("date", summary)
+        self.assertIn("posts_count", summary)
+        self.assertIn("replies_count", summary)
+        self.assertIn("likes_count", summary)
+        self.assertIn("dms_count", summary)
+        self.assertIn("spend_usd", summary)
+
 
 if __name__ == "__main__":
     unittest.main()
