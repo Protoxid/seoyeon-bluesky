@@ -3,7 +3,7 @@ agent/generator.py — Personality-Driven Language & Content Generator.
 
 Translates internal decisions and rich conversational context into natural,
 in-character Korean or English text for Seo-yeon:
-  - Text generation runs EXCLUSIVELY via OpenRouter API (Claude 3.5 Sonnet / DeepSeek).
+  - Text generation runs EXCLUSIVELY via OpenRouter API (Claude Sonnet 5.5 / DeepSeek).
   - Enforces prompt injection isolation via <untrusted_user_content> boundaries.
   - Grounds responses in identity memory, user profile history, and opinions.
   - Always refers to the human creator/operator as "my master" or "my human".
@@ -107,8 +107,8 @@ class ContentGenerator:
     def _call_llm(self, system_prompt: str, user_prompt: str, max_tokens: int = 150) -> Tuple[Optional[str], str]:
         """
         Calls text generation exclusively via OpenRouter:
-          1. Primary top model: config.primary_text_model (anthropic/claude-3.5-sonnet)
-          2. Fallback model: config.fallback_text_model (deepseek/deepseek-chat on OpenRouter)
+          1. Primary top model: config.primary_text_model (anthropic/claude-sonnet-5.5)
+          2. Fallback model: config.fallback_text_model (deepseek-v4.1-flash on OpenRouter)
         """
         # 1. Primary OpenRouter model
         primary_model = config.primary_text_model

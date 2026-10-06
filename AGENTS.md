@@ -68,8 +68,8 @@ EVALUATE CANDIDATES
 
 ## 4. Text Generation (OpenRouter Exclusive) & Kie.ai Image Generation
 - **Text Generation**: Routed **EXCLUSIVELY** through OpenRouter API (`https://openrouter.ai/api/v1/chat/completions`).
-  - Primary Model: `anthropic/claude-3.5-sonnet` (state-of-the-art intelligence, nuanced character adherence, natural dry tone without robotic exclamation marks).
-  - Fallback Model: `deepseek/deepseek-chat` (fast, highly intelligent secondary on OpenRouter).
+  - Primary Model: `anthropic/claude-sonnet-5.5` (state-of-the-art intelligence, nuanced character adherence, natural dry tone without robotic exclamation marks).
+  - Fallback Model: `deepseek-v4.1-flash` (fast, highly intelligent secondary on OpenRouter).
 - **Image Generation**: Conditioned on the canonical face master through **Kie.ai** API (`https://api.kie.ai`) with `gpt-image-2-5-sunburst-image-to-image`. Identity-anchored to `personas/seoyeon/master/a/a1_front.png`.
 - **Telegram Escalation**: When sensitive inquiries occur (e.g. users asking for real-life meetups, personal contact details) or when agent decisions require master approval, she notifies `@Protoxide` via Telegram Bot API.
 
@@ -84,7 +84,7 @@ The system is fully deployed on **GitHub Actions**:
   - `BSKY_HANDLE`: `syeonhn.bsky.social`
   - `BSKY_APP_PASSWORD`: Bluesky App Password (with DM access enabled)
   - `KIE_API_KEY`: Kie.ai API key (for GPT Image 2.5 image generation)
-  - `OPENROUTER_API_KEY`: OpenRouter API key (sole text provider for Claude 3.5 Sonnet / DeepSeek)
+  - `OPENROUTER_API_KEY`: OpenRouter API key (sole text provider for Claude Sonnet 5.5 / DeepSeek)
   - `TELEGRAM_BOT_TOKEN`: Telegram bot token (for outbound messages to `@Protoxide`)
   - `TELEGRAM_CHAT_ID`: Telegram chat ID / recipient for `@Protoxide` (optional, defaults to `@Protoxide`)
 
