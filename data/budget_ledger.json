@@ -1,9 +1,9 @@
 {
   "current_day": "2026-10-07",
   "current_month": "2026-10",
-  "daily_spend_usd": 0.139,
-  "monthly_spend_usd": 0.261,
-  "daily_images_count": 3,
+  "daily_spend_usd": 0.229,
+  "monthly_spend_usd": 0.351,
+  "daily_images_count": 5,
   "history": [
     {
       "ts": "2026-10-03T04:47:57.219129+00:00",
@@ -136,6 +136,18 @@
       "cost_usd": 0.045,
       "action_type": "image_generation",
       "details": "Seongsu sunset street banner"
+    },
+    {
+      "ts": "2026-10-07T12:52:30.833754+00:00",
+      "cost_usd": 0.045,
+      "action_type": "image_generation",
+      "details": "Seongsu 35mm street corner banner v2"
+    },
+    {
+      "ts": "2026-10-07T12:52:30.841096+00:00",
+      "cost_usd": 0.045,
+      "action_type": "image_generation",
+      "details": "candid claw-clip selfie avatar v2"
     }
   ]
 }
