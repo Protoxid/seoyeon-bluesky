@@ -7,6 +7,8 @@ Usage:
   python agent_runner.py --dry-run
   python agent_runner.py --auto
   python agent_runner.py --daily-summary
+  python agent_runner.py --check-master
+  python agent_runner.py --consolidate
   python agent_runner.py --force-action PUBLISH_TEXT_POST
 """
 

@@ -212,6 +212,29 @@ class MemoryStore:
         data[clean_handle] = asdict(profile)
         self.users_file.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
 
+    def get_all_users(self) -> Dict[str, UserProfile]:
+        """Returns all tracked user profiles mapped by handle."""
+        profiles: Dict[str, UserProfile] = {}
+        if not self.users_file.exists():
+            return profiles
+        try:
+            data = json.loads(self.users_file.read_text(encoding="utf-8"))
+            for h, u in data.items():
+                profiles[h] = UserProfile(
+                    handle=h,
+                    did=u.get("did", ""),
+                    relationship=u.get("relationship", "stranger"),
+                    interaction_style=u.get("interaction_style", "neutral"),
+                    sentiment=u.get("sentiment", "neutral"),
+                    known_facts=u.get("known_facts", []),
+                    interaction_count=u.get("interaction_count", 0),
+                    last_interaction=u.get("last_interaction", ""),
+                    history=u.get("history", []),
+                )
+        except Exception:
+            pass
+        return profiles
+
     def record_user_interaction(
         self,
         handle: str,
@@ -511,6 +534,18 @@ class MemoryStore:
     def set_last_daily_report_date(self, date_str: str) -> None:
         ctx = self.get_recent_context()
         ctx["last_daily_report_date"] = date_str
+        try:
+            self.recent_context_file.write_text(json.dumps(ctx, indent=2, ensure_ascii=False), encoding="utf-8")
+        except Exception:
+            pass
+
+    def get_telegram_last_update_id(self) -> int:
+        ctx = self.get_recent_context()
+        return int(ctx.get("telegram_last_update_id", 0))
+
+    def set_telegram_last_update_id(self, update_id: int) -> None:
+        ctx = self.get_recent_context()
+        ctx["telegram_last_update_id"] = update_id
         try:
             self.recent_context_file.write_text(json.dumps(ctx, indent=2, ensure_ascii=False), encoding="utf-8")
         except Exception:

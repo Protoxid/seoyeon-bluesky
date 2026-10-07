@@ -79,6 +79,8 @@ class EnvironmentContext:
     posts_today: int
     replies_today: int
     dms_today: int
+    city_texture: str = ""
+    internal_state_desc: str = ""
 
     def to_prompt_context(self) -> str:
         """Renders natural-language context summary for cognition and decision prompts."""
@@ -88,9 +90,13 @@ class EnvironmentContext:
             f"- Season: {self.season}",
             f"- Weather in Seoul: {self.weather.summary()}",
         ]
+        if self.city_texture:
+            lines.append(f"- Ambient Seoul Textures: {self.city_texture}")
         if self.holiday_note:
             lines.append(f"- Calendar / Observance: {self.holiday_note}")
         lines.append(f"- Recent Activity: last post {self.hours_since_last_post:.1f}h ago; {self.posts_today} posts today, {self.replies_today} replies today.")
+        if self.internal_state_desc:
+            lines.append(self.internal_state_desc)
         return "\n".join(lines)
 
 
@@ -221,6 +227,17 @@ def build_environment_context(
     holiday = check_korean_holidays(now_kst.date())
     weather = fetch_seoul_weather()
 
+    # Dynamic ambient Seoul city micro-texture
+    city_texture = "October in Seongsu: fallen yellow ginkgo fan-leaves on brick tiles, roasted barley tea steaming on the small counter, quiet circular rumble of Subway Line 2."
+
+    # Update cognitive state & energy dynamics
+    try:
+        from .state_manager import state_manager
+        state_manager.update_circadian_dynamics(now_kst.hour, now_kst.day, is_raining=weather.is_raining)
+        state_desc = state_manager.format_prompt_state()
+    except Exception:
+        state_desc = ""
+
     return EnvironmentContext(
         seoul_time_iso=now_kst.isoformat(),
         seoul_time_display=now_kst.strftime("%H:%M KST"),
@@ -236,4 +253,6 @@ def build_environment_context(
         posts_today=posts_today,
         replies_today=replies_today,
         dms_today=dms_today,
+        city_texture=city_texture,
+        internal_state_desc=state_desc,
     )

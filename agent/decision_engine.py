@@ -277,6 +277,11 @@ class DecisionEngine:
                     else:
                         reply_score = 0.15
 
+                    # Relationship weighting: higher priority for established mutuals/regulars
+                    author_profile = memory_store.get_user_profile(author_handle)
+                    if author_profile.relationship in ("regular", "trusted_friend", "friendly_acquaintance"):
+                        reply_score = min(0.85, reply_score + 0.15)
+
                     best_reply_candidate = ActionCandidate(
                         action=ActionType.BROWSE_AND_REPLY,
                         score=reply_score,
@@ -293,6 +298,10 @@ class DecisionEngine:
                     and getattr(context, "likes_today", 0) < config.max_likes_per_day
                 ):
                     like_score = 0.46 if context.hours_since_last_action >= 1.0 else 0.32
+                    author_profile = memory_store.get_user_profile(author_handle)
+                    if author_profile.relationship in ("regular", "trusted_friend", "friendly_acquaintance"):
+                        like_score = min(0.80, like_score + 0.12)
+
                     best_like_candidate = ActionCandidate(
                         action=ActionType.BROWSE_AND_LIKE,
                         score=like_score,
@@ -308,6 +317,18 @@ class DecisionEngine:
                 candidates.append(best_reply_candidate)
             if best_like_candidate:
                 candidates.append(best_like_candidate)
+
+        # -------------------------------------------------------------
+        # Modulate scores with cognitive state & social battery
+        # -------------------------------------------------------------
+        try:
+            from .state_manager import state_manager
+            raw_scores = {c.action.value: c.score for c in candidates}
+            modulated_scores = state_manager.modulate_candidate_scores(raw_scores)
+            for c in candidates:
+                c.score = modulated_scores.get(c.action.value, c.score)
+        except Exception:
+            pass
 
         # -------------------------------------------------------------
         # Select winning action

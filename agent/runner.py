@@ -90,6 +90,16 @@ def run_tick(
         print(f"Calendar: {context.holiday_note}")
     print(f"Recency:  Last post {context.hours_since_last_post:.1f}h ago | Today: {posts_today} posts, {replies_today} replies, {dms_today} DMs")
 
+    # 2b. Check Inbound Master Messages (@Protoxide)
+    processed_master_msgs = notifier.process_master_inbox(context, dry_run=is_dry)
+    if processed_master_msgs > 0:
+        print(f"  [Master Telegram Interaction] Processed {processed_master_msgs} message(s) from my master.")
+
+    # 2c. Deep Night Cognitive Sleep Pass (Consolidation)
+    if context.circadian_phase == "deep_night":
+        from .consolidator import consolidator
+        consolidator.consolidate(context, dry_run=is_dry)
+
     # 3. Authenticate with Bluesky
     bsky_client.dry_run = is_dry
     auth_ok = bsky_client.authenticate()
@@ -417,24 +427,20 @@ def run_tick(
         "budget": budget_manager.get_summary(),
     })
 
+    if executed:
+        try:
+            from .state_manager import state_manager
+            state_manager.consume_interaction(outcome.selected_action.value)
+        except Exception:
+            pass
+
     print("\n[Budget & Resource Status]")
     summary = budget_manager.get_summary()
     print(f"  Daily Spend:   ${summary['daily_spend_usd']:.3f} / ${summary['daily_budget_usd']:.2f}")
     print(f"  Images Today:  {summary['daily_images_count']} / {summary['max_daily_images']}")
 
-    # 9. End-of-Day Evening Check-in to My Master (@Protoxide)
-    now_kst = get_seoul_datetime()
-    today_kst_str = now_kst.strftime("%Y-%m-%d")
-    last_report_date = memory_store.get_last_daily_report_date()
-
-    if now_kst.hour >= 22 and last_report_date != today_kst_str:
-        print(f"\n[End of Day in Seoul ({now_kst.strftime('%H:%M KST')})] Generating evening check-in for my master ({config.master_telegram_handle})...")
-        summary_data = memory_store.get_daily_activity_summary(now_kst.date())
-        report_text, model_used = generator.generate_daily_report(summary_data, context)
-        sent = notifier.send_daily_summary(report_text, summary_data, dry_run=is_dry)
-        if sent and not is_dry:
-            memory_store.set_last_daily_report_date(today_kst_str)
-            print(f"  [SUCCESS] Evening daily check-in delivered to my master ({config.master_telegram_handle}).")
+    # 9. End-of-Day Evening Check-in & Catch-up to My Master (@Protoxide)
+    notifier.check_and_send_evening_summary(context, dry_run=is_dry)
 
     print("=" * 65 + "\n")
     return 0
@@ -462,6 +468,20 @@ def show_status() -> int:
     print(f"  Daily Spend:    ${summary['daily_spend_usd']:.3f} / ${summary['daily_budget_usd']:.2f}")
     print(f"  Monthly Spend:  ${summary['monthly_spend_usd']:.3f} / ${summary['monthly_budget_usd']:.2f}")
     print(f"  Images Today:   {summary['daily_images_count']} / {summary['max_daily_images']}")
+
+    print("\n[Cognitive State & Energy]")
+    try:
+        from .state_manager import state_manager
+        st = state_manager.get_state()
+        print(f"  Social Battery:      {int(st.social_battery * 100)}%")
+        print(f"  Physical Fatigue:    {int(st.physical_fatigue * 100)}%")
+        print(f"  Financial Awareness: {int(st.financial_awareness * 100)}%")
+        print(f"  Creative Drive:      {int(st.creative_drive * 100)}%")
+        print(f"  Internal Mood:       '{st.mood_descriptor}'")
+        print(f"  Last Consolidation:  {st.last_consolidation_date or 'none'}")
+        print(f"  Last Daily Report:   {memory_store.get_last_daily_report_date() or 'none'}")
+    except Exception as e:
+        print(f"  (Failed to load state: {e})")
 
     print("\n[Memory Summary]")
     ident = memory_store.get_identity()
@@ -493,11 +513,27 @@ def main() -> int:
     parser.add_argument("--status", action="store_true", help="Display agent metrics, memory stats, and environment context")
     parser.add_argument("--force-action", type=str, help="Force a specific ActionType (e.g. PUBLISH_TEXT_POST, NO_ACTION)")
     parser.add_argument("--ask-master", type=str, help="Send a direct Telegram question/inquiry to my master (@Protoxide)")
-    parser.add_argument("--daily-summary", action="store_true", help="Generate and send end-of-day Telegram check-in to my master (@Protoxide)")
+    parser.add_argument("--check-master", action="store_true", help="Poll and reply to incoming Telegram messages from my master (@Protoxide)")
+    parser.add_argument("--consolidate", action="store_true", help="Run nightly memory consolidation and private journal pass")
+    parser.add_argument("--daily-summary", action="store_true", help="Generate and send Telegram check-in to my master (@Protoxide)")
+    parser.add_argument("--date", type=str, help="Specific date for daily summary (YYYY-MM-DD)")
     args = parser.parse_args()
 
     if args.status:
         return show_status()
+
+    if args.check_master:
+        context = build_environment_context()
+        print(f"\n[Checking inbound messages from my master ({config.master_telegram_handle})...]")
+        count = notifier.process_master_inbox(context, dry_run=args.dry_run)
+        print(f"Processed {count} new message(s) from my master.")
+        return 0
+
+    if args.consolidate:
+        context = build_environment_context()
+        from .consolidator import consolidator
+        res = consolidator.consolidate(context, dry_run=args.dry_run, force=True)
+        return 0 if res.get("status") in ("success", "already_consolidated") else 1
 
     if args.ask_master:
         print(f"\n[Sending Telegram message to my master ({config.master_telegram_handle})...]")
@@ -510,17 +546,41 @@ def main() -> int:
             return 1
 
     if args.daily_summary:
-        now_kst = get_seoul_datetime()
-        today_kst_str = now_kst.strftime("%Y-%m-%d")
         context = build_environment_context()
-        summary_data = memory_store.get_daily_activity_summary(now_kst.date())
-        print(f"\n[Generating Daily Evening Summary for {today_kst_str} ({context.seoul_time_display})...]")
-        report_text, model = generator.generate_daily_report(summary_data, context)
-        print(f"  Model: {model}\n\n{report_text}\n")
-        sent = notifier.send_daily_summary(report_text, summary_data, dry_run=args.dry_run)
-        if sent and not args.dry_run:
-            memory_store.set_last_daily_report_date(today_kst_str)
-            print(f"  Delivered and recorded for {today_kst_str}.")
+        now_kst = get_seoul_datetime()
+
+        if args.date:
+            try:
+                target_date = dt.date.fromisoformat(args.date)
+            except Exception:
+                print(f"[ERROR] Invalid date format: {args.date}. Expected YYYY-MM-DD.")
+                return 1
+            target_str = target_date.strftime("%Y-%m-%d")
+            summary_data = memory_store.get_daily_activity_summary(target_date)
+            is_catchup = target_date < now_kst.date()
+            print(f"\n[Generating Daily Summary for {target_str} ({'catchup' if is_catchup else 'interim'})...]")
+            report_text, model = generator.generate_daily_report(summary_data, context, is_catchup=is_catchup)
+            print(f"  Model: {model}\n\n{report_text}\n")
+            sent = notifier.send_daily_summary(report_text, summary_data, dry_run=args.dry_run)
+            if sent and not args.dry_run:
+                memory_store.set_last_daily_report_date(target_str)
+                print(f"  Delivered and recorded for {target_str}.")
+            return 0
+
+        # General daily summary call: handles catch-up or today
+        sent_catchup = notifier.check_and_send_evening_summary(context, dry_run=args.dry_run)
+        if not sent_catchup:
+            # If nothing was automatically triggered (e.g. today < 21:00 and yesterday was already recorded),
+            # but user explicitly requested --daily-summary, generate today's interim summary
+            today_str = now_kst.strftime("%Y-%m-%d")
+            summary_data = memory_store.get_daily_activity_summary(now_kst.date())
+            print(f"\n[Generating Interim Daily Summary for {today_str} ({context.seoul_time_display})...]")
+            report_text, model = generator.generate_daily_report(summary_data, context, is_catchup=False)
+            print(f"  Model: {model}\n\n{report_text}\n")
+            sent = notifier.send_daily_summary(report_text, summary_data, dry_run=args.dry_run)
+            if sent and not args.dry_run:
+                memory_store.set_last_daily_report_date(today_str)
+                print(f"  Delivered and recorded for {today_str}.")
         return 0
 
     if args.auto or args.dry_run or args.force_action:

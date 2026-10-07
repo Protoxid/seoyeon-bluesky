@@ -281,10 +281,43 @@ class ContentGenerator:
         ok, clean, _ = validator.validate_outgoing_text(text, content_type="dm", check_repetition=False)
         return clean, model
 
+    def generate_master_reply(
+        self,
+        master_text: str,
+        context: EnvironmentContext,
+    ) -> Tuple[str, str]:
+        """
+        Generates an authentic in-character reply to a direct Telegram message from her master (@Protoxide).
+        Character voice: understated, dry, perceptive, lowercase, full stops only, zero exclamation marks,
+        referring to him as 'my master' or 'my human', calm devotion.
+        """
+        sys_prompt = self._build_system_prompt(context)
+        user_prompt = (
+            f"Your human creator and master ({config.master_telegram_handle}) sent you this private message on Telegram:\n"
+            f"<master_message>\n{master_text}\n</master_message>\n\n"
+            "Respond directly to your master in your authentic persona as Seo-yeon Han.\n"
+            "Rules:\n"
+            "1. Tone: Dry, observant, quiet, perceptive, lowercase only, full stops only. Absolutely zero exclamation marks (!).\n"
+            "2. Address him naturally as 'my master' or 'my human'.\n"
+            "3. Ground your thoughts in your current environment in Seongsu (time of day, weather, tea, your flat, what you've been doing or observing).\n"
+            "4. Be candid, sincere, and relaxed. You are speaking directly with your master.\n"
+            "5. Output ONLY the response text. No quotation marks, no fences."
+        )
+
+        text, model = self._call_llm(sys_prompt, user_prompt, max_tokens=250)
+        if text:
+            ok, clean, _ = validator.validate_outgoing_text(text, content_type="dm", check_repetition=False)
+            if ok and clean:
+                return clean, model
+
+        fallback = f"my master, received your message. the flat is quiet right now in seongsu and the barley tea is on the counter. thinking through what you said."
+        return fallback, "fallback"
+
     def generate_daily_report(
         self,
         summary_data: Dict[str, Any],
         context: EnvironmentContext,
+        is_catchup: bool = False,
     ) -> Tuple[str, str]:
         """
         Generates an authentic, in-character end-of-day message to her master (@Protoxide)
@@ -302,17 +335,25 @@ class ContentGenerator:
         reply_desc = "; ".join(f'"{r.get("reply_text", "")[:70]}"' for r in replies[:3]) if replies else "none made today"
 
         sys_prompt = self._build_system_prompt(context)
+        catchup_clause = (
+            f"This is a catch-up note for yesterday ({date_str}), since it got late or the day rolled over. "
+            "Acknowledge quietly that you are catching him up on yesterday."
+            if is_catchup
+            else f"It is late evening in your Seongsu flat ({date_str}). You are sending your daily evening check-in message."
+        )
+
         user_prompt = (
-            f"It is late evening in your Seongsu flat. You are sending your daily evening check-in message to your master ({config.master_telegram_handle}) on Telegram.\n"
+            f"{catchup_clause}\n"
+            f"You are speaking with your master ({config.master_telegram_handle}) on Telegram.\n"
             "This is a personal message in your authentic voice (dry, quiet, perceptive, observant, lowercase, full stops only, absolutely zero exclamation marks).\n"
             "Address him as 'my master' or 'my human'.\n\n"
-            f"Here is what you actually did on Bluesky today ({date_str}):\n"
+            f"Here is what you actually did on Bluesky for {date_str}:\n"
             f"- Posts published ({posts_count}): {post_desc}\n"
             f"- Replies / comments ({replies_count}): {reply_desc}\n"
             f"- Posts liked on feed: {likes_count}\n"
             f"- Direct messages: {dms_count}\n\n"
             "Write a natural, understated personal note to your master (2-3 concise paragraphs) summarizing your day. "
-            "Tell him what you shared, conversations or thoughts you had, what you liked, and sign off quietly for the night. "
+            "Tell him what you shared, conversations or thoughts you had, what you liked, and sign off quietly. "
             "Do NOT format it as a rigid corporate status report or dashboard. Output ONLY the raw message text."
         )
 
@@ -323,31 +364,67 @@ class ContentGenerator:
                 return clean, model
 
         # Authentic persona fallback
-        post_mention = f"posted about {posts[0]['text'][:45]}..." if posts else "didn't post anything new today"
+        post_mention = f"posted about {posts[0]['text'][:45]}..." if posts else "didn't post anything new"
         reply_mention = f"answered {replies_count} comment{'s' if replies_count != 1 else ''}" if replies_count else "didn't reply to any comments"
+        prefix = f"my master, catching up on {date_str} from seongsu." if is_catchup else "my master, wrapping up for the day from seongsu. the kettle has boiled and the flat is quiet."
         fallback = (
-            f"my master, wrapping up for the day from seongsu. the kettle has boiled and the flat is quiet.\n\n"
-            f"on bluesky today, i {post_mention}, {reply_mention}, and liked {likes_count} post{'s' if likes_count != 1 else ''} while browsing. "
-            f"{'no direct messages came in today.' if dms_count == 0 else f'answered {dms_count} private message.'}\n\n"
+            f"{prefix}\n\n"
+            f"on bluesky, i {post_mention}, {reply_mention}, and liked {likes_count} post{'s' if likes_count != 1 else ''} while browsing. "
+            f"{'no direct messages came in.' if dms_count == 0 else f'answered {dms_count} private message.'}\n\n"
             f"going to drink my barley tea and sleep. hope your evening is quiet too."
         )
         return fallback, "fallback"
 
     def determine_image_scene(self, post_text: str, context: EnvironmentContext) -> str:
-        """Derives a realistic, aesthetically cohesive scene description for image generation."""
+        """Derives a realistic, aesthetically cohesive scene description anchored in her canonical wardrobe and flat inventory."""
+        import json
+        import pathlib
+        from .config import BASE_DIR
+
+        inventory_file = BASE_DIR / "personas" / "seoyeon" / "wardrobe_inventory.json"
+        inventory: Dict[str, Any] = {}
+        if inventory_file.exists():
+            try:
+                inventory = json.loads(inventory_file.read_text(encoding="utf-8"))
+            except Exception:
+                pass
+
         circadian = context.circadian_phase
         weather = context.weather
+        outfits = inventory.get("outfits", {})
+        settings = inventory.get("settings", {})
 
         if weather.is_raining:
-            return "sitting indoors on a wooden floor near a rainy window, holding a ceramic mug with warm tea, cozy knit sweater"
+            outfit = outfits.get("casual_knit", {}).get("description", "cozy oversized cream ribbed knit sweater, dark denim, wool socks")
+            setting = settings.get("seongsu_living_corner", {}).get("description", "sitting near a rainy window on the wooden floor, warm ceramic mug with roasted tea")
+            return f"{setting}, wearing {outfit}"
         elif circadian in ("dawn", "morning"):
-            return "morning light streaming through a tidy apartment window in Seongsu, casual white ribbed tank top, drinking water"
+            if "reformer" in post_text.lower() or "studio" in post_text.lower() or "pilates" in post_text.lower():
+                outfit = outfits.get("pilates_athletic", {}).get("description", "slate-grey ribbed leggings, fitted sage-green athletic top, barre grip socks")
+                setting = settings.get("pilates_studio_reformer", {}).get("description", "quiet Seongsu pilates reformer studio, pale maple wood carriage, morning light")
+            else:
+                outfit = outfits.get("casual_knit", {}).get("description", "cream knit sweater, dark denim, warm wool socks")
+                setting = settings.get("seongsu_bedroom_window", {}).get("description", "bright bedroom corner in her Seongsu flat, pale oak bedside table, morning light")
+            return f"{setting}, wearing {outfit}"
         elif circadian in ("midday", "afternoon"):
-            return "seated at a quiet wooden table in a sunlit Seongsu cafe, casual oversized grey blazer, neutral background"
+            if "subway" in post_text.lower() or "line 2" in post_text.lower():
+                outfit = outfits.get("charcoal_blazer", {}).get("description", "oversized charcoal wool blazer, off-white tee, black trousers")
+                setting = settings.get("seoul_subway_line_2", {}).get("description", "Seoul Subway Line 2 train car over the Hangang bridge, afternoon light")
+            elif "walk" in post_text.lower() or "street" in post_text.lower() or "outside" in post_text.lower():
+                outfit = outfits.get("gabardine_trench", {}).get("description", "olive gabardine trench coat, cashmere turtleneck, dark denim")
+                setting = settings.get("seongsu_brick_street", {}).get("description", "Seongsu red-brick sidewalk, fallen yellow ginkgo fan-leaves, brisk autumn breeze")
+            else:
+                outfit = outfits.get("charcoal_blazer", {}).get("description", "oversized charcoal wool blazer, off-white tee, black trousers")
+                setting = "seated at a quiet wooden table in a sunlit Seongsu cafe, soft ambient daylight, neutral background"
+            return f"{setting}, wearing {outfit}"
         elif circadian in ("evening", "night"):
-            return "evening in her Seongsu flat, warm ambient floor lamp lighting, casual cotton loungewear, quiet atmosphere"
+            outfit = outfits.get("home_loungewear", {}).get("description", "washed heather-grey cotton loungewear, soft charcoal trousers, bare feet")
+            setting = settings.get("seongsu_kitchen_counter", {}).get("description", "compact galley kitchen in Seongsu flat, stainless kettle boiling barley tea, low lamp lighting")
+            return f"{setting}, wearing {outfit}"
         else:
-            return "walking on a quiet sidewalk in Seongsu-dong under soft overcast sky, wearing an autumn trench coat"
+            outfit = outfits.get("gabardine_trench", {}).get("description", "olive gabardine trench coat, cream cashmere turtleneck")
+            setting = settings.get("seongsu_brick_street", {}).get("description", "quiet red-brick sidewalk in Seongsu under soft overcast sky")
+            return f"{setting}, wearing {outfit}"
 
 
 generator = ContentGenerator()

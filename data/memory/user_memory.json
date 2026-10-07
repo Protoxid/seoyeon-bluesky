@@ -2,7 +2,7 @@
   "harbourlightgame.bsky.social": {
     "handle": "harbourlightgame.bsky.social",
     "did": "did:plc:uzqzigp7w4ua33xq2vlwrk2n",
-    "relationship": "friendly_acquaintance",
+    "relationship": "regular",
     "interaction_style": "neutral",
     "sentiment": "neutral",
     "known_facts": [],

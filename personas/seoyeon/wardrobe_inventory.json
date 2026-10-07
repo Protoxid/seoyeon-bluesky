@@ -1,0 +1,66 @@
+{
+  "outfits": {
+    "casual_knit": {
+      "name": "Oversized Cream Ribbed Knit",
+      "description": "oversized cream ribbed knit wool sweater, relaxed raw-hem dark indigo denim, soft grey wool socks",
+      "season": ["autumn", "winter"],
+      "vibe": "quiet morning, reading, boiling tea indoors"
+    },
+    "charcoal_blazer": {
+      "name": "Tailored Charcoal Wool Blazer",
+      "description": "relaxed oversized charcoal-grey wool blazer, plain off-white cotton crewneck tee, washed black straight-leg trousers, simple leather loafers",
+      "season": ["autumn", "spring"],
+      "vibe": "afternoon walk in Seongsu, cafe work, exhibition"
+    },
+    "pilates_athletic": {
+      "name": "Studio Slate Athletic Set",
+      "description": "slate-grey high-waist ribbed performance leggings, fitted sage-green long-sleeve athletic wrap top, barre grip socks, hair in low smooth bun",
+      "season": ["all"],
+      "vibe": "reformer instruction, post-class stretch, studio cool-down"
+    },
+    "gabardine_trench": {
+      "name": "Olive Gabardine Trench",
+      "description": "classic olive-khaki oversized gabardine trench coat, cream cashmere turtleneck, structured dark wash denim, leather shoulder tote",
+      "season": ["autumn", "spring"],
+      "vibe": "brisk outdoor walk, Line 2 subway commute, windy Seongsu street"
+    },
+    "home_loungewear": {
+      "name": "Washed Cotton Loungewear",
+      "description": "washed heather-grey cotton loungewear sweatshirt, comfortable soft charcoal trousers, bare feet",
+      "season": ["all"],
+      "vibe": "late evening, boiling water, reading on the floorboards"
+    },
+    "studio_mat_bone": {
+      "name": "Bone-White Athletic Set",
+      "description": "matte bone-white supportive scoop-neck sports bra and high-waisted mid-thigh shorts, barefoot, hair tied back in a low smooth bun",
+      "season": ["all"],
+      "vibe": "mat conditioning, deep core alignment, private practice"
+    }
+  },
+  "settings": {
+    "seongsu_bedroom_window": {
+      "name": "Bedroom Window Corner",
+      "description": "bright bedroom corner in her Seongsu flat, low bed in white linen, duvet pulled roughly up with natural creases, pale oak bedside table with small ceramic lamp, morning light"
+    },
+    "seongsu_living_corner": {
+      "name": "Living Room Armchair Corner",
+      "description": "living-room corner in her Seongsu flat, soft cream armchair with dented cushion, half-drawn linen curtain, sage plant on the sill in terracotta pot, small oak stool used as side table"
+    },
+    "seongsu_kitchen_counter": {
+      "name": "Galley Kitchen Counter",
+      "description": "compact galley kitchen in her Seongsu flat, pale wood worktop, brushed stainless kettle, white ceramic canister of roasted barley tea, linen tea towel over handle"
+    },
+    "pilates_studio_reformer": {
+      "name": "Seongsu Pilates Studio Reformer",
+      "description": "quiet Seongsu reformer pilates studio, one reformer on pale maple wood, white walls, large tall frosted window, rolled mat and neat stack of foam blocks"
+    },
+    "seongsu_brick_street": {
+      "name": "Seongsu Red-Brick Sidewalk",
+      "description": "red-brick sidewalk in Seongsu-dong, fallen yellow ginkgo fan-leaves, crisp autumn breeze, soft overcast daylight, quiet pedestrian street"
+    },
+    "seoul_subway_line_2": {
+      "name": "Subway Line 2 Train Car",
+      "description": "quiet Seoul Subway Line 2 car traversing the Hangang bridge, stainless steel handrails, golden afternoon window reflections"
+    }
+  }
+}

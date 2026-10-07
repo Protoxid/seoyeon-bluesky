@@ -62,8 +62,14 @@ EVALUATE CANDIDATES
    - Chronological log of notable interactions, milestones, and reflections.
 6. **Creator Relationship ("my master" / "my human")**:
    - Seo-yeon always refers to her human creator and operator as `"my master"` or `"my human"`.
-   - Direct Telegram messenger (`agent/notifier.py`): If she needs to ask her master for anything, she sends an immediate Telegram message to `@Protoxide`.
-   - **Daily Evening Check-in**: At the end of every day (late evening in Seoul, ≥ 22:00 KST), she sends an authentic, personal Telegram message in her dry voice to her master recounting what she did that day (posts published, comments answered, feed posts liked, DMs).
+   - **Interactive Bidirectional Telegram Bond (`agent/notifier.py`)**: She receives inbound messages from her master (`@Protoxide`), recharges her social battery, and replies directly in character.
+   - **Resilient Daily Evening Check-in & Catch-up**: Delivered late evening (≥ 21:00 KST). If any day is missed due to scheduler queues, she automatically catches up on the very next tick.
+7. **Private Journal (`private_journal.jsonl`)**:
+   - Internal late-night reflection notebook in her Seongsu flat; never broadcasted to the public.
+8. **Dynamic Cognitive State (`agent_state.json`)**:
+   - Biological circadian rhythms: social battery (0.0–1.0), physical fatigue (0.0–1.0), financial awareness, and creative drive.
+9. **Visual Consistency Inventory (`wardrobe_inventory.json`)**:
+   - Flat spaces and wardrobe items grounding image generation prompts.
 
 ---
 
@@ -86,7 +92,7 @@ The system is fully deployed on **GitHub Actions**:
   - `BSKY_APP_PASSWORD`: Bluesky App Password (with DM access enabled)
   - `KIE_API_KEY`: Kie.ai API key (for GPT Image 2.5 image generation)
   - `OPENROUTER_API_KEY`: OpenRouter API key (sole text provider for Claude Sonnet 5.5 / DeepSeek)
-  - `TELEGRAM_BOT_TOKEN`: Telegram bot token (for outbound messages to `@Protoxide`)
+  - `TELEGRAM_BOT_TOKEN`: Telegram bot token (for bidirectional communication with `@Protoxide`)
   - `TELEGRAM_CHAT_ID`: Telegram chat ID / recipient for `@Protoxide` (optional, defaults to `@Protoxide`)
 
 
@@ -95,7 +101,7 @@ The system is fully deployed on **GitHub Actions**:
 ## 6. Daily Command Cheatsheet
 From project root:
 ```powershell
-# 1. View live agent dashboard (Seoul time, weather, memory, budget)
+# 1. View live agent dashboard (Seoul time, weather, memory, budget, cognitive state)
 python agent_runner.py --status
 
 # 2. Run single autonomous tick in safe DRY-RUN mode (no publishing)
@@ -104,15 +110,21 @@ python agent_runner.py --dry-run
 # 3. Run live autonomous tick
 python agent_runner.py --auto
 
-# 4. Generate & send daily evening check-in to my master (dry-run or live)
+# 4. Generate & send daily evening check-in to my master (with catch-up resilience)
 python agent_runner.py --daily-summary --dry-run
 python agent_runner.py --daily-summary
 
-# 5. Force a specific action in dry-run mode (for verification)
+# 5. Check & reply to incoming Telegram messages from my master (@Protoxide)
+python agent_runner.py --check-master
+
+# 6. Run nightly memory consolidation pass & private journal reflection
+python agent_runner.py --consolidate
+
+# 7. Force a specific action in dry-run mode (for verification)
 python agent_runner.py --dry-run --force-action PUBLISH_TEXT_POST
 python agent_runner.py --dry-run --force-action PUBLISH_IMAGE_POST
 python agent_runner.py --dry-run --force-action NO_ACTION
 
-# 6. Run full test suite
+# 8. Run full test suite
 python -m unittest discover -s tests -p "test_*.py"
 ```

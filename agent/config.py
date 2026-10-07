@@ -14,6 +14,7 @@ from typing import Dict, List, Optional
 
 
 PROJECT_ROOT = pathlib.Path(__file__).resolve().parent.parent
+BASE_DIR = PROJECT_ROOT
 DATA_DIR = PROJECT_ROOT / "data"
 MEMORY_DIR = DATA_DIR / "memory"
 LOGS_DIR = DATA_DIR / "logs"
