@@ -29,6 +29,8 @@ from .visual_identity import build_image_prompt
 KIE_API_BASE = "https://api.kie.ai"
 KIE_UPLOAD_BASE = "https://kieai.redpandaai.co"
 MASTER_A1_PATH = PROJECT_ROOT / "personas" / "seoyeon" / "master" / "a" / "a1_front.png"
+MASTER_C5_PATH = PROJECT_ROOT / "personas" / "seoyeon" / "master" / "c" / "c5_relax_front.png"
+
 
 
 def _is_url_alive(url: str) -> bool:
@@ -83,7 +85,8 @@ def get_or_upload_master_reference(path: pathlib.Path, api_key: str) -> Optional
     try:
         with urllib.request.urlopen(req, timeout=30) as resp:
             data = json.loads(resp.read().decode("utf-8"))
-            remote_url = (data.get("data") or {}).get("url") or data.get("url")
+            data_obj = data.get("data") if isinstance(data.get("data"), dict) else {}
+            remote_url = data_obj.get("downloadUrl") or data_obj.get("url") or data.get("url")
             if remote_url:
                 sidecar.write_text(f"{digest} {remote_url}\n", encoding="utf-8")
                 return remote_url
@@ -129,8 +132,13 @@ class ImageEngine:
         if not self.api_key:
             return None, prompt, "KIE_API_KEY is not configured (check kie_key.txt or .env)."
 
-        # 1. Obtain master face reference URL only for selfies
-        ref_url = get_or_upload_master_reference(MASTER_A1_PATH, self.api_key) if is_selfie else None
+        # 1. Obtain master face reference URLs (a1 + c5) for selfies
+        ref_urls: List[str] = []
+        if is_selfie:
+            for ref_path in (MASTER_A1_PATH, MASTER_C5_PATH):
+                u = get_or_upload_master_reference(ref_path, self.api_key)
+                if u:
+                    ref_urls.append(u)
         model = config.kie_image_model
 
         # 2. Build task payload
@@ -139,10 +147,11 @@ class ImageEngine:
             "aspect_ratio": aspect,
             "resolution": "1K",
         }
-        if is_selfie and ref_url and "image-to-image" in model:
-            task_input["input_urls"] = [ref_url]
+        if is_selfie and ref_urls and "image-to-image" in model:
+            task_input["input_urls"] = ref_urls
             task_input["background"] = "auto"
-            print(f"[Kie ImageEngine] Model: {model} | Identity Reference Fed: {MASTER_A1_PATH.name} -> {ref_url}")
+            ref_names = ", ".join(p.name for p in (MASTER_A1_PATH, MASTER_C5_PATH) if p.exists())
+            print(f"[Kie ImageEngine] Model: {model} | Identity References Fed: [{ref_names}] -> {len(ref_urls)} URLs")
         else:
             print(f"[Kie ImageEngine] Model: {model} | Notice: Running {'text-to-image POV' if not is_selfie else 'text-to-image'}")
 
