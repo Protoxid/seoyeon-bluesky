@@ -1,9 +1,9 @@
 {
   "current_day": "2026-10-07",
   "current_month": "2026-10",
-  "daily_spend_usd": 0.229,
-  "monthly_spend_usd": 0.351,
-  "daily_images_count": 5,
+  "daily_spend_usd": 0.274,
+  "monthly_spend_usd": 0.396,
+  "daily_images_count": 6,
   "history": [
     {
       "ts": "2026-10-03T04:47:57.219129+00:00",
@@ -148,6 +148,12 @@
       "cost_usd": 0.045,
       "action_type": "image_generation",
       "details": "candid claw-clip selfie avatar v2"
+    },
+    {
+      "ts": "2026-10-07T18:03:17.936510+00:00",
+      "cost_usd": 0.045,
+      "action_type": "image_generation",
+      "details": "Candid everyday smartphone selfie of Seo"
     }
   ]
 }

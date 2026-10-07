@@ -1,9 +1,9 @@
 {
-  "social_battery": 0.8499999999999999,
-  "physical_fatigue": 0.15,
+  "social_battery": 1.0,
+  "physical_fatigue": 0.1,
   "financial_awareness": 0.4,
   "creative_drive": 0.7,
-  "mood_descriptor": "quiet flat, boiling water, city winding down",
-  "last_updated": "2026-10-07T12:14:29.173235+00:00",
+  "mood_descriptor": "grounded after speaking with my master (Publish a post with a selfie r)",
+  "last_updated": "2026-10-07T18:00:57.655992+00:00",
   "last_consolidation_date": "2026-10-07"
 }
