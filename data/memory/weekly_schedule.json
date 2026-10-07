@@ -1,0 +1,161 @@
+{
+  "week_id": "2026-W41",
+  "generated_at": "2026-10-08T03:51:30.976192+09:00",
+  "weekly_theme": "Autumn routines in Seongsu, studio sessions, and quiet walks along the river",
+  "days": {
+    "monday": {
+      "morning": {
+        "activity": "teaching 07:30 and 09:00 reformer classes in Seongsu studio",
+        "area": "Seongsu studio district",
+        "vibe": "focused, energetic, cool morning"
+      },
+      "afternoon": {
+        "activity": "stopping at neighborhood bakery for sourdough and walking along Seongsui-ro",
+        "area": "Seongsu brick backstreets",
+        "vibe": "observant, brisk breeze, dry leaves"
+      },
+      "evening": {
+        "activity": "making simple radish and pollack soup, browsing typography monograph",
+        "area": "flat kitchen / reading desk",
+        "vibe": "quiet domestic ease, warm lamplight"
+      },
+      "deep_night": {
+        "activity": "half-asleep in bed, duvet pulled up, phone screen on lowest brightness",
+        "area": "bed in bedroom",
+        "vibe": "sleepy, silent, late-night shadows"
+      }
+    },
+    "tuesday": {
+      "morning": {
+        "activity": "personal foam roller stretching, walking through Ttukseom alleyways",
+        "area": "Ttukseom outdoor pedestrian streets",
+        "vibe": "quiet, fresh air, morning light"
+      },
+      "afternoon": {
+        "activity": "subway Line 2 ride across Hangang bridge toward Euljiro print shops",
+        "area": "Seoul Subway Line 2 elevated train car",
+        "vibe": "rhythmic train rattle, river reflection"
+      },
+      "evening": {
+        "activity": "dinner at small neighbourhood noodle counter, walking back past ginkgo trees",
+        "area": "Seongsu alleyways",
+        "vibe": "crisp autumn night, steam from kitchen doors"
+      },
+      "deep_night": {
+        "activity": "asleep in bed, tangled in white linen, room dark and still",
+        "area": "bed in bedroom",
+        "vibe": "deep sleep, silence"
+      }
+    },
+    "wednesday": {
+      "morning": {
+        "activity": "teaching mid-morning private reformer session, checking studio alignment ropes",
+        "area": "pilates studio",
+        "vibe": "patient, professional, warm wooden floor"
+      },
+      "afternoon": {
+        "activity": "sitting with notebook outside small Seongsu cafe, sketching posture notes",
+        "area": "small cafe outdoor bench",
+        "vibe": "creative, observant, breeze"
+      },
+      "evening": {
+        "activity": "organizing workout wardrobe laundry, boiling warm roasted tea",
+        "area": "flat",
+        "vibe": "grounded, slow domestic routine"
+      },
+      "deep_night": {
+        "activity": "half-asleep in bed, looking through window at quiet street below",
+        "area": "bed in bedroom",
+        "vibe": "drowsy, resting, soft lamp glow"
+      }
+    },
+    "thursday": {
+      "morning": {
+        "activity": "morning walk through Seoul Forest fringe, observing stray cats by the bench",
+        "area": "Seoul Forest trail edge",
+        "vibe": "peaceful, misty air, crunching fallen leaves"
+      },
+      "afternoon": {
+        "activity": "running errands at local stationer near Konkuk University, picking up binder clips",
+        "area": "Konkuk station sidewalk",
+        "vibe": "bustling students, cool autumn sunshine"
+      },
+      "evening": {
+        "activity": "watching 90s film on laptop with barley tea cooling on side table",
+        "area": "living corner flat",
+        "vibe": "nostalgic, cinematic, quiet darkness"
+      },
+      "deep_night": {
+        "activity": "in bed half-asleep, pillow scrunched up, eyelids heavy",
+        "area": "bed in bedroom",
+        "vibe": "peaceful, warm duvet, sleep"
+      }
+    },
+    "friday": {
+      "morning": {
+        "activity": "early morning private pilates client, walking past Seongsu roasteries",
+        "area": "Yeonmujang-gil morning street",
+        "vibe": "smell of coffee beans, brisk commute"
+      },
+      "afternoon": {
+        "activity": "browsing vintage design posters and translated books at secondhand shop",
+        "area": "Seongsu independent bookstore",
+        "vibe": "smell of old paper, tactile, calm"
+      },
+      "evening": {
+        "activity": "late light meal, listening to ambient music while stretching calves",
+        "area": "flat wooden floor",
+        "vibe": "weekend unwinding, physical release"
+      },
+      "deep_night": {
+        "activity": "asleep under duvet, phone charging across room, quiet night",
+        "area": "bed in bedroom",
+        "vibe": "deep sleep, undisturbed"
+      }
+    },
+    "saturday": {
+      "morning": {
+        "activity": "sleeping in slightly, walking down to local market for persimmons and tofu",
+        "area": "Ttukseom traditional market street",
+        "vibe": "unhurried, neighborhood chatter, cool air"
+      },
+      "afternoon": {
+        "activity": "visiting small photo exhibition in converted Seongsu brick warehouse",
+        "area": "Seongsu cultural gallery street",
+        "vibe": "contemplative, aesthetic inspiration"
+      },
+      "evening": {
+        "activity": "eating simple dinner, writing late-night thoughts in private notebook",
+        "area": "kitchen table",
+        "vibe": "introspective, quiet, settled"
+      },
+      "deep_night": {
+        "activity": "half-asleep in bed propped on pillows, reading last few pages of novel",
+        "area": "bed in bedroom",
+        "vibe": "sleepy, soft pages, low warm lamp"
+      }
+    },
+    "sunday": {
+      "morning": {
+        "activity": "gentle yoga mat flow at home, sunlight coming through kitchen window",
+        "area": "flat sunlit corner",
+        "vibe": "slow, restorative, golden morning light"
+      },
+      "afternoon": {
+        "activity": "walking across Seongsu pedestrian bridge, watching Han River water glitter",
+        "area": "Han River riverside promenade",
+        "vibe": "open sky, river breeze, solitary clarity"
+      },
+      "evening": {
+        "activity": "planning the coming week, cleaning pilates gear, quiet Sunday evening",
+        "area": "flat desk",
+        "vibe": "anticipation, organized, peaceful"
+      },
+      "deep_night": {
+        "activity": "asleep early in bed, resting for Monday morning 07:30 class",
+        "area": "bed in bedroom",
+        "vibe": "restful sleep, clean sheets, dark room"
+      }
+    }
+  }
+}

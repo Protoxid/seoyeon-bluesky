@@ -105,16 +105,31 @@ class ImageEngine:
         scene_description: str,
         mood: Optional[str] = None,
         aspect: str = "3:4",
-        is_selfie: bool = True,
+        is_selfie: Optional[bool] = None,
         dry_run: Optional[bool] = None,
     ) -> Tuple[Optional[bytes], str, Optional[str]]:
         """
         Generates an authentic image through Kie.ai API.
         If is_selfie=True: Conditioned on master face reference (personas/seoyeon/master/a/a1_front.png).
         If is_selfie=False: Generates first-person POV environmental scene without subject face.
+        If is_selfie=None: Automatically inferred from scene_description (POV vs selfie).
         Returns: (image_bytes, prompt_used, error_or_notes)
         """
         is_dry = dry_run if dry_run is not None else config.dry_run
+
+        if is_selfie is None:
+            desc_lower = scene_description.lower()
+            has_explicit_pov = any(p in desc_lower for p in (
+                "no people", "point-of-view", "pov", "looking down at", 
+                "out the window", "stray cat", "cat on", "close-up of cup", 
+                "close-up of book", "ceramic mug on", "steaming bowl", "pastry on"
+            ))
+            has_selfie_clues = any(s in desc_lower for s in (
+                "selfie", "wearing", "her hair", "her face", "herself", 
+                "portrait", "looking into camera", "in bed", "half-asleep", "holding phone"
+            ))
+            is_selfie = not (has_explicit_pov and not has_selfie_clues)
+
         prompt = build_image_prompt(scene_description, mood=mood, is_selfie=is_selfie)
 
         if is_dry:
@@ -140,6 +155,8 @@ class ImageEngine:
                 if u:
                     ref_urls.append(u)
         model = config.kie_image_model
+        if not is_selfie and "image-to-image" in model:
+            model = model.replace("-image-to-image", "")
 
         # 2. Build task payload
         task_input: dict = {

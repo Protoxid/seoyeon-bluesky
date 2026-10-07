@@ -157,6 +157,17 @@ class MemoryConsolidator:
                 },
             )
 
+        # 5. Weekly Schedule Maintenance (Silent Sunday pass or week-boundary check)
+        try:
+            from .weekly_planner import weekly_planner
+            if now_kst.weekday() == 6:  # Sunday evening
+                next_week_time = now_kst + dt.timedelta(days=1)
+                weekly_planner.get_or_create_schedule(now_kst=next_week_time, force=False)
+            else:
+                weekly_planner.get_or_create_schedule(now_kst=now_kst, force=False)
+        except Exception as e:
+            print(f"  [WeeklyPlanner Note] Routine schedule maintenance: {e}")
+
         print(f"  [Private Journal]: \"{journal_text}\"")
         if relationships_evolved:
             print(f"  [Relationships Evolved]: {', '.join(relationships_evolved)}")

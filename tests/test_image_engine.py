@@ -27,16 +27,22 @@ class TestImageEngine(unittest.TestCase):
         self.assertNotIn("Seo-yeon", pov_prompt)
         self.assertLess(len(pov_prompt), 250)
 
-    def test_image_engine_dry_run(self):
+    def test_image_engine_auto_detect_pov_vs_selfie(self):
         engine = ImageEngine(api_key="test_key")
-        img_bytes, prompt_used, err = engine.generate_image(
-            scene_description="watching rain outside window",
+        # POV shot with stray cat or no people
+        _, prompt_cat, _ = engine.generate_image(
+            scene_description="candid 35mm point-of-view photograph of a calm stray calico cat curled up on a parked scooter in Seongsu alley, no people",
             dry_run=True,
         )
-        self.assertIsNotNone(img_bytes)
-        self.assertGreater(len(img_bytes), 100)
-        self.assertIsNone(err)
-        self.assertIn("watching rain outside window", prompt_used)
+        self.assertIn("35mm film photograph", prompt_cat)
+        self.assertNotIn("smartphone selfie", prompt_cat)
+
+        # Handheld selfie
+        _, prompt_selfie, _ = engine.generate_image(
+            scene_description="authentic handheld front-camera outdoor morning selfie walking along Seongsu red-brick sidewalk",
+            dry_run=True,
+        )
+        self.assertIn("smartphone selfie", prompt_selfie)
 
 
 if __name__ == "__main__":

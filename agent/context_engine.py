@@ -81,6 +81,8 @@ class EnvironmentContext:
     dms_today: int
     city_texture: str = ""
     internal_state_desc: str = ""
+    scheduled_activity: str = ""
+    scheduled_area: str = ""
 
     def to_prompt_context(self) -> str:
         """Renders natural-language context summary for cognition and decision prompts."""
@@ -90,6 +92,8 @@ class EnvironmentContext:
             f"- Season: {self.season}",
             f"- Weather in Seoul: {self.weather.summary()}",
         ]
+        if self.scheduled_activity:
+            lines.append(f"- Current Life Context: {self.scheduled_activity} (area: {self.scheduled_area})")
         if self.city_texture:
             lines.append(f"- Ambient Seoul Textures: {self.city_texture}")
         if self.holiday_note:
@@ -238,6 +242,16 @@ def build_environment_context(
     except Exception:
         state_desc = ""
 
+    # Current scheduled life activity & area
+    try:
+        from .weekly_planner import weekly_planner
+        act_info = weekly_planner.get_current_activity(now_kst)
+        scheduled_activity = act_info.get("activity", "")
+        scheduled_area = act_info.get("area", "")
+    except Exception:
+        scheduled_activity = ""
+        scheduled_area = ""
+
     return EnvironmentContext(
         seoul_time_iso=now_kst.isoformat(),
         seoul_time_display=now_kst.strftime("%H:%M KST"),
@@ -255,4 +269,6 @@ def build_environment_context(
         dms_today=dms_today,
         city_texture=city_texture,
         internal_state_desc=state_desc,
+        scheduled_activity=scheduled_activity,
+        scheduled_area=scheduled_area,
     )

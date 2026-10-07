@@ -127,6 +127,10 @@ python agent_runner.py --dry-run --force-action PUBLISH_TEXT_POST
 python agent_runner.py --dry-run --force-action PUBLISH_IMAGE_POST
 python agent_runner.py --dry-run --force-action NO_ACTION
 
-# 8. Run full test suite
+# 8. View / plan 7-day weekly life itinerary
+python agent_runner.py --plan-week
+python agent_runner.py --force-plan
+
+# 9. Run full test suite
 python -m unittest discover -s tests -p "test_*.py"
 ```
