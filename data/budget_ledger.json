@@ -1,8 +1,8 @@
 {
   "current_day": "2026-10-07",
   "current_month": "2026-10",
-  "daily_spend_usd": 0.047,
-  "monthly_spend_usd": 0.169,
+  "daily_spend_usd": 0.049,
+  "monthly_spend_usd": 0.171,
   "daily_images_count": 1,
   "history": [
     {
@@ -124,6 +124,12 @@
       "cost_usd": 0.045,
       "action_type": "image_generation",
       "details": "A candid, realistic photograph of Han Se"
+    },
+    {
+      "ts": "2026-10-07T11:35:23.084527+00:00",
+      "cost_usd": 0.002,
+      "action_type": "browse_reply",
+      "details": "to @lunanova-love.bsky.social"
     }
   ]
 }
