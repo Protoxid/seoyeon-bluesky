@@ -28,6 +28,9 @@ class ActionType(enum.Enum):
     ANSWER_DM = "ANSWER_DM"
     BROWSE_AND_LIKE = "BROWSE_AND_LIKE"
     BROWSE_AND_REPLY = "BROWSE_AND_REPLY"
+    QUOTE_POST = "QUOTE_POST"
+    REPOST = "REPOST"
+    FOLLOW = "FOLLOW"
     PUBLISH_TEXT_POST = "PUBLISH_TEXT_POST"
     PUBLISH_IMAGE_POST = "PUBLISH_IMAGE_POST"
 
@@ -308,6 +311,42 @@ class DecisionEngine:
                         confidence=0.65,
                         reason=f"Quietly like post by @{author.get('handle')} during feed browsing.",
                         target_data={"post": post},
+                    )
+
+                # 5c. Quote Post Candidate
+                if (
+                    config.allow_posts
+                    and context.posts_today < config.max_posts_per_day
+                    and context.hours_since_last_post >= 4.0
+                    and not memory_store.has_replied_to_post(post_uri)
+                    and len(text.strip()) >= 30
+                ):
+                    quote_score = 0.48 if context.hours_since_last_action >= 1.5 else 0.30
+                    candidates.append(
+                        ActionCandidate(
+                            action=ActionType.QUOTE_POST,
+                            score=quote_score,
+                            confidence=0.65,
+                            reason=f"Quote-post thought by @{author.get('handle')}: \"{text[:40]}...\"",
+                            target_data={"post": post},
+                            intent="quote_with_perspective",
+                        )
+                    )
+
+                # 5d. Repost Candidate (for evocative community posts)
+                if (
+                    "embed" in post
+                    and post.get("embed", {}).get("$type") == "app.bsky.embed.images#view"
+                    and context.hours_since_last_action >= 2.0
+                ):
+                    candidates.append(
+                        ActionCandidate(
+                            action=ActionType.REPOST,
+                            score=0.40,
+                            confidence=0.60,
+                            reason=f"Quietly repost visual snapshot by @{author.get('handle')}.",
+                            target_data={"post": post},
+                        )
                     )
 
                 if best_reply_candidate and best_like_candidate:

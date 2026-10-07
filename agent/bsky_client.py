@@ -69,6 +69,10 @@ class BlueskyClient:
             return False
 
     def ensure_session(self) -> bool:
+        if self.dry_run:
+            if not self.did:
+                self.did = "did:plc:simulated"
+            return True
         if not self.jwt or not self.did:
             return self.authenticate()
         return True
@@ -167,11 +171,11 @@ class BlueskyClient:
         res = self.xrpc_get("app.bsky.feed.searchPosts", {"q": query, "limit": limit})
         return res.get("posts", [])
 
-    def get_discovery_feed(self, limit: int = 25) -> List[Dict[str, Any]]:
+    def get_discovery_feed(self, limit: int = 25, topics: Optional[List[str]] = None) -> List[Dict[str, Any]]:
         """
         Retrieves discovery feed posts:
-        Combines timeline posts from followed accounts with curated topic searches
-        (e.g., Seongsu, Seoul Forest, pilates, roasted barley tea, line 2 subway).
+        Combines timeline posts from followed accounts with dynamic, culturally rich topic searches
+        (Korean indie cinema, exhibitions, design, books, architecture, Seoul urban textures).
         Returns normalized list of candidate items [{'post': post_dict, 'source': ...}, ...].
         """
         items: List[Dict[str, Any]] = []
@@ -186,12 +190,12 @@ class BlueskyClient:
                 seen_uris.add(u)
                 items.append({"post": p, "source": "timeline"})
 
-        # 2. Curated canonical search topics
+        # 2. Dynamic curiosity topics
         import random
-        topics_to_sample = getattr(config, "canon_search_topics", [
-            "성수동", "뚝섬", "서울숲", "아이스 아메리카노", "보리차",
-            "필라테스", "폼롤러", "2호선", "seongsu", "seoul cafe",
-            "reformer pilates", "foam roller"
+        topics_to_sample = topics or getattr(config, "canon_search_topics", [
+            "성수동", "전시", "독서", "한국영화", "인디음악", "서울", "건축", "사진",
+            "seoul architecture", "korean indie", "film photography", "seoul design",
+            "urban essay", "line 2 seoul", "yeonmujang", "seoul bookstore"
         ])
         chosen_topics = random.sample(topics_to_sample, min(3, len(topics_to_sample)))
         for topic in chosen_topics:
@@ -351,8 +355,9 @@ class BlueskyClient:
     # --- Publishing & Likes ---
     @staticmethod
     def parse_facets(text: str) -> List[Dict[str, Any]]:
-        """Parses hashtags and formats them as AT Protocol facets."""
+        """Parses hashtags and URLs, formatting them as AT Protocol facets with UTF-8 byte offsets."""
         facets = []
+        # 1. Hashtags
         tag_pattern = re.compile(r'(?:^|\s)(#([^\s#.,!?:;()\[\]{}"\'<>]+))')
         for match in tag_pattern.finditer(text):
             tag_val = match.group(2)
@@ -364,6 +369,21 @@ class BlueskyClient:
                 "index": {"byteStart": start_byte, "byteEnd": end_byte},
                 "features": [{"$type": "app.bsky.richtext.facet#tag", "tag": tag_val}],
             })
+
+        # 2. URLs / links
+        url_pattern = re.compile(r'https?://[^\s]+')
+        for match in url_pattern.finditer(text):
+            url_val = match.group(0).rstrip(".,!?:;)]}")
+            start_char = match.start(0)
+            end_char = start_char + len(url_val)
+            start_byte = len(text[:start_char].encode("utf-8"))
+            end_byte = len(text[:end_char].encode("utf-8"))
+            facets.append({
+                "index": {"byteStart": start_byte, "byteEnd": end_byte},
+                "features": [{"$type": "app.bsky.richtext.facet#link", "uri": url_val}],
+            })
+
+        facets.sort(key=lambda f: f["index"]["byteStart"])
         return facets
 
     def upload_image_blob(self, image_bytes: bytes) -> Optional[Dict[str, Any]]:
@@ -548,6 +568,136 @@ class BlueskyClient:
         }
         res = self.xrpc_post("com.atproto.repo.deleteRecord", payload)
         return bool(res)
+
+    def resolve_handle(self, handle: str) -> Optional[str]:
+        """Resolves a handle to its DID."""
+        clean_handle = handle.lstrip("@").strip()
+        res = self.xrpc_get("com.atproto.identity.resolveHandle", {"handle": clean_handle})
+        return res.get("did")
+
+    def repost(self, uri: str, cid: str) -> Dict[str, Any]:
+        """Reposts a post on Bluesky."""
+        if not self.ensure_session():
+            return {}
+        now_iso = dt.datetime.now(dt.timezone.utc).isoformat().replace("+00:00", "Z")
+        record = {
+            "$type": "app.bsky.feed.repost",
+            "subject": {"uri": uri, "cid": cid},
+            "createdAt": now_iso,
+        }
+        if self.dry_run:
+            print(f"[DRY-RUN] Would repost: {uri}")
+            return {"uri": f"at://{self.did}/app.bsky.feed.repost/simulated"}
+
+        return self.xrpc_post(
+            "com.atproto.repo.createRecord",
+            {"repo": self.did, "collection": "app.bsky.feed.repost", "record": record},
+        )
+
+    def quote_post(self, text: str, target_uri: str, target_cid: str, langs: Optional[List[str]] = None) -> Dict[str, Any]:
+        """Quote-posts an existing post with commentary."""
+        if not self.ensure_session():
+            return {}
+        now_iso = dt.datetime.now(dt.timezone.utc).isoformat().replace("+00:00", "Z")
+        record: Dict[str, Any] = {
+            "$type": "app.bsky.feed.post",
+            "text": text,
+            "createdAt": now_iso,
+            "langs": langs or ["ko", "en"],
+            "embed": {
+                "$type": "app.bsky.embed.record",
+                "record": {"uri": target_uri, "cid": target_cid},
+            },
+        }
+        facets = self.parse_facets(text)
+        if facets:
+            record["facets"] = facets
+
+        if self.dry_run:
+            print(f"[DRY-RUN] Would quote post {target_uri}: \"{text}\"")
+            return {"uri": f"at://{self.did}/app.bsky.feed.post/simulated", "cid": "sim-cid"}
+
+        return self.xrpc_post(
+            "com.atproto.repo.createRecord",
+            {"repo": self.did, "collection": "app.bsky.feed.post", "record": record},
+        )
+
+    def follow(self, subject_did: str) -> Dict[str, Any]:
+        """Follows an account on Bluesky."""
+        if not self.ensure_session():
+            return {}
+        now_iso = dt.datetime.now(dt.timezone.utc).isoformat().replace("+00:00", "Z")
+        record = {
+            "$type": "app.bsky.graph.follow",
+            "subject": subject_did,
+            "createdAt": now_iso,
+        }
+        if self.dry_run:
+            print(f"[DRY-RUN] Would follow: {subject_did}")
+            return {"uri": f"at://{self.did}/app.bsky.graph.follow/simulated"}
+
+        return self.xrpc_post(
+            "com.atproto.repo.createRecord",
+            {"repo": self.did, "collection": "app.bsky.graph.follow", "record": record},
+        )
+
+    def update_profile(
+        self,
+        display_name: Optional[str] = None,
+        description: Optional[str] = None,
+        avatar_bytes: Optional[bytes] = None,
+        banner_bytes: Optional[bytes] = None,
+    ) -> Dict[str, Any]:
+        """Updates the actor's profile record (displayName, description, avatar, banner)."""
+        if not self.ensure_session():
+            return {}
+
+        existing = self.xrpc_get("com.atproto.repo.getRecord", {
+            "repo": self.did,
+            "collection": "app.bsky.actor.profile",
+            "rkey": "self",
+        })
+        val = existing.get("value", {}) if isinstance(existing, dict) else {}
+
+        record: Dict[str, Any] = {
+            "$type": "app.bsky.actor.profile",
+            "displayName": display_name if display_name is not None else val.get("displayName", ""),
+            "description": description if description is not None else val.get("description", ""),
+        }
+        if "labels" in val:
+            record["labels"] = val["labels"]
+        if "createdAt" in val:
+            record["createdAt"] = val["createdAt"]
+        else:
+            record["createdAt"] = dt.datetime.now(dt.timezone.utc).isoformat().replace("+00:00", "Z")
+
+        if avatar_bytes:
+            blob = self.upload_image_blob(avatar_bytes)
+            if blob:
+                record["avatar"] = blob
+        elif "avatar" in val:
+            record["avatar"] = val["avatar"]
+
+        if banner_bytes:
+            blob = self.upload_image_blob(banner_bytes)
+            if blob:
+                record["banner"] = blob
+        elif "banner" in val:
+            record["banner"] = val["banner"]
+
+        if self.dry_run:
+            print(f"[DRY-RUN] Would update profile: {record.get('displayName')} | {record.get('description')}")
+            return {"uri": f"at://{self.did}/app.bsky.actor.profile/self"}
+
+        return self.xrpc_post(
+            "com.atproto.repo.putRecord",
+            {
+                "repo": self.did,
+                "collection": "app.bsky.actor.profile",
+                "rkey": "self",
+                "record": record,
+            },
+        )
 
 
 bsky_client = BlueskyClient()

@@ -1,9 +1,9 @@
 {
-  "social_battery": 1.0,
+  "social_battery": 0.95,
   "physical_fatigue": 0.15,
   "financial_awareness": 0.4,
   "creative_drive": 0.7,
-  "mood_descriptor": "grounded after speaking with my master (Can you please publish a pictu)",
-  "last_updated": "2026-10-07T08:50:37.674545+00:00",
+  "mood_descriptor": "quiet flat, boiling water, city winding down",
+  "last_updated": "2026-10-07T12:06:18.782301+00:00",
   "last_consolidation_date": "2026-10-07"
 }

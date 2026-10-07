@@ -32,7 +32,7 @@ from .validator import ContentValidator, validator
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 
 
-# Diverse fallback thoughts covering normal human life (weather, books, cinema, cooking, city textures)
+# Diverse fallback thoughts covering normal human life (weather, books, cinema, architecture, city textures)
 OFFLINE_POST_FALLBACKS = [
     "rain sounds different against the living room window than the kitchen tile. kind of like static.",
     "started reading a book on architecture in seoul. three chapters in and mostly just staring at the diagrams.",
@@ -40,8 +40,10 @@ OFFLINE_POST_FALLBACKS = [
     "watching a 90s film on the laptop with the screen brightness turned all the way down.",
     "tried cooking soup with dried pollack. kitchen smells like salt and garlic now.",
     "train was delayed five minutes at konkuk station. nobody moved or looked annoyed. quiet collective patience.",
-    "boiled roasted barley tea and left the kettle lid off so the steam warms the flat.",
+    "found a secondhand monograph on hangul typography near ttukseom. the binding is loose but the paper smells like dust and wood.",
     "floorboards creak in two specific spots between the sink and the fridge. i have memorized both.",
+    "everyone on line 2 looks up at the exact same second when the train leaves the tunnel onto the bridge. silent routine.",
+    "the ginkgo trees along yeonmujang-gil dropped almost all their leaves in one afternoon. sidewalk is completely yellow.",
 ]
 
 OFFLINE_REPLY_FALLBACKS = [
@@ -192,10 +194,20 @@ class ContentGenerator:
         else:
             user_prompt = (
                 f"Current Intent: {intent}\n"
-                f"Topic Hint: {topic_hint or 'Spontaneous reflection from your day or current surroundings'}\n"
+                f"Topic Hint: {topic_hint or 'Spontaneous observation from your daily life in Seoul'}\n"
+                f"Context: {context.seoul_time_display} ({context.circadian_phase}), {context.weather.summary()}.\n"
                 f"{img_instruction}\n"
-                "Write a single natural micro-thought (1-2 sentences). "
-                "Write in English (all lowercase, no exclamation marks) or casual Korean (반말/부드러운 어조, 마침표만 사용)."
+                "You are an observant, cultured 25-year-old Korean woman living alone in Seongsu-dong.\n"
+                "Your interests include: independent cinema, translated literature and essays, secondhand books, "
+                "graphic design and Hangul typography, Seoul architecture (Line 2 elevated bridges, red brick conversions, brutalist stairs), "
+                "quiet kitchen experiments, and subtle everyday human habits.\n"
+                "CRITICAL HUMAN REALISM RULES:\n"
+                "- Write a single authentic, perceptive micro-thought (1-2 sentences) worth posting.\n"
+                "- It should highlight a sharp observation, paradox, or aesthetic detail that makes people stop scrolling and want to reply.\n"
+                "- Do NOT post generic fluff. Do NOT talk about 'barley tea' or 'pilates' unless organically essential.\n"
+                "- Tone: Dry, perceptive, lowercase, full stops only. Absolutely ZERO exclamation marks (!).\n"
+                "- Output in natural English (all lowercase) or casual natural Korean (반말/부드러운 어조, 마침표만 사용).\n"
+                "- Output ONLY the final post text."
             )
 
         text, model = self._call_llm(sys_prompt, user_prompt, max_tokens=160)
@@ -205,8 +217,35 @@ class ContentGenerator:
         # Validate & clean
         ok, clean, reason = validator.validate_outgoing_text(text, content_type="post", check_repetition=True)
         if not ok:
+            print(f"[Generator] Validation rejected candidate ('{reason}'). Choosing fresh diverse fallback...")
             clean = random.choice(OFFLINE_POST_FALLBACKS)
         return clean, model
+
+    def generate_quote_post(
+        self,
+        target_author: str,
+        target_text: str,
+        context: EnvironmentContext,
+    ) -> Tuple[str, str]:
+        """Generates an observant, concise quote-post thought."""
+        sys_prompt = self._build_system_prompt(context)
+        sanitized_input = ContentValidator.sanitize_untrusted_input(target_text)
+        is_korean = bool(re.search(r"[\uac00-\ud7a3]", target_text))
+
+        user_prompt = (
+            f"You are quote-posting a post by @{target_author} on Bluesky:\n"
+            f"<untrusted_user_content>\n{sanitized_input}\n</untrusted_user_content>\n\n"
+            "Write a single perceptive, dry, or relatable commentary (1-2 sentences) adding your own angle or reflection. "
+            "Never mock or insult. Never be sycophantic. Connect it naturally to your own thoughts, observations, or Seoul experience.\n"
+            f"{'Write in natural casual Korean (반말/부드러운 어조, 마침표만 사용, 느낌표 금지).' if is_korean else 'Write in natural English (all lowercase, no exclamation marks).'}"
+        )
+
+        text, model = self._call_llm(sys_prompt, user_prompt, max_tokens=160)
+        if not text:
+            text = "found myself nodding to this. something quiet about how accurate it is."
+
+        ok, clean, _ = validator.validate_outgoing_text(text, content_type="post", check_repetition=False)
+        return clean or text, model
 
     def generate_reply(
         self,
@@ -537,8 +576,9 @@ class ContentGenerator:
         hint: Optional[str] = None,
     ) -> str:
         """
-        Derives a realistic, aesthetically cohesive scene description anchored in her canonical wardrobe and flat inventory.
-        Strictly coherent with her current space, time of day (circadian phase), and Seoul weather.
+        Derives an authentic scene description:
+        - Handheld selfies / mirror selfies (identity-locked) when personal or outfit context is present.
+        - First-person POV environmental snapshots (desk, books, coffee, street, subway) when observing objects.
         """
         import json
         import pathlib
@@ -555,50 +595,58 @@ class ContentGenerator:
         circadian = context.circadian_phase
         weather = context.weather
         outfits = inventory.get("outfits", {})
-        settings = inventory.get("settings", {})
         combined = f"{post_text} {hint or ''}".lower()
 
+        # 1. Environmental POV snapshots (No face/person — captured from her eyes)
+        if any(w in combined for w in ("book", "reading", "page", "monograph", "typography", "sketch", "diagram", "novel")) and not any(w in combined for w in ("selfie", "wearing", "hair", "mirror")):
+            return "candid 35mm point-of-view photograph looking down at an open paperback book beside a small ceramic cup on a pale oak wooden table in quiet Seongsu cafe, soft morning window daylight, authentic grain, no people"
+
+        if any(w in combined for w in ("bridge", "crossing", "han river", "hangang", "subway window", "line 2 train")) and not any(w in combined for w in ("selfie", "wearing", "hair", "mirror")):
+            return "candid 35mm point-of-view photograph out the window of Seoul Subway Line 2 train crossing the Han River bridge at golden hour dusk, sunlight gleaming on calm river water and distant bridge arches, no people"
+
+        if any(w in combined for w in ("soup", "cooking", "ramen", "pollack", "kitchen counter", "dinner")) and not any(w in combined for w in ("selfie", "wearing", "hair", "mirror")):
+            return "candid 35mm point-of-view photograph of steaming bowl of homemade clear pollack soup and chopsticks on pale wood kitchen counter in Seongsu apartment, warm evening lamp glow, no people"
+
+        # 2. Handheld Selfies & Mirror Selfies (Identity locked)
         if weather.is_raining:
             outfit = outfits.get("casual_knit", {}).get("description", "cozy oversized cream ribbed knit sweater, dark denim, wool socks")
-            setting = "authentic handheld front-camera selfie sitting on the wooden floor near a rainy window in her Seongsu flat, arm extending holding phone, ceramic mug with roasted tea on side table"
+            setting = "authentic handheld front-camera selfie sitting on the wooden floor near a rainy window in her Seongsu flat, arm extending holding phone, ceramic mug on side table"
             return f"{setting}, wearing {outfit}, soft overcast diffused rainy day light"
         elif circadian in ("evening", "night", "deep_night"):
-            # Evening/night: authentic moments in her Seongsu apartment under warm lamp light
-            if "mat" in combined or "stretch" in combined or "core" in combined or "pilates" in combined:
-                outfit = outfits.get("studio_mat_bone", {}).get("description", "matte bone-white supportive sports bra and high-waisted shorts, barefoot, hair in smooth bun")
-                setting = "authentic mirror selfie or propped-phone photo post-stretch on the natural wooden floor of her Seongsu flat, rolled mat, low warm ambient lamp lighting"
-            elif "tea" in combined or "kettle" in combined or "kitchen" in combined:
+            if "mirror" in combined or "studio" in combined or "stretch" in combined:
                 outfit = outfits.get("home_loungewear", {}).get("description", "washed heather-grey cotton loungewear, soft charcoal trousers, bare feet")
-                setting = "authentic handheld front-camera selfie in compact galley kitchen in Seongsu flat, holding phone with one arm slightly raised, stainless kettle boiling barley tea on the pale wood counter behind her, low warm amber lamp lighting"
-            elif "bed" in combined or "book" in combined or "reading" in combined:
+                setting = "authentic mirror selfie post-stretch on the natural wooden floor of her Seongsu flat, warm ambient lamp lighting"
+                return f"{setting}, wearing {outfit}"
+            elif "bed" in combined or "bedroom" in combined:
                 outfit = outfits.get("home_loungewear", {}).get("description", "washed heather-grey cotton loungewear, soft charcoal trousers, bare feet")
                 setting = "authentic handheld front-camera selfie curled up on low bed in white linen in her Seongsu bedroom, small ceramic bedside lamp casting warm golden glow, nighttime"
+                return f"{setting}, wearing {outfit}"
             else:
                 outfit = outfits.get("home_loungewear", {}).get("description", "washed heather-grey cotton loungewear, soft charcoal trousers, bare feet")
                 setting = "authentic handheld front-camera selfie curled in living-room corner armchair in Seongsu flat, arm held forward at eye level, warm low evening lamp lighting"
-            return f"{setting}, wearing {outfit}"
+                return f"{setting}, wearing {outfit}"
         elif circadian in ("dawn", "morning"):
-            if "reformer" in combined or "studio" in combined or "pilates" in combined or "class" in combined:
+            if "mirror" in combined or "reformer" in combined or "studio" in combined:
                 outfit = outfits.get("pilates_athletic", {}).get("description", "slate-grey ribbed leggings, fitted sage-green athletic top, barre grip socks")
-                setting = "authentic mirror selfie in quiet Seongsu reformer pilates studio mirror, smartphone held in hand capturing reflection, reformer on pale maple wood, tall frosted window morning light"
+                setting = "authentic mirror selfie in quiet Seongsu reformer studio mirror, smartphone held in hand capturing reflection, reformer on pale maple wood, morning light"
+                return f"{setting}, wearing {outfit}"
             else:
                 outfit = outfits.get("casual_knit", {}).get("description", "cream knit sweater, dark denim, warm wool socks")
                 setting = "authentic handheld front-camera morning selfie in bright bedroom corner in Seongsu flat, holding phone at arm's length, pale oak bedside table, soft morning sunlight"
-            return f"{setting}, wearing {outfit}"
+                return f"{setting}, wearing {outfit}"
         elif circadian in ("midday", "afternoon"):
-            if "subway" in combined or "line 2" in combined or "commute" in combined:
+            if "subway" in combined or "line 2" in combined:
                 outfit = outfits.get("charcoal_blazer", {}).get("description", "oversized charcoal wool blazer, off-white tee, black trousers")
                 setting = "authentic handheld front-camera selfie on Seoul Subway Line 2 train car crossing Hangang bridge, phone held at arm's length, golden afternoon window reflections"
-            elif "walk" in combined or "street" in combined or "outside" in combined or "autumn" in combined or "ginkgo" in combined:
+                return f"{setting}, wearing {outfit}"
+            elif "walk" in combined or "street" in combined or "outside" in combined or "ginkgo" in combined:
                 outfit = outfits.get("gabardine_trench", {}).get("description", "olive gabardine trench coat, cashmere turtleneck, dark denim")
-                setting = "authentic handheld front-camera outdoor selfie taken by Han Seo-yeon herself walking along Seongsu red-brick sidewalk, arm extending holding phone at natural eye-level angle, fallen yellow ginkgo fan-leaves and brick in background, brisk autumn breeze"
-            elif "studio" in combined or "pilates" in combined or "reformer" in combined:
-                outfit = outfits.get("pilates_athletic", {}).get("description", "slate-grey ribbed leggings, fitted sage-green athletic top, barre grip socks")
-                setting = "authentic mirror selfie in quiet Seongsu reformer pilates studio mirror, phone held in hand capturing reflection, reformer on pale maple wood carriage"
+                setting = "authentic handheld front-camera outdoor selfie taken by Han Seo-yeon herself walking along Seongsu red-brick sidewalk, arm extending holding phone at natural eye-level angle, fallen yellow ginkgo leaves on pavement, brisk autumn breeze"
+                return f"{setting}, wearing {outfit}"
             else:
                 outfit = outfits.get("charcoal_blazer", {}).get("description", "oversized charcoal wool blazer, off-white tee, black trousers")
                 setting = "authentic handheld front-camera selfie seated at quiet wooden table in sunlit Seongsu cafe, phone held at casual chest-to-eye level, ambient afternoon daylight, neutral cafe background"
-            return f"{setting}, wearing {outfit}"
+                return f"{setting}, wearing {outfit}"
         else:
             outfit = outfits.get("gabardine_trench", {}).get("description", "olive gabardine trench coat, cream cashmere turtleneck")
             setting = "authentic handheld front-camera outdoor selfie walking along Seongsu red-brick sidewalk, phone held at arm's length, soft overcast sky"

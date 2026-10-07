@@ -186,7 +186,7 @@ class ContentValidator:
         terminal_punct = (".", "?", "~", "…", '"', "'", "”", "’")
         if not cleaned.endswith(terminal_punct):
             last_punct_idx = max(cleaned.rfind("."), cleaned.rfind("?"))
-            if last_punct_idx >= 20:
+            if last_punct_idx >= 15:
                 cleaned = cleaned[:last_punct_idx + 1].strip()
             else:
                 return False, cleaned, "Incomplete trailing sentence or truncated output."
@@ -222,6 +222,21 @@ class ContentValidator:
         cand_words = cls._tokenize_words(candidate_text)
         if not cand_words:
             return True, "Short content."
+
+        # Strict Cliché Throttle: "pilates", "barley tea", "foam roller", "reformer"
+        cliche_patterns = [
+            r"\b(barley\s*tea|lukewarm\s*tea|kettle\s*is)\b",
+            r"(보리차|주전자|둥굴레차)",
+            r"\b(pilates|reformer|foam\s*roller|mat\s*class|7am\s*class)\b",
+            r"(필라테스|리포머|폼롤러|매트\s*수업|7시\s*수업)",
+        ]
+        lower_cand = candidate_text.lower()
+        cand_has_cliche = any(re.search(pat, lower_cand) for pat in cliche_patterns)
+        if cand_has_cliche:
+            for past in recent_posts[:6]:
+                past_l = past.get("text", "").lower()
+                if any(re.search(pat, past_l) for pat in cliche_patterns):
+                    return False, "Cliché throttle: pilates or barley tea mentioned too recently; too repetitive and similar to recent themes. Must explore cinema, literature, design, architecture, food, or Seoul life."
 
         for past in recent_posts[:10]:
             past_text = past.get("text", "")

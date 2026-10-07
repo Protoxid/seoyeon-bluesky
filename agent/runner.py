@@ -414,6 +414,53 @@ def run_tick(
             executed = True
             result_details = {"reply_uri": res.get("uri"), "reply_text": reply_text}
 
+    elif outcome.selected_action == ActionType.QUOTE_POST:
+        post = outcome.target_data.get("post", {})
+        target_author = post.get("author", {}).get("handle", "user")
+        target_uri = post.get("uri", "")
+        target_cid = post.get("cid", "")
+        user_text = post.get("record", {}).get("text", "")
+        print(f"\n[Quote-Posting Thought by @{target_author}...]")
+        print(f"  Quoted Post: \"{user_text}\"")
+
+        quote_comment, model_used = generator.generate_quote_post(target_author, user_text, context)
+        print(f"  Draft Quote ({model_used}): \"{quote_comment}\"")
+
+        res = bsky_client.quote_post(quote_comment, target_uri, target_cid)
+        if res.get("uri"):
+            print(f"  [SUCCESS] Published Quote Post: {res.get('uri')}")
+            if not is_dry:
+                memory_store.record_recent_post(quote_comment, topic="quote_post", post_id=res.get("uri", ""))
+                budget_manager.record_spend(0.002, "quote_post", f"to @{target_author}")
+            executed = True
+            result_details = {"uri": res.get("uri"), "text": quote_comment, "target_uri": target_uri}
+
+    elif outcome.selected_action == ActionType.REPOST:
+        post = outcome.target_data.get("post", {})
+        post_uri = post.get("uri", "")
+        post_cid = post.get("cid", "")
+        author = post.get("author", {}).get("handle", "")
+        print(f"\n[Reposting Post by @{author}...]")
+        if not is_dry:
+            res = bsky_client.repost(post_uri, post_cid)
+            print(f"  [SUCCESS] Reposted: {post_uri}")
+        else:
+            print(f"  [DRY-RUN] Would repost: {post_uri}")
+        executed = True
+        result_details = {"reposted_post": post_uri}
+
+    elif outcome.selected_action == ActionType.FOLLOW:
+        subject_did = outcome.target_data.get("did", "")
+        handle = outcome.target_data.get("handle", "")
+        print(f"\n[Following User @{handle} ({subject_did})...]")
+        if not is_dry:
+            res = bsky_client.follow(subject_did)
+            print(f"  [SUCCESS] Followed: @{handle}")
+        else:
+            print(f"  [DRY-RUN] Would follow: @{handle}")
+        executed = True
+        result_details = {"followed_did": subject_did}
+
     # 8. Record Tick History & Observability
     now_iso = dt.datetime.now(dt.timezone.utc).isoformat()
     log_tick({

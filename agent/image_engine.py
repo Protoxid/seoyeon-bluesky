@@ -102,18 +102,24 @@ class ImageEngine:
         scene_description: str,
         mood: Optional[str] = None,
         aspect: str = "3:4",
+        is_selfie: bool = True,
         dry_run: Optional[bool] = None,
     ) -> Tuple[Optional[bytes], str, Optional[str]]:
         """
-        Generates an identity-locked image through Kie.ai API.
+        Generates an authentic image through Kie.ai API.
+        If is_selfie=True: Conditioned on master face reference (personas/seoyeon/master/a/a1_front.png).
+        If is_selfie=False: Generates first-person POV environmental scene without subject face.
         Returns: (image_bytes, prompt_used, error_or_notes)
         """
         is_dry = dry_run if dry_run is not None else config.dry_run
-        prompt = build_image_prompt(scene_description, mood=mood)
+        prompt = build_image_prompt(scene_description, mood=mood, is_selfie=is_selfie)
 
         if is_dry:
             print(f"[DRY-RUN Kie ImageEngine] Model: {config.kie_image_model}")
-            print(f"[DRY-RUN Kie ImageEngine] Master Ref: {MASTER_A1_PATH.name}")
+            if is_selfie:
+                print(f"[DRY-RUN Kie ImageEngine] Master Ref: {MASTER_A1_PATH.name}")
+            else:
+                print(f"[DRY-RUN Kie ImageEngine] POV Environmental Shot (No Person/Face)")
             print(f"[DRY-RUN Kie ImageEngine] Prompt: \"{prompt[:130]}...\"")
             buf = io.BytesIO()
             dummy_img = Image.new("RGB", (400, 533), color=(215, 210, 205))
@@ -123,8 +129,8 @@ class ImageEngine:
         if not self.api_key:
             return None, prompt, "KIE_API_KEY is not configured (check kie_key.txt or .env)."
 
-        # 1. Obtain master face reference URL
-        ref_url = get_or_upload_master_reference(MASTER_A1_PATH, self.api_key)
+        # 1. Obtain master face reference URL only for selfies
+        ref_url = get_or_upload_master_reference(MASTER_A1_PATH, self.api_key) if is_selfie else None
         model = config.kie_image_model
 
         # 2. Build task payload
@@ -133,12 +139,12 @@ class ImageEngine:
             "aspect_ratio": aspect,
             "resolution": "1K",
         }
-        if ref_url and "image-to-image" in model:
+        if is_selfie and ref_url and "image-to-image" in model:
             task_input["input_urls"] = [ref_url]
             task_input["background"] = "auto"
             print(f"[Kie ImageEngine] Model: {model} | Identity Reference Fed: {MASTER_A1_PATH.name} -> {ref_url}")
         else:
-            print(f"[Kie ImageEngine] Model: {model} | Notice: Running text-to-image without reference conditioning")
+            print(f"[Kie ImageEngine] Model: {model} | Notice: Running {'text-to-image POV' if not is_selfie else 'text-to-image'}")
 
         print(f"[Kie ImageEngine] Generating image with prompt: \"{prompt[:160]}...\"")
 

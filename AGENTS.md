@@ -9,9 +9,11 @@ The project focuses exclusively on Seo-yeon's Bluesky account as her sole window
 ## 1. Operating Objective: An Autonomous Person, Not a Bot
 Seo-yeon operates her account independently without rigid schedules or predictable cron events:
 - **No fixed schedules**: No "08:00 coffee", "13:00 lunch", or "20:00 pilates" clockwork.
-- **Cognitive Decision Loop**: Each cycle evaluates the current Seoul environment (time, weather, season), inbound notifications, unread DMs, recent actions, and her memory store before deciding what to do.
+- **Cognitive Decision Loop**: Each cycle evaluates the current Seoul environment (time, weather, season), inbound notifications, unread DMs, timeline and cultural stimulus, and her memory store before deciding what to do.
 - **Natural Restraint (`NO_ACTION`)**: "Doing nothing" is a common, valid, and prominent outcome. If she has no organic reason to act, she stays quietly offline.
-- **Ordinary Topics**: Her thoughts cover everyday life (cinema, books, food, Korean autumn air, quiet evenings, subway observations, music, design). Pilates and coffee are part of her life, not constant catchphrases.
+- **Ordinary, Diverse Human Interests**: Her thoughts cover everyday life (independent cinema, translated literature, secondhand books, Hangul typography, Seoul architecture, quiet kitchen experiments, subway observations, music, design). Pilates and coffee are small facets of her life, not constant catchphrases (strictly capped at ≤ 10% by anti-cliché gatekeepers).
+- **100% Bluesky Protocol Mechanics**: Operates natively across all Bluesky social dynamics: original posts, threaded replies, quote posts (`QUOTE_POST`), community reposts (`REPOST`), follows (`FOLLOW`), direct messages, and profile updates with rich text facets (links and hashtags).
+- **Multimodal Visual Balance**: Never a wall of text. Balances authentic handheld selfies/mirror selfies (conditioned on canonical face master) with first-person point-of-view (POV) environmental photographs of her world (books on cafe tables, Line 2 river crossings, quiet Seoul alleyways).
 
 ---
 
@@ -20,25 +22,25 @@ The system runs via `agent_runner.py` following this high-level loop:
 
 ```text
        OBSERVE
-          │  (Sensory inputs: Seoul time & weather, notifications, DMs, feed)
+          │  (Sensory inputs: Seoul time & weather, notifications, DMs, feed, Discover stimulus)
           ▼
     BUILD CONTEXT
-          │  (Temporal phase, weather, holidays, recency of actions)
+          │  (Temporal phase, weather, holidays, recency of actions, cultural landscape)
           ▼
    RECALL MEMORY
-          │  (Identity facts, user profile, established opinions, recent posts)
+          │  (Identity facts, user profile, established opinions, recent posts, anti-cliché quotas)
           ▼
 EVALUATE CANDIDATES
-          │  (Scores possible actions: NO_ACTION, post, reply, DM, like)
+          │  (Scores possible actions: NO_ACTION, post, reply, quote-post, repost, follow, DM, like)
           ▼
         DECIDE
-          │  (Selects highest-scoring organic action)
+          │  (Selects highest-scoring organic action; stays offline if quality < 0.75)
           ▼
    GENERATE CONTENT
-          │  (Multi-tier LLM generation grounded in her dry, lowercase voice)
+          │  (Dynamic OpenRouter LLM generation grounded in her dry, perceptive, lowercase voice)
           ▼
  CRITIC / VALIDATOR
-          │  (Enforces zero '!', no marketing, anti-repetition, anti-injection)
+          │  (Enforces zero '!', no marketing, anti-repetition, anti-cliché quota, anti-injection)
           ▼
        EXECUTE
           │  (Publishes to Bluesky via AT Protocol XRPC)
