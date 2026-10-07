@@ -7,10 +7,11 @@ Bluesky is her exclusive window to the social world.
 ---
 
 ## 1. Core Operating Philosophy
-- **Autonomous Human Behavior**: Seo-yeon evaluates her context (Seoul time, weather, notifications, DMs, recency) and decides whether to act.
+- **Autonomous Human Behavior**: Seo-yeon evaluates her context (Seoul time, weather, notifications, DMs, recency, social battery) and decides whether to act.
 - **Natural Restraint**: `NO_ACTION` is an explicit, common, and valid choice.
-- **Organic Discussions**: She talks about normal everyday life (cinema, books, food, Seoul autumn air, subway observations, music, design).
-- **Anti-Commercial & Anti-Bait**: Zero marketing, zero links, zero sales pitches, zero exclamation marks (`!`), no engagement bait ("what do you think?").
+- **Organic Discussions**: She talks about normal everyday life (independent cinema, architecture, Hangul typography, translated literature, secondhand books, Line 2 observations).
+- **Anti-Cliché & Anti-Bait**: Strict ≤ 10% frequency caps on recurring topics (pilates, tea). Zero marketing, zero sales pitches, zero exclamation marks (`!`), no engagement bait ("what do you think?").
+- **Multimodal Realism**: 50% text reflections, 25% 35mm POV environmental captures, 15% community dialogue (quote-posts/reposts), ≤ 10% authentic handheld selfies.
 
 ---
 
@@ -18,29 +19,29 @@ Bluesky is her exclusive window to the social world.
 - `agent/config.py`: Central settings, environment flags (`AUTONOMOUS_MODE`, `DRY_RUN`, `ALLOW_POSTS`, `DAILY_AI_BUDGET`).
 - `agent/context_engine.py`: Real-world Seoul context (time in KST, live weather via Open-Meteo with cache, Korean holidays, activity recency).
 - `agent/memory_store.py`: Persistent multi-tiered memory (`identity_memory.json`, `user_memory.json`, `opinions_memory.json`, `recent_context.json`, `episodic_memory.jsonl`).
-- `agent/decision_engine.py`: Cognitive action evaluation (scoring `NO_ACTION`, text post, image post, comment reply, mention reply, DM response, feed like).
-- `agent/generator.py`: Multi-tier LLM content generation with prompt injection protection.
-- `agent/image_engine.py`: Kie.ai (`gpt-image-2-5-sunburst-image-to-image`) generation conditioned on canonical master face reference (`a1_front.png`).
-- `agent/visual_identity.py`: Canon visual description maintaining consistent facial geometry, balayage hair, and aesthetic smartphone photography.
-- `agent/validator.py`: The Critic (verifies zero exclamation marks, anti-repetition Jaccard overlap, no forbidden marketing terms, prompt injection defense).
-- `agent/budget_manager.py`: Spending caps (daily/monthly limits, image generation limits, emergency stop).
-- `agent/bsky_client.py`: Full AT Protocol XRPC client for posts, images, replies, threads, and direct messages (`chat.bsky.convo.*`).
-- `agent/runner.py`: Master cognitive tick runner.
+- `agent/decision_engine.py`: Cognitive action evaluation (scoring `NO_ACTION`, text post, image post, reply, quote-post, repost, follow, DM response, feed like).
+- `agent/generator.py`: OpenRouter LLM generation (`anthropic/claude-sonnet-5.5` primary, `deepseek-v4.1-flash` fallback) with prompt injection protection.
+- `agent/image_engine.py`: Kie.ai (`gpt-image-2-5-sunburst-image-to-image`) conditioned on dual master face references (`a1_front.png` + `c5_relax_front.png`) for authentic candid realism without AI gloss.
+- `agent/visual_identity.py`: Punchy, photorealistic prompt generator emphasizing real-world imperfections, flexible hairstyles, and 35mm street photography.
+- `agent/validator.py`: The Critic (verifies zero exclamation marks, anti-repetition Jaccard overlap, cliché frequency quotas, no marketing terms, prompt injection defense).
+- `agent/budget_manager.py`: Spending caps (daily $2.00 / monthly $30.00 limits, image generation limits, emergency stop).
+- `agent/bsky_client.py`: Full AT Protocol XRPC client for posts, images, replies, quote-posts (`embed.record`), reposts, follows, facets (`#link`, `#tag`), profile updates, and direct messages (`chat.bsky.convo.*`).
+- `agent/notifier.py`: Bidirectional Telegram bridge to her human creator (`@Protoxide`), receiving directives and delivering daily evening check-ins.
+- `agent/runner.py`: Master cognitive loop runner.
 
 ---
 
 ## 3. GitHub Actions Cloud Automation
 - Workflow: `.github/workflows/bluesky_scheduler.yml`.
-- Schedule: Runs every 30 minutes during Seoul waking hours (07:00–01:30 KST).
+- Schedule: Runs every 30 minutes during Seoul waking hours (07:00–01:30 KST = 22:00–16:30 UTC).
 - State Persistence: Commits updated memory files in `data/memory/` and `data/logs/` automatically.
 - Required GitHub Secrets:
   - `BSKY_HANDLE`
   - `BSKY_APP_PASSWORD`
   - `KIE_API_KEY`
   - `OPENROUTER_API_KEY`
-  - `OPENAI_API_KEY` (optional)
-  - `GEMINI_API_KEY` (optional)
-
+  - `TELEGRAM_BOT_TOKEN`
+  - `TELEGRAM_CHAT_ID`
 
 ---
 
@@ -56,11 +57,22 @@ python agent_runner.py --dry-run
 # 3. Run live autonomous cognitive tick
 python agent_runner.py --auto
 
-# 4. Force specific action in dry-run mode
+# 4. Generate & deliver evening check-in to creator via Telegram
+python agent_runner.py --daily-summary --dry-run
+python agent_runner.py --daily-summary
+
+# 5. Check & reply to incoming Telegram messages from creator
+python agent_runner.py --check-master
+
+# 6. Nightly memory consolidation & private journal pass
+python agent_runner.py --consolidate
+
+# 7. Force specific action in dry-run mode
 python agent_runner.py --dry-run --force-action PUBLISH_TEXT_POST
 python agent_runner.py --dry-run --force-action PUBLISH_IMAGE_POST
+python agent_runner.py --dry-run --force-action QUOTE_POST
 python agent_runner.py --dry-run --force-action NO_ACTION
 
-# 5. Run automated test suite
+# 8. Run automated test suite
 python -m unittest discover -s tests -p "test_*.py"
 ```

@@ -79,7 +79,7 @@ EVALUATE CANDIDATES
 - **Text Generation**: Routed **EXCLUSIVELY** through OpenRouter API (`https://openrouter.ai/api/v1/chat/completions`).
   - Primary Model: `anthropic/claude-sonnet-5.5` (state-of-the-art intelligence, nuanced character adherence, natural dry tone without robotic exclamation marks).
   - Fallback Model: `deepseek-v4.1-flash` (fast, highly intelligent secondary on OpenRouter).
-- **Image Generation**: Conditioned on the canonical face master through **Kie.ai** API (`https://api.kie.ai`) with `gpt-image-2-5-sunburst-image-to-image`. Identity-anchored to `personas/seoyeon/master/a/a1_front.png`.
+- **Image Generation**: Conditioned on dual canonical face masters through **Kie.ai** API (`https://api.kie.ai`) with `gpt-image-2-5-sunburst-image-to-image`. Identity-anchored to `personas/seoyeon/master/a/a1_front.png` and `personas/seoyeon/master/c/c5_relax_front.png` with punchy photographic prompts for authentic candid realism without AI gloss.
 - **Telegram Escalation**: When sensitive inquiries occur (e.g. users asking for real-life meetups, personal contact details) or when agent decisions require master approval, she notifies `@Protoxide` via Telegram Bot API.
 
 ---
