@@ -71,7 +71,9 @@ EVALUATE CANDIDATES
 8. **Dynamic Cognitive State (`agent_state.json`)**:
    - Biological circadian rhythms: social battery (0.0–1.0), physical fatigue (0.0–1.0), financial awareness, and creative drive.
 9. **Visual Consistency Inventory (`wardrobe_inventory.json`)**:
-   - Flat spaces and wardrobe items grounding image generation prompts.
+   - Wardrobe items and baseline textures grounding image prompts.
+10. **Weekly Living Itinerary (`weekly_schedule.json`)**:
+   - 7-day schedule synthesized every Sunday evening across 4 daily slots (`morning`, `afternoon`, `evening`, `deep_night`). Grounds her thoughts, errands, transit, and photos in realistic space and time without rigid cron timing.
 
 ---
 
@@ -79,7 +81,10 @@ EVALUATE CANDIDATES
 - **Text Generation**: Routed **EXCLUSIVELY** through OpenRouter API (`https://openrouter.ai/api/v1/chat/completions`).
   - Primary Model: `anthropic/claude-sonnet-5.5` (state-of-the-art intelligence, nuanced character adherence, natural dry tone without robotic exclamation marks).
   - Fallback Model: `deepseek-v4.1-flash` (fast, highly intelligent secondary on OpenRouter).
-- **Image Generation**: Conditioned on dual canonical face masters through **Kie.ai** API (`https://api.kie.ai`) with `gpt-image-2-5-sunburst-image-to-image`. Identity-anchored to `personas/seoyeon/master/a/a1_front.png` and `personas/seoyeon/master/c/c5_relax_front.png` with punchy photographic prompts for authentic candid realism without AI gloss.
+- **Image Generation & Anonymous Settings Architecture**:
+  - **The Consistency Solution**: Because generative image models cannot reproduce identical indoor room layouts (such as her private flat or gym studio) across weeks, daytime and evening photos prioritize **anonymous outdoor settings** (Seongsu red-brick sidewalks, crosswalks, fallen ginkgo leaves, Line 2 transit bridge) or **incidental POV macros** (a stray cat met on the way to the studio, hands holding a warm tea cup, book on an outdoor table with heavy background bokeh). Deep night is strictly tight in-bed selfies (under duvet, messy bedhead, dim night lamp).
+  - **Identity Anchoring**: Selfies are conditioned on dual canonical face masters through **Kie.ai** API (`gpt-image-2-5-sunburst-image-to-image`) anchored to `personas/seoyeon/master/a/a1_front.png` and `personas/seoyeon/master/c/c5_relax_front.png`.
+  - **POV Auto-Detection**: Incidental environmental shots (stray cats, tea cups, books, transit) automatically omit face references to produce pure 35mm film street captures.
 - **Telegram Escalation**: When sensitive inquiries occur (e.g. users asking for real-life meetups, personal contact details) or when agent decisions require master approval, she notifies her master via Telegram Bot API.
 
 ---

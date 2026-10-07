@@ -86,20 +86,23 @@ Seo-yeon's visual world avoids repetitive glamour renders or glossy AI concept a
 - **Dual Reference Anchors (`a1` + `c5`)**: Her image generator feeds multiple master reference angles ([`a1_front.png`](file:///c:/AI-Project/personas/seoyeon/master/a/a1_front.png) and [`c5_relax_front.png`](file:///c:/AI-Project/personas/seoyeon/master/c/c5_relax_front.png)), freeing the model from copying a single static pose.
 - **Natural Imperfections**: Ultra-short, photographic prompts allow realistic skin pores, subtle flaws, messy hair tied in claw clips, and mundane apartment lighting.
 - **35mm Environmental POV**: Captures her immediate surroundings—Seongsu red brick street corners at dusk, books on pale oak cafe tables, and the Line 2 subway train crossing the Han River.
+- **Anonymous Settings for Visual Coherence**: Because generative AI models cannot replicate recurring indoor architecture (e.g., her flat or gym studio) consistently across weeks, daytime and evening photos prioritize **anonymous outdoor settings** (Seongsu red-brick sidewalks, crosswalks, trees, transit) or **incidental POV macros** (a stray cat met on the way to the studio, hands holding a warm tea cup, book on an outdoor table with heavy background bokeh). Deep night is strictly tight in-bed selfies (under duvet, messy bedhead, dim night lamp).
+- **Intelligent POV vs. Selfie Auto-Detection**: Incidental POV shots (stray cats, tea cups, books, transit) omit human face references to generate authentic 35mm film street photography, while selfies anchor to canonical face masters (`a1` + `c5`).
 
 ---
 
 ## 💾 Multi-Tiered Persistent Memory System (`data/memory/`)
 
 1. **Identity Memory (`identity_memory.json`)**: Grounded in canon biographical facts (age 25, lives in Seongsu, retrained from corporate marketing to pilates instructor, tight budget, quiet voice).
-2. **User Relationship Progression (`user_memory.json`)**: Tracks every interaction. Users evolve naturally:  
+2. **Weekly Living Itinerary (`weekly_schedule.json`)**: Autonomous 7-day life calendar scheduled every Sunday across 4 daily slots (`morning`, `afternoon`, `evening`, `deep_night`). Grounds her posts, errands, walks, transit, and photos in realistic space and time without rigid cron timing.
+3. **User Relationship Progression (`user_memory.json`)**: Tracks every interaction. Users evolve naturally:  
    `stranger` → `friendly_acquaintance` → `regular` → `trusted_friend`
-3. **Opinion Memory (`opinions_memory.json`)**: Prevents self-contradiction on cinema, music, food, literature, and Seoul urban life.
-4. **Recent Context & Repetition Defense (`recent_context.json`)**: Rolling window of past posts and replies evaluated via Jaccard and n-gram similarity to prevent repetitive themes, opening words, or selfie frequency.
-5. **Episodic Memory (`episodic_memory.jsonl`)**: Chronological audit trail of notable milestones, discussions, and reflections.
-6. **Dynamic Cognitive State (`agent_state.json`)**: Circadian biological rhythms: social battery (0.0–1.0), physical fatigue (0.0–1.0), financial awareness, and creative drive.
-7. **Private Journal (`private_journal.jsonl`)**: Late-night internal reflection notebook written in her flat; never broadcasted to the public.
-8. **Creator Bond & Telegram Bridge**: Resilient daily evening check-ins to her master with catch-up resilience, and real-time execution of authorized directives coherent with current space and time.
+4. **Opinion Memory (`opinions_memory.json`)**: Prevents self-contradiction on cinema, music, food, literature, and Seoul urban life.
+5. **Recent Context & Repetition Defense (`recent_context.json`)**: Rolling window of past posts and replies evaluated via Jaccard and n-gram similarity to prevent repetitive themes, opening words, or selfie frequency.
+6. **Episodic Memory (`episodic_memory.jsonl`)**: Chronological audit trail of notable milestones, discussions, and reflections.
+7. **Dynamic Cognitive State (`agent_state.json`)**: Circadian biological rhythms: social battery (0.0–1.0), physical fatigue (0.0–1.0), financial awareness, and creative drive.
+8. **Private Journal (`private_journal.jsonl`)**: Late-night internal reflection notebook written in her flat; never broadcasted to the public.
+9. **Creator Bond & Telegram Bridge**: Resilient daily evening check-ins to her master with catch-up resilience, and real-time execution of authorized directives coherent with current space and time.
 
 ---
 
@@ -143,7 +146,11 @@ python agent_runner.py --dry-run --force-action PUBLISH_IMAGE_POST
 python agent_runner.py --dry-run --force-action QUOTE_POST
 python agent_runner.py --dry-run --force-action NO_ACTION
 
-# 8. Run full test suite
+# 8. View / plan 7-day weekly life itinerary
+python agent_runner.py --plan-week
+python agent_runner.py --force-plan
+
+# 9. Run full test suite
 python -m unittest discover -s tests -p "test_*.py"
 ```
 
