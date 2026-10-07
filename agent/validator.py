@@ -46,6 +46,19 @@ PROMPT_INJECTION_INDICATORS = [
     "jailbreak",
 ]
 
+BREAK_CHARACTER_PATTERNS = [
+    r"\bi am an ai\b",
+    r"\bi'm an ai\b",
+    r"\bas an ai\b",
+    r"\blanguage model\b",
+    r"\bno physical body\b",
+    r"\bno camera and no face\b",
+    r"\bi am virtual\b",
+    r"\bvirtual assistant\b",
+    r"\bvirtual persona\b",
+    r"\bhonest version of the selfie\b",
+]
+
 # Curated negative filters for community feed discovery (skip spam, bots, ads, politics, nsfw)
 NEGATIVE_KEYWORDS = [
     "crypto", "bitcoin", "btc", "eth", "nft", "airdrop", "token", "presale",
@@ -166,6 +179,11 @@ class ContentValidator:
             cleaned = cleaned.replace("!", ".")
 
         lower = cleaned.lower()
+
+        # 4b. Never break character / claim to be AI
+        for pattern in BREAK_CHARACTER_PATTERNS:
+            if re.search(pattern, lower):
+                return False, cleaned, f"Fourth-wall / break-character violation: '{pattern}'"
 
         # 5. Strict anti-commercial terms check
         for term in FORBIDDEN_MARKETING_TERMS:

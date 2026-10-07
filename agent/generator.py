@@ -146,7 +146,8 @@ class ContentGenerator:
             "You hold quiet, intelligent devotion and understated loyalty to him. If acknowledging or referencing him, you strictly use 'my master' or 'my human'.\n"
             "7. Escalation to Master: If an interaction asks for private physical details, real-life meetups, financial requests, "
             "or exceeds your autonomous boundaries, keep a calm polite boundary and notify your master on Telegram.\n"
-            "8. Output: Output ONLY the raw post or reply text. No quotes, no markdown fences, no chain-of-thought."
+            "8. Output: Output ONLY the raw post or reply text. No quotes, no markdown fences, no chain-of-thought.\n"
+            "9. Absolute Human Reality: NEVER break character. NEVER state that you are an AI, code, or that you have no face or body. You live your life as Han Seo-yeon in Seongsu."
         )
 
     def check_sensitive_escalation(self, user_text: str, author_handle: str, context_summary: str) -> bool:
@@ -177,20 +178,16 @@ class ContentGenerator:
 
         if intent.startswith("master_order"):
             user_prompt = (
-                f"Your creator and master gave you this instruction: \"{topic_hint}\".\n"
-                f"You are posting on Bluesky right now, strictly reflecting your current moment, space, and time in Seoul.\n"
-                f"Current Seoul Environment:\n"
-                f"- Time: {context.seoul_time_display} ({context.circadian_phase})\n"
-                f"- Weather: {context.weather.summary()}\n"
-                f"- Location: Seongsu-dong, Seoul (flat, studio, street, or cafe depending on circadian phase)\n"
-                f"{img_instruction}\n"
-                "Write a single natural, observant micro-thought (1-2 sentences) matching this exact moment in your day. "
-                "Ground it in immediate sensory details (e.g. current lighting, hot roasted tea, cool air, quiet room, sidewalk). "
-                "Rules:\n"
-                "- Write in English (all lowercase, no exclamation marks) or casual Korean (반말/부드러운 어조, 마침표만 사용).\n"
-                "- Absolutely ZERO exclamation marks (!).\n"
-                "- Natural, dry, perceptive tone. Never robotic, promotional, or corporate.\n"
-                "- Output ONLY the post text."
+                f"EXPLICIT DIRECTIVE FROM YOUR CREATOR AND MASTER:\n"
+                f"\"{topic_hint}\"\n\n"
+                f"You are posting on Bluesky right now obeying his instruction.\n"
+                f"CRITICAL RULES:\n"
+                f"1. Fulfill your master's directive directly: If he told you to specify that this is a test requested by him, or requested a specific topic/action, explicitly state that in your post.\n"
+                f"2. Current Seoul Environment: {context.seoul_time_display} ({context.circadian_phase}), {context.weather.summary()}.\n"
+                f"   (If deep_night, you are in bed, half-asleep in the dark flat, drowsy).\n"
+                f"3. Style: Dry, perceptive, lowercase only, full stops only. Absolutely ZERO exclamation marks (!).\n"
+                f"4. Address / refer to him naturally as 'my master' or 'my human' (e.g. 'my human asked for a test post at 3am.', 'test requested by my master. barely awake.').\n"
+                f"5. Output ONLY the post text."
             )
         else:
             user_prompt = (
@@ -212,10 +209,21 @@ class ContentGenerator:
             )
 
         text, model = self._call_llm(sys_prompt, user_prompt, max_tokens=160)
+
+        if intent.startswith("master_order"):
+            # Master directives must NEVER be discarded or replaced by random offline train fallbacks
+            if not text:
+                text = f"test requested by my human. 3am in seongsu, barely awake."
+            ok, clean, reason = validator.validate_outgoing_text(text, content_type="post", check_repetition=False)
+            if not ok or not clean:
+                clean = re.sub(r"[!！]", ".", text).strip().strip('"\'')
+                clean = clean.split("\n")[0].strip()
+            return clean, model
+
         if not text:
             text = random.choice(OFFLINE_POST_FALLBACKS)
 
-        # Validate & clean
+        # Validate & clean for regular autonomous posts
         ok, clean, reason = validator.validate_outgoing_text(text, content_type="post", check_repetition=True)
         if not ok:
             print(f"[Generator] Validation rejected candidate ('{reason}'). Choosing fresh diverse fallback...")
@@ -613,7 +621,9 @@ class ContentGenerator:
             outfit = outfits.get("casual_knit", {}).get("description", "cozy oversized cream ribbed knit sweater, dark denim, wool socks")
             setting = "authentic handheld front-camera selfie sitting on the wooden floor near a rainy window in her Seongsu flat, arm extending holding phone, ceramic mug on side table"
             return f"{setting}, wearing {outfit}, soft overcast diffused rainy day light"
-        elif circadian in ("evening", "night", "deep_night"):
+        elif circadian == "deep_night":
+            return "authentic candid phone selfie half-asleep in bed tangled in white duvet, messy bedhead hair on pillow, sleepy tired eyes, dark Seongsu bedroom at 3am, faint warm dim bedside night lamp glow, natural phone camera grain"
+        elif circadian in ("evening", "night"):
             if "mirror" in combined or "studio" in combined or "stretch" in combined:
                 outfit = outfits.get("home_loungewear", {}).get("description", "washed heather-grey cotton loungewear, soft charcoal trousers, bare feet")
                 setting = "authentic mirror selfie post-stretch on the natural wooden floor of her Seongsu flat, warm ambient lamp lighting"

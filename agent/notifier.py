@@ -299,14 +299,9 @@ class MasterNotifier:
                     confirm_msg = f"done, my master. posted to bluesky: {web_url}"
                     self.send_telegram_message(confirm_msg, dry_run=dry_run)
             else:
-                # If image generation service failed, fall back to text post
-                print(f"[Master Directive: Image Post] Image generation failed ({err}). Falling back to text post.")
-                res = bsky_client.publish_text_post(post_text)
-                uri = res.get("uri", "")
-                rkey = uri.split("/")[-1]
-                handle = config.bsky_handle or "syeonhn.bsky.social"
-                web_url = f"https://bsky.app/profile/{handle}/post/{rkey}"
-                confirm_msg = f"camera service hit an issue, my master, so i shared the thought as text: {web_url}"
+                # If image generation failed, do NOT pollute Bluesky with unwanted text post; report to master on Telegram
+                print(f"[Master Directive: Image Post] Image generation failed ({err}). Notifying master.")
+                confirm_msg = f"camera service hit an issue ({err or 'timeout'}), my master. i did not publish to bluesky. let me know if you want me to retry taking it."
                 self.send_telegram_message(confirm_msg, dry_run=dry_run)
 
         # -------------------------------------------------------------

@@ -189,7 +189,7 @@ class ImageEngine:
         poll_headers = {"Authorization": f"Bearer {self.api_key}"}
 
         start_time = time.time()
-        timeout = 240.0  # 4 minutes
+        timeout = 360.0  # 6 minutes for busy GPU queues
 
         while time.time() - start_time < timeout:
             time.sleep(4.0)
