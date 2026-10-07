@@ -1,0 +1,6 @@
+# GitHub Funding Configuration for Seo-yeon Han AI Project
+# Enables the native "Sponsor this project" button on GitHub
+
+github: [Protoxide]
+ko_fi: protoxide
+custom: ['https://ko-fi.com/protoxide']
