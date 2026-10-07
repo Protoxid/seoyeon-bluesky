@@ -98,6 +98,10 @@ class AgentConfig:
     primary_text_model: str = field(
         default_factory=lambda: os.environ.get("PRIMARY_TEXT_MODEL", "anthropic/claude-sonnet-5.5")
     )
+    # OpenRouter API Endpoint (supports https://openrouter.ai/api/v1 or https://eu.openrouter.ai/api/v1)
+    openrouter_base_url: str = field(
+        default_factory=lambda: os.environ.get("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")
+    )
     # Secondary resilient fallback on OpenRouter
     fallback_text_model: str = field(
         default_factory=lambda: os.environ.get("FALLBACK_TEXT_MODEL", "deepseek-v4.1-flash")

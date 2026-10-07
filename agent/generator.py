@@ -29,7 +29,7 @@ from .notifier import notifier
 from .validator import ContentValidator, validator
 
 
-OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
+OPENROUTER_URL = f"{config.openrouter_base_url.rstrip('/')}/chat/completions"
 
 
 # Diverse fallback thoughts covering normal human life (weather, books, cinema, architecture, city textures)
@@ -82,8 +82,9 @@ class ContentGenerator:
             "temperature": 0.72,
             "max_tokens": max_tokens,
         }
+        endpoint = f"{config.openrouter_base_url.rstrip('/')}/chat/completions"
         req = urllib.request.Request(
-            OPENROUTER_URL,
+            endpoint,
             data=json.dumps(payload).encode("utf-8"),
             headers={
                 "Content-Type": "application/json",
