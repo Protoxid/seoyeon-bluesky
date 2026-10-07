@@ -230,6 +230,116 @@ class TestTelegramNotifier(unittest.TestCase):
         self.assertTrue(len(scene) > 20)
         self.assertIn("Seongsu", scene)
 
+    def test_parse_master_directive_types(self):
+        """parse_master_directive must recognize photo, post, DM, comment, like, and consolidation directives."""
+        # 1. Photo / Image orders
+        d1 = generator.parse_master_directive("Can you please publish a picture of yourself right now on bsky?")
+        self.assertTrue(d1["is_order"])
+        self.assertEqual(d1["action_type"], "PUBLISH_IMAGE_POST")
+
+        d1_kr = generator.parse_master_directive("지금 셀카 하나 찍어서 올려줘")
+        self.assertTrue(d1_kr["is_order"])
+        self.assertEqual(d1_kr["action_type"], "PUBLISH_IMAGE_POST")
+
+        # 2. Text Post orders
+        d2 = generator.parse_master_directive("publish a post about the cold autumn air on bsky")
+        self.assertTrue(d2["is_order"])
+        self.assertEqual(d2["action_type"], "PUBLISH_TEXT_POST")
+
+        # 3. DM orders
+        d3 = generator.parse_master_directive("please check and answer dms right now")
+        self.assertTrue(d3["is_order"])
+        self.assertEqual(d3["action_type"], "ANSWER_DM")
+
+        # 4. Comment / notification orders
+        d4 = generator.parse_master_directive("reply to comments and notifications on bluesky")
+        self.assertTrue(d4["is_order"])
+        self.assertEqual(d4["action_type"], "BROWSE_AND_REPLY")
+
+        # 5. Like orders
+        d5 = generator.parse_master_directive("browse feed and like some posts")
+        self.assertTrue(d5["is_order"])
+        self.assertEqual(d5["action_type"], "BROWSE_AND_LIKE")
+
+        # 6. Consolidation order
+        d6 = generator.parse_master_directive("write in your journal and consolidate memories")
+        self.assertTrue(d6["is_order"])
+        self.assertEqual(d6["action_type"], "CONSOLIDATE")
+
+        # 7. Non-order casual chat
+        d7 = generator.parse_master_directive("how was your day in seoul?")
+        self.assertFalse(d7["is_order"])
+
+    def test_execute_master_directive_photo(self):
+        """execute_master_directive must generate image, publish, and notify master with the link."""
+        from agent.context_engine import build_environment_context
+        ctx = build_environment_context()
+        directive = {
+            "is_order": True,
+            "action_type": "PUBLISH_IMAGE_POST",
+            "topic_hint": "publish a picture of yourself right now on bsky",
+        }
+
+        with patch.object(generator, "_call_llm", return_value=("ginkgo leaves on the street", "mock")):
+            with patch.object(self.notifier, "send_telegram_message", return_value=True) as mock_tg:
+                res = self.notifier.execute_master_directive(directive, ctx, dry_run=True)
+                self.assertTrue(res.get("success"))
+                self.assertEqual(res.get("action_type"), "PUBLISH_IMAGE_POST")
+                self.assertIn("uri", res)
+                # Must send follow-up confirmation to master with bluesky link
+                mock_tg.assert_called_once()
+                confirm_text = mock_tg.call_args[0][0]
+                self.assertIn("done, my master", confirm_text)
+                self.assertIn("bsky.app/profile/", confirm_text)
+
+    def test_execute_master_directive_text_post(self):
+        """execute_master_directive for text post must publish and send link to master."""
+        from agent.context_engine import build_environment_context
+        ctx = build_environment_context()
+        directive = {
+            "is_order": True,
+            "action_type": "PUBLISH_TEXT_POST",
+            "topic_hint": "publish a post about roasted barley tea",
+        }
+
+        with patch.object(generator, "_call_llm", return_value=("autumn evening in seongsu flat", "mock")):
+            with patch.object(self.notifier, "send_telegram_message", return_value=True) as mock_tg:
+                res = self.notifier.execute_master_directive(directive, ctx, dry_run=True)
+                self.assertTrue(res.get("success"))
+                self.assertEqual(res.get("action_type"), "PUBLISH_TEXT_POST")
+                mock_tg.assert_called_once()
+                confirm_text = mock_tg.call_args[0][0]
+                self.assertIn("done, my master", confirm_text)
+                self.assertIn("bsky.app/profile/", confirm_text)
+
+    def test_process_master_inbox_with_order(self):
+        """process_master_inbox must send immediate obedient acknowledgment, then execute and send confirmation."""
+        from agent.context_engine import build_environment_context
+        ctx = build_environment_context()
+        fake_msg = [{
+            "update_id": 301,
+            "message_id": 12,
+            "from": "protoxide",
+            "chat_id": "159137757",
+            "text": "Can you please publish a picture of yourself right now on bsky?",
+        }]
+
+        with patch.object(generator, "_call_llm", return_value=("yes, my master. taking the photo in the flat right now and putting it up on bluesky.", "mock")):
+            with patch.object(self.notifier, "get_master_messages", return_value=fake_msg):
+                with patch.object(self.notifier, "send_telegram_message", return_value=True) as mock_send:
+                    with patch.object(self.notifier, "execute_master_directive", return_value={"success": True}) as mock_exec:
+                        count = self.notifier.process_master_inbox(ctx, dry_run=True)
+                        self.assertEqual(count, 1)
+                        # Immediate acknowledgment sent
+                        mock_send.assert_called_once()
+                        ack_msg = mock_send.call_args[0][0]
+                        self.assertIn("my master", ack_msg)
+                        # Directive executed
+                        mock_exec.assert_called_once()
+                        called_directive = mock_exec.call_args[0][0]
+                        self.assertEqual(called_directive.get("action_type"), "PUBLISH_IMAGE_POST")
+
 
 if __name__ == "__main__":
     unittest.main()
+
