@@ -76,7 +76,6 @@ jobs:
                    data/memory/episodic_memory.jsonl \
                    data/memory/recent_context.json \
                    data/logs/tick_history.jsonl \
-                   data/logs/telegram_outbox.jsonl \
                    data/budget_ledger.json \
                    data/weather_cache.json; do
             if [ -f "$f" ]; then

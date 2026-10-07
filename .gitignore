@@ -93,3 +93,7 @@ test_*.txt
 run_pod.txt
 info.nfo
 docs/FUNDING_AND_SHOWCASE_KIT.md
+
+# Private persona journals & direct creator logs (kept local, never public on GitHub)
+data/memory/private_journal.jsonl
+data/logs/telegram_outbox.jsonl

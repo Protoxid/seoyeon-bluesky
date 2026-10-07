@@ -139,16 +139,6 @@ class MasterNotifier:
         formatted_msg = "\n".join(lines)
         success = self.send_telegram_message(formatted_msg, dry_run=dry_run)
 
-        # Record episodic memory
-        try:
-            from .memory_store import memory_store
-            memory_store.log_episode(
-                "telegram_contact_with_master",
-                f"Sent message to my master ({self.master_handle})",
-                {"question": question, "context": context, "delivered": success},
-            )
-        except Exception:
-            pass
 
         return success
 
@@ -173,16 +163,6 @@ class MasterNotifier:
 
         success = self.send_telegram_message(formatted_msg, dry_run=dry_run)
 
-        # Record episodic memory
-        try:
-            from .memory_store import memory_store
-            memory_store.log_episode(
-                "daily_report_to_master",
-                f"Delivered evening daily summary to my master ({self.master_handle})",
-                {"date": date_str, "summary": summary_text[:120], "delivered": success},
-            )
-        except Exception:
-            pass
 
         return success
 
@@ -565,18 +545,6 @@ class MasterNotifier:
                 print(f"[Master Directive] Obeying directive '{directive.get('action_type')}' from my master...")
                 exec_details = self.execute_master_directive(directive, context, dry_run=dry_run)
 
-            # 6. Log episodic memory
-            memory_store.log_episode(
-                "master_telegram_dialogue",
-                f"Conversation with my master on Telegram",
-                {
-                    "master_text": text,
-                    "reply_text": reply_text,
-                    "directive": directive,
-                    "exec_details": exec_details,
-                    "model": model_used,
-                },
-            )
             processed += 1
 
         return processed

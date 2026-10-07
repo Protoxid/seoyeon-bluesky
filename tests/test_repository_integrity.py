@@ -123,7 +123,6 @@ class TestRepositoryIntegrity(unittest.TestCase):
         self.assertIn("TELEGRAM_CHAT_ID", content)
 
         # Tracked log output
-        self.assertIn("data/logs/telegram_outbox.jsonl", content)
         self.assertIn("data/logs/tick_history.jsonl", content)
         self.assertIn("data/memory/identity_memory.json", content)
 

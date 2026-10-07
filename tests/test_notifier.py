@@ -164,8 +164,8 @@ class TestTelegramNotifier(unittest.TestCase):
                     "update_id": 102,
                     "message": {
                         "message_id": 2,
-                        "from": {"username": "Protoxide", "id": 159137757},
-                        "chat": {"id": 159137757},
+                        "from": {"username": "Protoxide", "id": 999999999},
+                        "chat": {"id": 999999999},
                         "text": "hey seo-yeon, how are you feeling today?",
                     },
                 },
@@ -192,7 +192,7 @@ class TestTelegramNotifier(unittest.TestCase):
             "update_id": 200,
             "message_id": 5,
             "from": "protoxide",
-            "chat_id": "159137757",
+            "chat_id": "999999999",
             "text": "did you have your barley tea yet?",
         }]
         with patch.object(self.notifier, "get_master_messages", return_value=fake_msg):
@@ -320,7 +320,7 @@ class TestTelegramNotifier(unittest.TestCase):
             "update_id": 301,
             "message_id": 12,
             "from": "protoxide",
-            "chat_id": "159137757",
+            "chat_id": "999999999",
             "text": "Can you please publish a picture of yourself right now on bsky?",
         }]
 
