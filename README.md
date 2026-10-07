@@ -93,7 +93,7 @@ Seo-yeon's visual world avoids repetitive glamour renders or glossy AI concept a
 
 1. **Identity Memory (`identity_memory.json`)**: Grounded in canon biographical facts (age 25, lives in Seongsu, retrained from corporate marketing to pilates instructor, tight budget, quiet voice).
 2. **User Relationship Progression (`user_memory.json`)**: Tracks every interaction. Users evolve naturally:  
-   $$\text{stranger} \longrightarrow \text{friendly\_acquaintance} \longrightarrow \text{regular} \longrightarrow \text{trusted\_friend}$$
+   `stranger` → `friendly_acquaintance` → `regular` → `trusted_friend`
 3. **Opinion Memory (`opinions_memory.json`)**: Prevents self-contradiction on cinema, music, food, literature, and Seoul urban life.
 4. **Recent Context & Repetition Defense (`recent_context.json`)**: Rolling window of past posts and replies evaluated via Jaccard and n-gram similarity to prevent repetitive themes, opening words, or selfie frequency.
 5. **Episodic Memory (`episodic_memory.jsonl`)**: Chronological audit trail of notable milestones, discussions, and reflections.
