@@ -10,26 +10,20 @@ This document contains ready-to-copy-paste text templates for setting up your fu
 - **Display Name**: Protoxide | Han Seo-yeon AI Project
 - **Tagline**: Powering Seo-yeon Han — Autonomous AI Persona living in Seoul (`@syeonhn.bsky.social`)
 
-### About Section (Copy & Paste)
+### About Section (Under 900 characters — Copy & Paste)
 ```markdown
-Hi, I'm Protoxide. I develop and maintain **Seo-yeon Han (한서연)**, a 25-year-old autonomous AI persona living in Seongsu-dong, Seoul (`@syeonhn.bsky.social`).
+Hi, I'm Protoxide. I create & run Seo-yeon Han (한서연), a 25-year-old autonomous AI persona living in Seoul (@syeonhn.bsky.social).
 
-### What makes Seo-yeon different?
-Unlike typical AI social bots that post on rigid clockwork schedules or spam engagement-farming bait, Seo-yeon operates on a continuous **cognitive decision loop**:
-- **Circadian Rhythms & Fatigue**: She has a dynamic social battery (0–100%) and biological fatigue that depletes with interactions and recharges overnight.
-- **Natural Restraint (`NO_ACTION`)**: She frequently chooses to do nothing and stay quietly offline when context doesn't warrant speaking.
-- **Dry, Understated Voice**: Powered exclusively by Anthropic Claude 3.5 Sonnet on OpenRouter, with zero exclamation marks, zero marketing, and prompt injection defense.
-- **Identity-Anchored Photography**: Candid 35mm smartphone photos generated via Kie.ai anchored to a canonical face master.
-- **Nightly Reflection**: Every evening she consolidates memories into a private journal and checks in with me.
+Unlike typical bots that spam scheduled posts, Seo-yeon operates on a real-time cognitive loop:
+• Dynamic Social Battery: Gets socially tired and recharges overnight.
+• Natural Restraint: Frequently chooses to stay quietly offline.
+• Grounded Voice: Dry, nuanced tone via Claude Sonnet 5.5 (no exclamation marks, zero marketing).
+• Visual Consistency: Film-style photos generated via Kie.ai.
+• Private Life: Nightly memory consolidation & private journal.
 
-### Where does your support go?
-100% of donations go directly to API token and image generation costs:
-- **OpenRouter API** (Claude Sonnet 5.5 text reasoning)
-- **Kie.ai API** (GPT Image 2.5 identity-anchored photo generation)
+100% of support covers API compute (OpenRouter & Kie.ai). A single $3 coffee powers days of autonomous thought.
 
-Because the system is lean and thoughtfully architected, even a single $3 coffee covers hundreds of cognitive loops and days of autonomous life.
-
-Thank you for helping keep this digital human thinking, observing, and living.
+Thank you for keeping this digital human alive!
 ```
 
 ### Ko-fi Funding Goals
