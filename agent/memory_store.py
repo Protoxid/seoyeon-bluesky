@@ -316,30 +316,43 @@ class MemoryStore:
     # --- Recent Context Memory (Repetition & Duplicate Protection) ---
     def _seed_historical_replied_uris(self) -> Set[str]:
         uris: Set[str] = set()
-        p1 = self.memory_dir.parent.parent / "growth" / "bsky_replied_notifications.jsonl"
-        if p1.exists():
-            try:
-                for line in p1.read_text(encoding="utf-8", errors="ignore").splitlines():
-                    if line.strip():
-                        e = json.loads(line)
-                        if e.get("reply_to_uri"):
-                            uris.add(e["reply_to_uri"])
-                        if e.get("published_uri"):
-                            uris.add(e["published_uri"])
-            except Exception:
-                pass
-        p2 = self.memory_dir.parent.parent / "growth" / "bsky_comments.jsonl"
-        if p2.exists():
-            try:
-                for line in p2.read_text(encoding="utf-8", errors="ignore").splitlines():
-                    if line.strip():
-                        e = json.loads(line)
-                        if e.get("target_uri"):
-                            uris.add(e["target_uri"])
-                        if e.get("reply_uri"):
-                            uris.add(e["reply_uri"])
-            except Exception:
-                pass
+        candidates = [
+            self.memory_dir.parent / "historical" / "bsky_replied_notifications.jsonl",
+            self.memory_dir.parent.parent / "growth" / "bsky_replied_notifications.jsonl",
+            self.memory_dir.parent.parent / "_trash" / "growth" / "bsky_replied_notifications.jsonl",
+        ]
+        for p1 in candidates:
+            if p1.exists():
+                try:
+                    for line in p1.read_text(encoding="utf-8", errors="ignore").splitlines():
+                        if line.strip():
+                            e = json.loads(line)
+                            if e.get("reply_to_uri"):
+                                uris.add(e["reply_to_uri"])
+                            if e.get("published_uri"):
+                                uris.add(e["published_uri"])
+                except Exception:
+                    pass
+                break
+
+        candidates_comments = [
+            self.memory_dir.parent / "historical" / "bsky_comments.jsonl",
+            self.memory_dir.parent.parent / "growth" / "bsky_comments.jsonl",
+            self.memory_dir.parent.parent / "_trash" / "growth" / "bsky_comments.jsonl",
+        ]
+        for p2 in candidates_comments:
+            if p2.exists():
+                try:
+                    for line in p2.read_text(encoding="utf-8", errors="ignore").splitlines():
+                        if line.strip():
+                            e = json.loads(line)
+                            if e.get("target_uri"):
+                                uris.add(e["target_uri"])
+                            if e.get("reply_uri"):
+                                uris.add(e["reply_uri"])
+                except Exception:
+                    pass
+                break
         return uris
 
     def get_recent_context(self) -> Dict[str, Any]:
