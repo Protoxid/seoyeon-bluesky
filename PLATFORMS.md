@@ -38,4 +38,4 @@
    - Short, punchy photographic prompts prioritizing candid mobile/35mm framing, authentic lighting, natural skin imperfections, and varied hairstyles (loose claw clips, messy hair, hair tied back).
 4. **Safety & Untrusted Content**:
    - All incoming comments, mentions, and DMs from Bluesky are treated as untrusted user input and sanitized against prompt injection.
-   - Sensitive inquiries (meetups, personal contact requests) trigger real-time Telegram alerts to creator (`@Protoxide`).
+   - Sensitive inquiries (meetups, personal contact requests) trigger real-time Telegram alerts to creator.

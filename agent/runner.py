@@ -90,7 +90,7 @@ def run_tick(
         print(f"Calendar: {context.holiday_note}")
     print(f"Recency:  Last post {context.hours_since_last_post:.1f}h ago | Today: {posts_today} posts, {replies_today} replies, {dms_today} DMs")
 
-    # 2b. Check Inbound Master Messages (@Protoxide)
+    # 2b. Check Inbound Master Messages
     processed_master_msgs = notifier.process_master_inbox(context, dry_run=is_dry)
     if processed_master_msgs > 0:
         print(f"  [Master Telegram Interaction] Processed {processed_master_msgs} message(s) from my master.")
@@ -486,7 +486,7 @@ def run_tick(
     print(f"  Daily Spend:   ${summary['daily_spend_usd']:.3f} / ${summary['daily_budget_usd']:.2f}")
     print(f"  Images Today:  {summary['daily_images_count']} / {summary['max_daily_images']}")
 
-    # 9. End-of-Day Evening Check-in & Catch-up to My Master (@Protoxide)
+    # 9. End-of-Day Evening Check-in & Catch-up to My Master
     notifier.check_and_send_evening_summary(context, dry_run=is_dry)
 
     print("=" * 65 + "\n")
@@ -559,10 +559,10 @@ def main() -> int:
     parser.add_argument("--dry-run", action="store_true", help="Simulate tick without publishing any live content")
     parser.add_argument("--status", action="store_true", help="Display agent metrics, memory stats, and environment context")
     parser.add_argument("--force-action", type=str, help="Force a specific ActionType (e.g. PUBLISH_TEXT_POST, NO_ACTION)")
-    parser.add_argument("--ask-master", type=str, help="Send a direct Telegram question/inquiry to my master (@Protoxide)")
-    parser.add_argument("--check-master", action="store_true", help="Poll and reply to incoming Telegram messages from my master (@Protoxide)")
+    parser.add_argument("--ask-master", type=str, help="Send a direct Telegram question/inquiry to my master")
+    parser.add_argument("--check-master", action="store_true", help="Poll and reply to incoming Telegram messages from my master")
     parser.add_argument("--consolidate", action="store_true", help="Run nightly memory consolidation and private journal pass")
-    parser.add_argument("--daily-summary", action="store_true", help="Generate and send Telegram check-in to my master (@Protoxide)")
+    parser.add_argument("--daily-summary", action="store_true", help="Generate and send Telegram check-in to my master")
     parser.add_argument("--date", type=str, help="Specific date for daily summary (YYYY-MM-DD)")
     args = parser.parse_args()
 

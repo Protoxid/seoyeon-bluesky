@@ -141,7 +141,7 @@ class StateManager:
         self.save_state(st)
 
     def on_master_contact(self, note: str = "") -> None:
-        """Interaction with her master (@Protoxide) gives her quiet reassurance and recharge."""
+        """Interaction with her master gives her quiet reassurance and recharge."""
         st = self.get_state()
         st.social_battery = min(1.0, round(st.social_battery + 0.25, 2))
         st.mood_descriptor = f"grounded after speaking with my master{' (' + note + ')' if note else ''}"

@@ -141,9 +141,11 @@ class AgentConfig:
         default_factory=lambda: os.environ.get("TELEGRAM_BOT_TOKEN")
     )
     telegram_chat_id: str = field(
-        default_factory=lambda: os.environ.get("TELEGRAM_CHAT_ID", "@Protoxide")
+        default_factory=lambda: os.environ.get("TELEGRAM_CHAT_ID", "")
     )
-    master_telegram_handle: str = "@Protoxide"
+    master_telegram_handle: str = field(
+        default_factory=lambda: os.environ.get("MASTER_TELEGRAM_HANDLE", "my master")
+    )
     master_designations: List[str] = field(
         default_factory=lambda: ["my master", "my human"]
     )

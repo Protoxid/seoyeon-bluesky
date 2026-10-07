@@ -64,7 +64,7 @@ EVALUATE CANDIDATES
    - Chronological log of notable interactions, milestones, and reflections.
 6. **Creator Relationship ("my master" / "my human")**:
    - Seo-yeon always refers to her human creator and operator as `"my master"` or `"my human"`.
-   - **Interactive Bidirectional Telegram Bond (`agent/notifier.py`)**: She receives inbound messages from her master (`@Protoxide`), recharges her social battery, and replies directly in character.
+   - **Interactive Bidirectional Telegram Bond (`agent/notifier.py`)**: She receives inbound messages from her master, recharges her social battery, and replies directly in character.
    - **Resilient Daily Evening Check-in & Catch-up**: Delivered late evening (≥ 21:00 KST). If any day is missed due to scheduler queues, she automatically catches up on the very next tick.
 7. **Private Journal (`private_journal.jsonl`)**:
    - Internal late-night reflection notebook in her Seongsu flat; never broadcasted to the public.
@@ -80,7 +80,7 @@ EVALUATE CANDIDATES
   - Primary Model: `anthropic/claude-sonnet-5.5` (state-of-the-art intelligence, nuanced character adherence, natural dry tone without robotic exclamation marks).
   - Fallback Model: `deepseek-v4.1-flash` (fast, highly intelligent secondary on OpenRouter).
 - **Image Generation**: Conditioned on dual canonical face masters through **Kie.ai** API (`https://api.kie.ai`) with `gpt-image-2-5-sunburst-image-to-image`. Identity-anchored to `personas/seoyeon/master/a/a1_front.png` and `personas/seoyeon/master/c/c5_relax_front.png` with punchy photographic prompts for authentic candid realism without AI gloss.
-- **Telegram Escalation**: When sensitive inquiries occur (e.g. users asking for real-life meetups, personal contact details) or when agent decisions require master approval, she notifies `@Protoxide` via Telegram Bot API.
+- **Telegram Escalation**: When sensitive inquiries occur (e.g. users asking for real-life meetups, personal contact details) or when agent decisions require master approval, she notifies her master via Telegram Bot API.
 
 ---
 
@@ -94,8 +94,8 @@ The system is fully deployed on **GitHub Actions**:
   - `BSKY_APP_PASSWORD`: Bluesky App Password (with DM access enabled)
   - `KIE_API_KEY`: Kie.ai API key (for GPT Image 2.5 image generation)
   - `OPENROUTER_API_KEY`: OpenRouter API key (sole text provider for Claude Sonnet 5.5 / DeepSeek)
-  - `TELEGRAM_BOT_TOKEN`: Telegram bot token (for bidirectional communication with `@Protoxide`)
-  - `TELEGRAM_CHAT_ID`: Telegram chat ID / recipient for `@Protoxide` (optional, defaults to `@Protoxide`)
+  - `TELEGRAM_BOT_TOKEN`: Telegram bot token (for bidirectional communication with her master)
+  - `TELEGRAM_CHAT_ID`: Telegram chat ID / recipient for master alerts
 
 
 ---
@@ -116,7 +116,7 @@ python agent_runner.py --auto
 python agent_runner.py --daily-summary --dry-run
 python agent_runner.py --daily-summary
 
-# 5. Check & reply to incoming Telegram messages from my master (@Protoxide)
+# 5. Check & reply to incoming Telegram messages from my master
 python agent_runner.py --check-master
 
 # 6. Run nightly memory consolidation pass & private journal reflection

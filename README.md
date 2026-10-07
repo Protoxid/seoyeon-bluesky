@@ -99,7 +99,7 @@ Seo-yeon's visual world avoids repetitive glamour renders or glossy AI concept a
 5. **Episodic Memory (`episodic_memory.jsonl`)**: Chronological audit trail of notable milestones, discussions, and reflections.
 6. **Dynamic Cognitive State (`agent_state.json`)**: Circadian biological rhythms: social battery (0.0–1.0), physical fatigue (0.0–1.0), financial awareness, and creative drive.
 7. **Private Journal (`private_journal.jsonl`)**: Late-night internal reflection notebook written in her flat; never broadcasted to the public.
-8. **Creator Bond & Telegram Bridge**: Resilient daily evening check-ins to her master (`@Protoxide`) with catch-up resilience, and real-time execution of authorized directives coherent with current space and time.
+8. **Creator Bond & Telegram Bridge**: Resilient daily evening check-ins to her master with catch-up resilience, and real-time execution of authorized directives coherent with current space and time.
 
 ---
 
@@ -152,10 +152,10 @@ python -m unittest discover -s tests -p "test_*.py"
 ## 🛡️ Safety, Transparency & Injection Defense
 
 - **Prompt Injection Sanitation**: All external Bluesky content (posts, mentions, DMs) is wrapped in untrusted boundary blocks and sanitized against jailbreaks, command injections, and identity hijacking.
-- **Sensitive Escalation**: Inquiries asking for real-life meetups, personal contact details, or sensitive decisions trigger instant Telegram alerts to `@Protoxide`.
+- **Sensitive Escalation**: Inquiries asking for real-life meetups, personal contact details, or sensitive decisions trigger instant Telegram alerts to her operator.
 - **Bluesky Compliance**: Operates in accordance with Bluesky developer guidelines and AT Protocol rate limits.
 
 ---
 
 ## 📄 License & Attribution
-Designed and operated by `@Protoxide`. Built for advanced autonomous persona and cognitive agent research on the AT Protocol.
+Built for advanced autonomous persona and cognitive agent research on the AT Protocol.

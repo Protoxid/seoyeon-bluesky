@@ -38,7 +38,7 @@ class TestTelegramNotifier(unittest.TestCase):
         self.assertTrue(success)
 
     def test_ask_master_formatting(self):
-        """ask_master must address the human as 'my master' and target @Protoxide."""
+        """ask_master must address the human as 'my master'."""
         with patch.object(self.notifier, "send_telegram_message", return_value=True) as mock_send:
             res = self.notifier.ask_master(
                 question="Should I accept this invitation, my master?",
@@ -49,7 +49,6 @@ class TestTelegramNotifier(unittest.TestCase):
             mock_send.assert_called_once()
             called_msg = mock_send.call_args[0][0]
             self.assertIn("my master", called_msg)
-            self.assertIn("@Protoxide", called_msg)
             self.assertIn("Should I accept this invitation", called_msg)
 
     def test_sensitive_escalation_detection(self):
@@ -89,7 +88,6 @@ class TestTelegramNotifier(unittest.TestCase):
         prompt = memory_store.format_identity_prompt()
         self.assertIn("my master", prompt)
         self.assertIn("my human", prompt)
-        self.assertIn("@Protoxide", prompt)
 
     def test_config_model_is_sonnet_5_5(self):
         """Config primary text model must default to Claude Sonnet 5.5 on OpenRouter."""
@@ -111,7 +109,6 @@ class TestTelegramNotifier(unittest.TestCase):
             mock_send.assert_called_once()
             called_msg = mock_send.call_args[0][0]
             self.assertIn("my master", called_msg)
-            self.assertIn("@Protoxide", called_msg)
             self.assertIn("Late Evening Check-in", called_msg)
             self.assertIn("cold studio floor", called_msg)
 
@@ -164,7 +161,7 @@ class TestTelegramNotifier(unittest.TestCase):
                     "update_id": 102,
                     "message": {
                         "message_id": 2,
-                        "from": {"username": "Protoxide", "id": 999999999},
+                        "from": {"username": "test_master", "id": 999999999},
                         "chat": {"id": 999999999},
                         "text": "hey seo-yeon, how are you feeling today?",
                     },
@@ -179,10 +176,11 @@ class TestTelegramNotifier(unittest.TestCase):
         with patch("urllib.request.urlopen", return_value=mock_resp):
             with patch.object(self.notifier, "bot_token", "fake_bot_token"):
                 with patch.object(config, "telegram_bot_token", "fake_bot_token"):
-                    messages = self.notifier.get_master_messages(dry_run=False)
-                    self.assertEqual(len(messages), 1)
-                    self.assertEqual(messages[0]["from"], "protoxide")
-                    self.assertEqual(messages[0]["text"], "hey seo-yeon, how are you feeling today?")
+                    with patch.object(self.notifier, "master_handle", "test_master"):
+                        messages = self.notifier.get_master_messages(dry_run=False)
+                        self.assertEqual(len(messages), 1)
+                        self.assertEqual(messages[0]["from"], "test_master")
+                        self.assertEqual(messages[0]["text"], "hey seo-yeon, how are you feeling today?")
 
     def test_process_master_inbox(self):
         """process_master_inbox must generate reply and deliver message to master."""
@@ -191,7 +189,7 @@ class TestTelegramNotifier(unittest.TestCase):
         fake_msg = [{
             "update_id": 200,
             "message_id": 5,
-            "from": "protoxide",
+            "from": "test_master",
             "chat_id": "999999999",
             "text": "did you have your barley tea yet?",
         }]
@@ -319,7 +317,7 @@ class TestTelegramNotifier(unittest.TestCase):
         fake_msg = [{
             "update_id": 301,
             "message_id": 12,
-            "from": "protoxide",
+            "from": "test_master",
             "chat_id": "999999999",
             "text": "Can you please publish a picture of yourself right now on bsky?",
         }]

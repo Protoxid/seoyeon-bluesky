@@ -5,7 +5,7 @@ Validates that:
   1. All core project modules import cleanly with zero runtime/initialization errors.
   2. Text generation is configured exclusively for OpenRouter with Claude Sonnet 5.5.
   3. Persona strictly enforces referring to the human creator as "my master" or "my human".
-  4. Outbound Telegram escalation is bound to @Protoxide and logs cleanly.
+  4. Outbound Telegram escalation is bound to creator and logs cleanly.
   5. Workflow definitions are valid, complete, and free of legacy Instagram/Fanvue references.
   6. Persistent memory files and audit log files are valid JSON/JSONL with no corruption.
 """
@@ -62,7 +62,6 @@ class TestRepositoryIntegrity(unittest.TestCase):
         # 1. Config definitions
         self.assertIn("my master", config.master_designations)
         self.assertIn("my human", config.master_designations)
-        self.assertEqual(config.master_telegram_handle, "@Protoxide")
 
         # 2. Identity Memory JSON file
         ident_path = PROJECT_ROOT / "data" / "memory" / "identity_memory.json"
@@ -72,25 +71,21 @@ class TestRepositoryIntegrity(unittest.TestCase):
         rel = ident_data["creator_relationship"]
         self.assertIn("my master", rel["designations"])
         self.assertIn("my human", rel["designations"])
-        self.assertEqual(rel["telegram_username"], "@Protoxide")
 
         # 3. Dynamic Identity Prompt
         prompt = memory_store.format_identity_prompt()
         self.assertIn("my master", prompt)
         self.assertIn("my human", prompt)
-        self.assertIn("@Protoxide", prompt)
 
         # 4. CANON.md documentation
         canon_text = (PROJECT_ROOT / "CANON.md").read_text(encoding="utf-8")
         self.assertIn("my master", canon_text)
         self.assertIn("my human", canon_text)
-        self.assertIn("@Protoxide", canon_text)
 
         # 5. AGENTS.md documentation
         agents_text = (PROJECT_ROOT / "AGENTS.md").read_text(encoding="utf-8")
         self.assertIn("my master", agents_text)
         self.assertIn("my human", agents_text)
-        self.assertIn("@Protoxide", agents_text)
 
     def test_telegram_outbox_logging(self):
         """Verifies notifier dispatches messages in dry-run mode and logs to telegram_outbox.jsonl."""
@@ -104,7 +99,7 @@ class TestRepositoryIntegrity(unittest.TestCase):
         # Verify entry exists in outbox
         lines = TELEGRAM_OUTBOX_FILE.read_text(encoding="utf-8").strip().splitlines()
         last_entry = json.loads(lines[-1])
-        self.assertEqual(last_entry["recipient"], "@Protoxide")
+        self.assertTrue(bool(last_entry["recipient"]))
         self.assertIn("my master", last_entry["text"])
         self.assertEqual(last_entry["status"], "simulated_dry_run")
 

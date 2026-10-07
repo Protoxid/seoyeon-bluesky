@@ -26,7 +26,7 @@ Bluesky is her exclusive window to the social world.
 - `agent/validator.py`: The Critic (verifies zero exclamation marks, anti-repetition Jaccard overlap, cliché frequency quotas, no marketing terms, prompt injection defense).
 - `agent/budget_manager.py`: Spending caps (daily $2.00 / monthly $30.00 limits, image generation limits, emergency stop).
 - `agent/bsky_client.py`: Full AT Protocol XRPC client for posts, images, replies, quote-posts (`embed.record`), reposts, follows, facets (`#link`, `#tag`), profile updates, and direct messages (`chat.bsky.convo.*`).
-- `agent/notifier.py`: Bidirectional Telegram bridge to her human creator (`@Protoxide`), receiving directives and delivering daily evening check-ins.
+- `agent/notifier.py`: Bidirectional Telegram bridge to her human creator, receiving directives and delivering daily evening check-ins.
 - `agent/runner.py`: Master cognitive loop runner.
 
 ---

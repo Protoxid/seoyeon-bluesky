@@ -1,7 +1,7 @@
 """
 agent/notifier.py — Direct Outbound Telegram Messenger for Seo-yeon to Her Master / Human.
 
-Implements real-time messaging from Seo-yeon to her human creator / operator (@Protoxide):
+Implements real-time messaging from Seo-yeon to her human creator / operator:
   - Always addresses the user as "my master" or "my human".
   - Sends direct Telegram alerts via the Telegram Bot API (https://api.telegram.org/bot<TOKEN>/sendMessage).
   - Handles dry-run simulations, recording messages to data/logs/telegram_outbox.jsonl.
@@ -43,7 +43,7 @@ class MasterNotifier:
         dry_run: Optional[bool] = None,
     ) -> bool:
         """
-        Sends an outbound text message to the human creator (@Protoxide) on Telegram.
+        Sends an outbound text message to the human creator on Telegram.
         Falls back cleanly to local outbox logging in dry-run or if the bot token is unset.
         """
         is_dry = dry_run if dry_run is not None else config.dry_run
@@ -149,7 +149,7 @@ class MasterNotifier:
         dry_run: Optional[bool] = None,
     ) -> bool:
         """
-        Sends the end-of-day in-character check-in message to my master (@Protoxide).
+        Sends the end-of-day in-character check-in message to my master.
         """
         seoul_now = get_seoul_datetime().strftime("%Y-%m-%d %H:%M:%S KST")
         date_str = (summary_data or {}).get("date", get_seoul_datetime().strftime("%Y-%m-%d"))
@@ -168,7 +168,7 @@ class MasterNotifier:
 
     def get_master_messages(self, dry_run: Optional[bool] = None) -> list[Dict[str, Any]]:
         """
-        Polls the Telegram Bot API for incoming messages sent by my master (@Protoxide).
+        Polls the Telegram Bot API for incoming messages sent by my master.
         Only processes messages matching the master's handle or chat ID.
         """
         is_dry = dry_run if dry_run is not None else config.dry_run
@@ -213,7 +213,7 @@ class MasterNotifier:
                     if not text:
                         continue
 
-                    # Authenticate: sender must be my master (@Protoxide or chat_id)
+                    # Authenticate: sender must be my master (handle or chat_id)
                     is_master = (
                         sender_username == master_clean_handle
                         or (master_chat_id and sender_id == master_chat_id)
@@ -243,7 +243,7 @@ class MasterNotifier:
         dry_run: Optional[bool] = None,
     ) -> Dict[str, Any]:
         """
-        Executes an explicit order from my master (@Protoxide) on Bluesky.
+        Executes an explicit order from my master on Bluesky.
         Maintains strict space-time and environmental coherence with her current Seoul moment.
         Sends a follow-up confirmation message to my master upon completion.
         """
@@ -509,7 +509,7 @@ class MasterNotifier:
 
     def process_master_inbox(self, context: Any, dry_run: Optional[bool] = None) -> int:
         """
-        Processes any unread inbound messages from my master (@Protoxide).
+        Processes any unread inbound messages from my master.
         Generates in-character thoughtful replies and updates Seo-yeon's cognitive state.
         If the message contains an order or directive, she obeys and executes it on Bluesky.
         """

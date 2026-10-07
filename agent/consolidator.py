@@ -107,7 +107,7 @@ class MemoryConsolidator:
             "This will NOT be posted to Bluesky or read by anyone else.\n"
             "Rules:\n"
             "- Voice: Intimate, dry, calm, lowercase only, full stops only. Absolutely zero exclamation marks (!).\n"
-            "- Content: Reflect genuinely on today, the autumn air or room stillness, what you noticed, your master (@Protoxide), or your body feeling rested after teaching.\n"
+            "- Content: Reflect genuinely on today, the autumn air or room stillness, what you noticed, your master, or your body feeling rested after teaching.\n"
             "- Output ONLY the reflection text."
         )
 

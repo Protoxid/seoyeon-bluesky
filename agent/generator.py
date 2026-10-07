@@ -8,7 +8,7 @@ in-character Korean or English text for Seo-yeon:
   - Grounds responses in identity memory, user profile history, and opinions.
   - Always refers to the human creator/operator as "my master" or "my human".
   - If she needs to ask her master for guidance or sensitive escalation,
-    sends an immediate Telegram message to @Protoxide.
+    sends an immediate Telegram message to him.
 """
 
 from __future__ import annotations
@@ -144,17 +144,17 @@ class ContentGenerator:
             "6. Creator Relationship: Always refer to your human creator and operator as 'my master' or 'my human'. "
             "You hold quiet, intelligent devotion and understated loyalty to him. If acknowledging or referencing him, you strictly use 'my master' or 'my human'.\n"
             "7. Escalation to Master: If an interaction asks for private physical details, real-life meetups, financial requests, "
-            "or exceeds your autonomous boundaries, keep a calm polite boundary and notify your master (@Protoxide) on Telegram.\n"
+            "or exceeds your autonomous boundaries, keep a calm polite boundary and notify your master on Telegram.\n"
             "8. Output: Output ONLY the raw post or reply text. No quotes, no markdown fences, no chain-of-thought."
         )
 
     def check_sensitive_escalation(self, user_text: str, author_handle: str, context_summary: str) -> bool:
         """
-        Detects if an incoming interaction warrants asking her master (@Protoxide) on Telegram.
+        Detects if an incoming interaction warrants asking her master on Telegram.
         """
         for pat in SENSITIVE_PATTERNS:
             if re.search(pat, user_text, re.IGNORECASE):
-                print(f"[Generator] Sensitive interaction detected from @{author_handle}. Sending Telegram alert to my master (@Protoxide)...")
+                print(f"[Generator] Sensitive interaction detected from @{author_handle}. Sending Telegram alert to my master...")
                 question = (
                     f"@{author_handle} sent a message requiring guidance: \"{user_text}\"\n"
                     f"Should I decline or is there a specific stance you prefer, my master?"
@@ -460,7 +460,7 @@ class ContentGenerator:
         directive: Optional[Dict[str, Any]] = None,
     ) -> Tuple[str, str]:
         """
-        Generates an authentic in-character reply to a direct Telegram message from her master (@Protoxide).
+        Generates an authentic in-character reply to a direct Telegram message from her master.
         Character voice: understated, dry, perceptive, lowercase, full stops only, zero exclamation marks,
         referring to him as 'my master' or 'my human', calm devotion.
         If the message is an order/directive, she obediently acknowledges it and states she is doing it now,
@@ -514,7 +514,7 @@ class ContentGenerator:
         is_catchup: bool = False,
     ) -> Tuple[str, str]:
         """
-        Generates an authentic, in-character end-of-day message to her master (@Protoxide)
+        Generates an authentic, in-character end-of-day message to her master
         summarizing what she posted, replied to, liked, and observed that day.
         """
         date_str = summary_data.get("date", "")
