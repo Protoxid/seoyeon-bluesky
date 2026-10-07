@@ -46,19 +46,43 @@ class VisualCanon:
 VISUAL_CANON = VisualCanon()
 
 
-def build_image_prompt(scene_description: str, mood: Optional[str] = None) -> str:
+def build_image_prompt(
+    scene_description: str,
+    mood: Optional[str] = None,
+    is_selfie: bool = True,
+) -> str:
     """
-    Synthesizes a complete, identity-locked image prompt for OpenAI GPT Image 2.5.
-    Combines core visual canon with dynamic scene context.
+    Synthesizes a complete, identity-locked image prompt for OpenAI GPT Image 2.5 on Kie.ai.
+    Explicitly instructs the model to preserve the reference face from input_urls[0].
+    Enforces authentic self-captured perspective (selfie or mirror selfie) so that Seo-yeon,
+    living alone in Seoul, is naturally the one taking the photograph.
     """
     mood_str = f"Mood: {mood}. " if mood else ""
+
+    identity_lock = (
+        "CRITICAL IDENTITY REQUIREMENT: The subject MUST be the exact same individual shown in the reference image (input_urls[0]). "
+        "Strictly reproduce her identical facial features, facial bone structure, almond amber-hazel irises with dark limbal rings, "
+        "pronounced aegyo-sal, cheekbones, clean mandibular jawline, subtle freckles on nose bridge, and long wavy espresso-to-honey balayage hair. "
+        "Do NOT invent a different face; preserve the reference face faithfully."
+    )
+
+    shot_framing = (
+        "Shot Framing & Perspective: Authentic smartphone front-facing camera selfie taken by Han Seo-yeon herself at arm's length. "
+        "Natural arm angle extending slightly toward the lower edge or corner holding the phone. "
+        "Candid eye-level or slight high-angle front-camera framing. Natural, unposed everyday self-portrait. "
+        "NOT a studio photoshoot, NO external photographer."
+        if is_selfie and "mirror" not in scene_description.lower()
+        else ""
+    )
+
     prompt = (
-        f"A candid, realistic photograph of Han Seo-yeon. "
-        f"{VISUAL_CANON.subject} "
+        f"{identity_lock} "
+        f"Subject: {VISUAL_CANON.subject} "
         f"{VISUAL_CANON.face_and_hair} "
-        f"Scene: {scene_description}. "
+        f"{shot_framing} "
+        f"Scene & Setting: {scene_description}. "
         f"{mood_str}"
         f"Style: {VISUAL_CANON.photography_style} "
         f"Strict constraints: {VISUAL_CANON.negative_rules}"
     )
-    return prompt.strip()
+    return " ".join(prompt.split())

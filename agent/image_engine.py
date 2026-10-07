@@ -136,6 +136,11 @@ class ImageEngine:
         if ref_url and "image-to-image" in model:
             task_input["input_urls"] = [ref_url]
             task_input["background"] = "auto"
+            print(f"[Kie ImageEngine] Model: {model} | Identity Reference Fed: {MASTER_A1_PATH.name} -> {ref_url}")
+        else:
+            print(f"[Kie ImageEngine] Model: {model} | Notice: Running text-to-image without reference conditioning")
+
+        print(f"[Kie ImageEngine] Generating image with prompt: \"{prompt[:160]}...\"")
 
         payload = {
             "model": model,
