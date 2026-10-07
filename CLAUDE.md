@@ -2,7 +2,7 @@
 
 This repository powers the autonomous presence, cognitive decision loop, and persistent personal interactions for **Seo-yeon Han (한서연)**, a 25-year-old Korean woman living alone in Seongsu-dong, Seoul (`@syeonhn.bsky.social`).
 
-All Instagram and Fanvue integrations have been permanently removed. Bluesky is the sole active platform.
+Bluesky is her exclusive window to the social world.
 
 ---
 

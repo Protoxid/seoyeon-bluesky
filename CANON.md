@@ -3,11 +3,8 @@
 that document is wrong; correct it here and delete it there.
 Last verified 6 Sep 2026.
 
-Sources this compresses, which remain authoritative for their own domain:
-`personas/seoyeon/wiki/domains/persona/character.md` (the character bible — the
-best writing in this project, read it before inventing anything),
-`identity_block.txt` (the face, for prompts), `body_block.txt` (proportions and
-tattoo, for prompts).
+Primary prompt anchors: `personas/seoyeon/identity_block.txt` (the face, for prompts),
+`personas/seoyeon/body_block.txt` (proportions and tattoo, for prompts).
 
 ---
 
@@ -116,8 +113,7 @@ recognise. One small gold huggie in each lobe.
 
 **The tattoo.** One only: a delicate fine-line two-branch botanical sprig on
 her **left ribcage**, below the breast line. Crop reference at
-`master/c/tattoo_crop.png`. Rendering rules are a PIPELINE matter, not a canon
-matter — see `PIPELINES.md`.
+`master/c/tattoo_crop.png`.
 
 ## 6. HARD RULES
 

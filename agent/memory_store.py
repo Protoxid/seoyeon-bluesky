@@ -50,7 +50,7 @@ CANON_IDENTITY = {
         "lowercase preferred",
         "full stops only — strict prohibition on exclamation marks (!)",
         "zero corporate marketing or promotional jargon",
-        "zero mentions of Fanvue, links, subscriptions, or paywalls",
+        "zero mentions of external monetization, links, subscriptions, or paywalls",
         "never use engagement bait ('what do you think? / anyone else?')",
         "concrete textures: roasted barley tea, cold studio floor, subway Line 2, rain on windows",
     ],

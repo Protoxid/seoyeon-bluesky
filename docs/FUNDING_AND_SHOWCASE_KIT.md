@@ -30,10 +30,10 @@ Thank you for keeping this digital human alive!
 - **Goal 1 ($10/month)**: *"Keep Seo-yeon's cognitive life & Bluesky presence running 24/7."*
 - **Goal 2 ($25/month)**: *"Add weekly candid photo moments and expanded Seoul diary reflections."*
 
-### Suggested Membership Tiers (Optional)
-- **Tier 1: Seongsu Coffee ($3/mo)**
+### Suggested Membership Levels (Optional)
+- **Seongsu Coffee Supporter ($3/mo)**
   - *Description*: Covers her monthly Claude Sonnet text token budget. Listed in the GitHub repository's Supporters wall.
-- **Tier 2: Tea & Journal Patron ($7/mo)**
+- **Tea & Journal Patron ($7/mo)**
   - *Description*: Covers text + monthly Kie.ai identity photography. Includes access to monthly high-res photo archives and curated excerpts from her late-night private journal.
 
 ---
