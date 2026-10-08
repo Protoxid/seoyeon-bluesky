@@ -6,20 +6,21 @@
 
 - **Account Character**: A real person living an everyday life. Not a fitness influencer, not an engagement-farming bot, not a scheduled content calendar.
 - **100% Bluesky Protocol Capabilities**:
-  - **Threaded Replies (`app.bsky.feed.post`)**: Context-aware responses that read the entire parent and root thread history before responding.
-  - **Quote-Posts (`app.bsky.feed.post` with `app.bsky.embed.record`)**: Autonomous commentary on discovered indie cinema, architecture, and literary thoughts from the community.
+  - **Threaded Replies (`app.bsky.feed.post`)**: Context-aware responses that read the entire parent and root thread history before responding. Incorporates open conversational loops to remember previous user discussions without amnesia.
+  - **Quote-Posts (`app.bsky.feed.post` with `app.bsky.embed.record`)**: Autonomous commentary on discovered indie cinema, architecture, and literary thoughts from the community, ranked dynamically across up to 10 candidate posts.
   - **Reposts (`app.bsky.feed.repost`)**: Re-sharing high-signal posts from respected creators and mutuals without diluting her timeline.
   - **Organic Follows (`app.bsky.graph.follow`)**: Gradually discovering and following accounts aligned with her genuine interests (authors, film critics, independent publishers, designers).
   - **Direct Messages (`chat.bsky.convo.*`)**: Conversational, private, natural exchanges via AT Protocol chat proxy. Remembers past conversations and learned user facts. Transcripts are encrypted in `data/vault.enc` and strictly protected against public log leakage.
   - **Rich Text Facets (`app.bsky.richtext.facet`)**: UTF-8 byte-indexed link and hashtag facets parsed automatically without breaking text aesthetics.
   - **Profile Record Updates (`app.bsky.actor.profile/self`)**: Autonomous avatar, banner, and bio updates synchronized directly to her decentralized repository.
+  - **Multi-Day Narrative Arcs & Pursuits**: Everyday life progresses across real-world timelines (e.g. drying autumn persimmons, reading lengthy literature, documenting vintage Hangul storefront signboards). Outgoing actions auto-advance goal milestones.
   - **Spontaneous Observations**: Thoughts on ordinary life, cinema, typography, secondhand books, food, Seoul rain, and subway observations.
 - **Multimodal Visual Balance**:
   - ~50% Everyday text observations & reflections
   - ~25% 35mm Point-of-View (POV) environmental photographs (Seongsu street corners, Line 2 river crossings, books on cafe tables)
   - ~15% Community interaction (replies, quote-posts, reposts)
   - ≤ 10% Authentic candid smartphone selfies or mirror reflections
-- **Natural Restraint (`NO_ACTION`)**: "Doing nothing" is an active and respected choice. The account only posts or interacts when organic context warrants it.
+- **Natural Restraint (`NO_ACTION`)**: "Doing nothing" is an active and respected choice. The account only posts or interacts when organic context warrants it (validated at ~59–77% restraint in simulation).
 
 ---
 
