@@ -2,10 +2,12 @@
 agent/budget_manager.py — Cost Control & Budget Protection Manager.
 
 Enforces spending caps and monitors API consumption:
-  - Tracks LLM tokens and estimated costs.
+  - Atomic budget reservations preventing concurrent overages.
+  - Reconciles actual token usage based on provider pricing.
+  - Strict single-entry accounting (prevents double charging).
   - Limits daily and monthly dollar budgets.
   - Limits daily image generation counts.
-  - Automatically trips an emergency circuit breaker if spending exceeds limits.
+  - Automatic circuit breaker if spending reaches thresholds.
 """
 
 from __future__ import annotations
@@ -13,6 +15,7 @@ from __future__ import annotations
 import datetime as dt
 import json
 import pathlib
+import uuid
 from typing import Any, Dict, Optional, Tuple
 
 from .config import DATA_DIR, config
@@ -38,6 +41,7 @@ IMAGE_GEN_COST = 0.045  # Kie.ai GPT Image 2.5 per generation (~$0.045)
 class BudgetManager:
     def __init__(self, ledger_file: pathlib.Path = BUDGET_LEDGER_FILE):
         self.ledger_file = ledger_file
+        self._active_reservations: Dict[str, Dict[str, Any]] = {}
         DATA_DIR.mkdir(parents=True, exist_ok=True)
         self._ensure_ledger()
 
@@ -90,6 +94,10 @@ class BudgetManager:
     def _save_ledger(self, data: Dict[str, Any]) -> None:
         self.ledger_file.write_text(json.dumps(data, indent=2), encoding="utf-8")
 
+    def get_reserved_amount(self) -> float:
+        """Returns the total dollar amount currently held under active reservations."""
+        return sum(r.get("amount_usd", 0.0) for r in self._active_reservations.values())
+
     def calculate_token_cost(self, model: str, prompt_tokens: int, completion_tokens: int) -> float:
         """Calculates exact dollar cost for token usage according to provider pricing."""
         pricing = MODEL_PRICING.get(model)
@@ -106,10 +114,11 @@ class BudgetManager:
         return round(cost, 6)
 
     def can_spend(self, estimated_cost: float = 0.005) -> Tuple[bool, str]:
-        """Checks if estimated spend is within daily and monthly caps."""
+        """Checks if estimated spend (plus active reservations) is within caps."""
         data = self._load_ledger()
-        daily = data.get("daily_spend_usd", 0.0)
-        monthly = data.get("monthly_spend_usd", 0.0)
+        reserved = self.get_reserved_amount()
+        daily = data.get("daily_spend_usd", 0.0) + reserved
+        monthly = data.get("monthly_spend_usd", 0.0) + reserved
 
         if daily + estimated_cost > config.daily_ai_budget:
             return False, f"Daily budget reached (${daily:.3f} / ${config.daily_ai_budget:.2f})"
@@ -129,50 +138,59 @@ class BudgetManager:
         if img_count >= config.max_images_per_day:
             return False, f"Daily image limit reached ({img_count}/{config.max_images_per_day})."
 
-        # Estimated cost for Kie.ai GPT-Image 2.5 is ~$0.045
         return self.can_spend(IMAGE_GEN_COST)
 
-    def record_spend(self, cost_usd: float, action_type: str, details: str = "") -> None:
+    def reserve(self, amount_usd: float = 0.005, action_type: str = "llm", details: str = "") -> Optional[str]:
+        """
+        Atomically checks availability and reserves funds prior to starting an API call.
+        Returns reservation_id if approved, None if budget exhausted.
+        """
+        ok, _ = self.can_spend(estimated_cost=amount_usd)
+        if not ok:
+            return None
+
+        res_id = f"res_{uuid.uuid4().hex[:12]}"
+        self._active_reservations[res_id] = {
+            "reservation_id": res_id,
+            "amount_usd": amount_usd,
+            "action_type": action_type,
+            "details": details,
+            "timestamp": dt.datetime.now(dt.timezone.utc).isoformat(),
+        }
+        return res_id
+
+    def reconcile(
+        self,
+        reservation_id: Optional[str],
+        actual_cost_usd: float,
+        model: str = "",
+        prompt_tokens: int = 0,
+        completion_tokens: int = 0,
+        action_type: str = "llm_generation",
+        details: str = "",
+    ) -> float:
+        """
+        Reconciles an active reservation with actual incurred cost, releasing the reserve
+        and committing the single definitive charge to the ledger.
+        """
+        if reservation_id and reservation_id in self._active_reservations:
+            del self._active_reservations[reservation_id]
+
         data = self._load_ledger()
-        data["daily_spend_usd"] = round(data.get("daily_spend_usd", 0.0) + cost_usd, 4)
-        data["monthly_spend_usd"] = round(data.get("monthly_spend_usd", 0.0) + cost_usd, 4)
+        data["daily_spend_usd"] = round(data.get("daily_spend_usd", 0.0) + actual_cost_usd, 4)
+        data["monthly_spend_usd"] = round(data.get("monthly_spend_usd", 0.0) + actual_cost_usd, 4)
 
         if action_type == "image_generation":
             data["daily_images_count"] = data.get("daily_images_count", 0) + 1
 
-        entry = {
-            "ts": dt.datetime.now(dt.timezone.utc).isoformat(),
-            "cost_usd": cost_usd,
-            "action_type": action_type,
-            "details": details,
-        }
-        hist = data.get("history", [])
-        hist.append(entry)
-        data["history"] = hist[-100:]  # Keep last 100 entries
-
-        self._save_ledger(data)
-
-    def record_token_usage(
-        self,
-        model: str,
-        prompt_tokens: int,
-        completion_tokens: int,
-        action_type: str,
-        details: str = "",
-    ) -> float:
-        """Records exact actual token spend based on provider pricing."""
-        cost_usd = self.calculate_token_cost(model, prompt_tokens, completion_tokens)
-        data = self._load_ledger()
-        data["daily_spend_usd"] = round(data.get("daily_spend_usd", 0.0) + cost_usd, 4)
-        data["monthly_spend_usd"] = round(data.get("monthly_spend_usd", 0.0) + cost_usd, 4)
-
         total_tokens = prompt_tokens + completion_tokens
-        data["daily_tokens"] = data.get("daily_tokens", 0) + total_tokens
-        data["monthly_tokens"] = data.get("monthly_tokens", 0) + total_tokens
+        if total_tokens > 0:
+            data["daily_tokens"] = data.get("daily_tokens", 0) + total_tokens
+            data["monthly_tokens"] = data.get("monthly_tokens", 0) + total_tokens
 
         entry = {
             "ts": dt.datetime.now(dt.timezone.utc).isoformat(),
-            "cost_usd": cost_usd,
+            "cost_usd": actual_cost_usd,
             "action_type": action_type,
             "model": model,
             "prompt_tokens": prompt_tokens,
@@ -185,13 +203,50 @@ class BudgetManager:
         data["history"] = hist[-100:]
 
         self._save_ledger(data)
-        return cost_usd
+        return actual_cost_usd
+
+    def release(self, reservation_id: Optional[str]) -> None:
+        """Releases an active reservation without committing any charges (e.g. on call failure)."""
+        if reservation_id and reservation_id in self._active_reservations:
+            del self._active_reservations[reservation_id]
+
+    def record_spend(self, cost_usd: float, action_type: str, details: str = "") -> None:
+        """Records a direct charge without prior reservation."""
+        self.reconcile(
+            reservation_id=None,
+            actual_cost_usd=cost_usd,
+            action_type=action_type,
+            details=details,
+        )
+
+    def record_token_usage(
+        self,
+        model: str,
+        prompt_tokens: int,
+        completion_tokens: int,
+        action_type: str,
+        details: str = "",
+    ) -> float:
+        """Direct token spend recorder (legacy/direct entrypoint)."""
+        cost_usd = self.calculate_token_cost(model, prompt_tokens, completion_tokens)
+        return self.reconcile(
+            reservation_id=None,
+            actual_cost_usd=cost_usd,
+            model=model,
+            prompt_tokens=prompt_tokens,
+            completion_tokens=completion_tokens,
+            action_type=action_type,
+            details=details,
+        )
 
     def record_image_spend(self, model: str = "", details: str = "") -> float:
         """Records Kie.ai image generation spend."""
-        cost_usd = IMAGE_GEN_COST
-        self.record_spend(cost_usd, "image_generation", details or f"Kie.ai {model or config.kie_image_model}")
-        return cost_usd
+        return self.reconcile(
+            reservation_id=None,
+            actual_cost_usd=IMAGE_GEN_COST,
+            action_type="image_generation",
+            details=details or f"Kie.ai {model or config.kie_image_model}",
+        )
 
     def get_summary(self) -> Dict[str, Any]:
         data = self._load_ledger()
@@ -200,6 +255,7 @@ class BudgetManager:
             "daily_budget_usd": config.daily_ai_budget,
             "monthly_spend_usd": data.get("monthly_spend_usd", 0.0),
             "monthly_budget_usd": config.monthly_ai_budget,
+            "active_reservations_usd": round(self.get_reserved_amount(), 4),
             "daily_images_count": data.get("daily_images_count", 0),
             "max_daily_images": config.max_images_per_day,
             "daily_tokens": data.get("daily_tokens", 0),
@@ -208,4 +264,3 @@ class BudgetManager:
 
 
 budget_manager = BudgetManager()
-

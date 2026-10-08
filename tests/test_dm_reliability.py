@@ -29,8 +29,34 @@ class TestDmReliability(unittest.TestCase):
         self.orig_ctx_file = memory_store.recent_context_file
         memory_store.recent_context_file = self.recent_ctx_file
 
+        self.users_file = self.test_dir / "user_memory.json"
+        self.orig_users_file = memory_store.users_file
+        memory_store.users_file = self.users_file
+
+        import agent.runner as runner_module
+        self.orig_tick_file = runner_module.TICK_LOG_FILE
+        runner_module.TICK_LOG_FILE = self.test_dir / "tick_history.jsonl"
+
+        from agent.vault import vault, set_encryption_key_override
+        self.orig_vault_dir = vault.vault_dir
+        self.orig_enc_file = vault.enc_file
+        vault.vault_dir = self.test_dir / ".vault"
+        vault.enc_file = self.test_dir / "vault.enc"
+        vault._load_failed = False
+        vault._load_error = None
+        set_encryption_key_override("test_dm_reliability_key")
+
     def tearDown(self):
         memory_store.recent_context_file = self.orig_ctx_file
+        memory_store.users_file = self.orig_users_file
+        import agent.runner as runner_module
+        runner_module.TICK_LOG_FILE = self.orig_tick_file
+        from agent.vault import vault, set_encryption_key_override
+        vault.vault_dir = self.orig_vault_dir
+        vault.enc_file = self.orig_enc_file
+        vault._load_failed = False
+        vault._load_error = None
+        set_encryption_key_override(None)
         import shutil
         shutil.rmtree(self.test_dir, ignore_errors=True)
 

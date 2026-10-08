@@ -279,7 +279,13 @@ class MasterNotifier:
             print(f"  Post draft: \"{post_text}\"")
             print(f"  Scene prompt: \"{scene_desc}\"")
 
-            img_bytes, prompt_used, err = image_engine.generate_image(scene_desc, dry_run=is_dry)
+            can_img, img_reason = budget_manager.can_generate_image()
+            img_res_id = budget_manager.reserve(0.045, action_type="image_generation") if can_img else None
+
+            img_bytes, prompt_used, err = None, "", img_reason
+            if img_res_id:
+                img_bytes, prompt_used, err = image_engine.generate_image(scene_desc, dry_run=is_dry)
+
             if img_bytes:
                 res = bsky_client.publish_image_post(post_text, img_bytes, alt_text="Han Seo-yeon candid moment")
                 uri = res.get("uri", "")
@@ -290,7 +296,8 @@ class MasterNotifier:
 
                     if not is_dry:
                         memory_store.record_recent_post(post_text, topic="master_ordered_image", post_id=uri, has_image=True)
-                        budget_manager.record_spend(0.045, "image_generation", prompt_used[:40])
+                        budget_manager.reconcile(img_res_id, actual_cost_usd=0.045, action_type="image_generation", details=prompt_used[:40])
+                        img_res_id = None
 
                     rkey = uri.split("/")[-1]
                     handle = config.bsky_handle or "syeonhn.bsky.social"
@@ -299,10 +306,16 @@ class MasterNotifier:
                     confirm_msg = f"done, my master. posted to bluesky: {web_url}"
                     self.send_telegram_message(confirm_msg, dry_run=dry_run)
             else:
+                if img_res_id:
+                    budget_manager.release(img_res_id)
+                    img_res_id = None
                 # If image generation failed, do NOT pollute Bluesky with unwanted text post; report to master on Telegram
                 print(f"[Master Directive: Image Post] Image generation failed ({err}). Notifying master.")
                 confirm_msg = f"camera service hit an issue ({err or 'timeout'}), my master. i did not publish to bluesky. let me know if you want me to retry taking it."
                 self.send_telegram_message(confirm_msg, dry_run=dry_run)
+
+            if img_res_id:
+                budget_manager.release(img_res_id)
 
         # -------------------------------------------------------------
         # 2. PUBLISH TEXT POST
@@ -326,7 +339,6 @@ class MasterNotifier:
 
                 if not is_dry:
                     memory_store.record_recent_post(post_text, topic="master_ordered_post", post_id=uri)
-                    budget_manager.record_spend(0.002, "text_post", post_text[:30])
 
                 rkey = uri.split("/")[-1]
                 handle = config.bsky_handle or "syeonhn.bsky.social"
@@ -364,8 +376,12 @@ class MasterNotifier:
                 dm_res = bsky_client.send_dm(convo_id, reply_text)
                 if dm_res:
                     if not is_dry:
-                        memory_store.record_user_interaction(handle, dm_history[-1]["text"] if dm_history else "", reply_text, "dm")
-                        budget_manager.record_spend(0.002, "dm", f"to @{handle}")
+                        memory_store.record_user_interaction(handle, "[private direct message]", "[private direct message reply]", "dm")
+                        try:
+                            from .vault import vault
+                            vault.append_private_dm(convo_id, handle, dm_history[-1]["text"] if dm_history else "", reply_text)
+                        except Exception:
+                            pass
                     result["success"] = True
                     result["dm_to"] = handle
                     answered = True

@@ -98,3 +98,5 @@ docs/FUNDING_AND_SHOWCASE_KIT.md
 data/memory/private_journal.jsonl
 data/.vault/
 data/logs/telegram_outbox.jsonl
+*.bak
+data/*.bak

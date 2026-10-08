@@ -64,7 +64,13 @@ def run_tick(
     is_dry = dry_run if dry_run is not None else config.dry_run
 
     from .vault import vault
-    vault.load_vault()
+    if vault.enc_file.exists():
+        if not vault.load_vault():
+            print("[CRITICAL] Existing encrypted vault (vault.enc) could not be decrypted.")
+            print("Stopping execution safely to prevent data loss or state corruption.")
+            return 1
+    else:
+        vault.load_vault()
 
     print_header(f"SEO-YEON HAN — AUTONOMOUS SOCIAL AGENT TICK {'[DRY-RUN]' if is_dry else '[LIVE]'}")
 
@@ -185,7 +191,6 @@ def run_tick(
             if not is_dry:
                 memory_store.record_recent_post(post_text, topic="general_thought", post_id=res.get("uri", ""))
                 memory_store.log_episode("post", "Published spontaneous thought", {"text": post_text, "uri": res.get("uri")})
-                budget_manager.record_spend(0.002, "text_post", post_text[:30])
             executed = True
             result_details = {"uri": res.get("uri"), "text": post_text, "model": model_used}
 
@@ -197,20 +202,38 @@ def run_tick(
         print(f"  Draft ({model_used}): \"{post_text}\"")
         print(f"  Scene Description: \"{scene_desc}\"")
 
-        img_bytes, prompt_used, err = image_engine.generate_image(scene_desc, dry_run=is_dry)
+        can_img, img_reason = budget_manager.can_generate_image()
+        img_res_id = budget_manager.reserve(0.045, action_type="image_generation") if can_img else None
+
+        img_bytes, prompt_used, err = None, "", img_reason
+        if img_res_id:
+            img_bytes, prompt_used, err = image_engine.generate_image(scene_desc, dry_run=is_dry)
+
         if img_bytes:
             res = bsky_client.publish_image_post(post_text, img_bytes, alt_text="Han Seo-yeon candid moment")
             if res.get("uri"):
                 print(f"  [SUCCESS] Published Image Post: {res.get('uri')}")
                 if not is_dry:
                     memory_store.record_recent_post(post_text, topic="image_post", post_id=res.get("uri", ""), has_image=True)
-                    budget_manager.record_spend(0.045, "image_generation", prompt_used[:40])
+                    budget_manager.reconcile(img_res_id, actual_cost_usd=0.045, action_type="image_generation", details=prompt_used[:40])
+                    img_res_id = None
                 executed = True
                 result_details = {"uri": res.get("uri"), "text": post_text, "image_prompt": prompt_used}
+            else:
+                if img_res_id:
+                    budget_manager.release(img_res_id)
+                    img_res_id = None
         else:
+            if img_res_id:
+                budget_manager.release(img_res_id)
+                img_res_id = None
             print(f"  [ERROR] Image generation failed: {err}. Falling back to text-only post.")
             res = bsky_client.publish_text_post(post_text)
             executed = True
+            result_details = {"uri": res.get("uri"), "text": post_text, "fallback": "text_only"}
+
+        if img_res_id:
+            budget_manager.release(img_res_id)
 
     elif outcome.selected_action in (ActionType.REPLY_COMMENT, ActionType.ANSWER_MENTION):
         notif = outcome.target_data.get("notification", {})
@@ -315,7 +338,6 @@ def run_tick(
                     root_uri=root_uri,
                     notification_uri=notif.get("uri", "")
                 )
-                budget_manager.record_spend(0.002, "reply", f"to @{target_author}")
             executed = True
             result_details = {"reply_uri": res.get("uri"), "reply_text": reply_text}
 
@@ -381,7 +403,7 @@ def run_tick(
             })
 
         reply_text, model_used = generator.generate_dm_reply(dm_history, profile, context)
-        print(f"  Draft DM ({model_used}): \"{reply_text}\"")
+        print(f"  Draft DM ({model_used}): [private message generated: {len(reply_text)} chars]")
 
         if not reply_text or model_used in ("failed", "fallback", "budget_exceeded"):
             print(f"  [RESTRAINT ABORT] Could not formulate authentic DM response. Remaining silent.")
@@ -428,7 +450,7 @@ def run_tick(
                 memory_store.record_user_interaction(handle, "[private direct message]", "[private direct message reply]", "dm")
                 vault.append_private_dm(convo_id, handle, dm_history[-1]["text"] if dm_history else "", reply_text)
             executed = True
-            result_details = {"dm_sent": True, "to": handle, "text": reply_text}
+            result_details = {"dm_sent": True, "to": handle, "char_count": len(reply_text)}
         else:
             print(f"  [ERROR] DM delivery to @{handle} failed or uncertain. Leaving message unhandled for next tick.")
             executed = False
@@ -538,7 +560,6 @@ def run_tick(
                     root_uri=root_uri,
                     notification_uri=target_uri
                 )
-                budget_manager.record_spend(0.002, "browse_reply", f"to @{target_author}")
             executed = True
             result_details = {"reply_uri": res.get("uri"), "reply_text": reply_text}
 
@@ -576,7 +597,6 @@ def run_tick(
             print(f"  [SUCCESS] Published Quote Post: {res.get('uri')}")
             if not is_dry:
                 memory_store.record_recent_post(quote_comment, topic="quote_post", post_id=res.get("uri", ""))
-                budget_manager.record_spend(0.002, "quote_post", f"to @{target_author}")
             executed = True
             result_details = {"uri": res.get("uri"), "text": quote_comment, "target_uri": target_uri}
 
@@ -743,11 +763,18 @@ def main() -> int:
 
     if args.consolidate:
         from .vault import vault
-        vault.load_vault()
+        if vault.enc_file.exists():
+            if not vault.load_vault():
+                print("[CRITICAL] Existing encrypted vault (vault.enc) could not be decrypted.")
+                print("Stopping consolidation safely to prevent data loss.")
+                return 1
+        else:
+            vault.load_vault()
         context = build_environment_context()
         from .consolidator import consolidator
         res = consolidator.consolidate(context, dry_run=args.dry_run, force=True)
-        vault.save_vault()
+        if not vault._load_failed:
+            vault.save_vault()
         return 0 if res.get("status") in ("success", "already_consolidated") else 1
 
     if args.ask_master:

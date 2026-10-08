@@ -118,42 +118,52 @@ class ContentGenerator:
           2. Fallback model: config.fallback_text_model (deepseek-v4.1-flash on OpenRouter)
         Enforces atomic pre-flight budget checks and reconciles actual provider token usage.
         """
-        # Pre-flight budget reserve check
-        can_spend, reason = budget_manager.can_spend(estimated_cost=0.005)
-        if not can_spend:
-            print(f"[Generator] Pre-flight budget check blocked LLM call: {reason}")
+        # Atomic budget reservation
+        res_id = budget_manager.reserve(amount_usd=0.005, action_type="llm_generation")
+        if not res_id:
+            print(f"[Generator] Pre-flight budget reservation blocked LLM call: spending limit reached.")
             return None, "budget_exceeded"
 
-        # 1. Primary OpenRouter model
-        primary_model = config.primary_text_model
-        text = self._query_openrouter(primary_model, system_prompt, user_prompt, max_tokens)
-        used_model = primary_model
+        text = None
+        used_model = "failed"
+        try:
+            # 1. Primary OpenRouter model
+            primary_model = config.primary_text_model
+            text = self._query_openrouter(primary_model, system_prompt, user_prompt, max_tokens)
+            used_model = primary_model
 
-        # 2. Fallback OpenRouter model
-        if not text:
-            fallback_model = config.fallback_text_model
-            if fallback_model and fallback_model != primary_model:
-                print(f"[Generator] Trying OpenRouter fallback model: {fallback_model}...")
-                text = self._query_openrouter(fallback_model, system_prompt, user_prompt, max_tokens)
-                used_model = fallback_model
+            # 2. Fallback OpenRouter model
+            if not text:
+                fallback_model = config.fallback_text_model
+                if fallback_model and fallback_model != primary_model:
+                    print(f"[Generator] Trying OpenRouter fallback model: {fallback_model}...")
+                    text = self._query_openrouter(fallback_model, system_prompt, user_prompt, max_tokens)
+                    used_model = fallback_model
 
-        if text:
-            # Reconcile actual provider token usage
-            prompt_toks = self.last_usage.get("prompt_tokens", 0)
-            comp_toks = self.last_usage.get("completion_tokens", 0)
-            if prompt_toks == 0 and comp_toks == 0:
-                prompt_toks = max(1, len(system_prompt + user_prompt) // 4)
-                comp_toks = max(1, len(text) // 4)
-            budget_manager.record_token_usage(
-                model=used_model,
-                prompt_tokens=prompt_toks,
-                completion_tokens=comp_toks,
-                action_type="llm_generation",
-                details=f"tokens: {prompt_toks}+{comp_toks}",
-            )
-            return text, used_model
+            if text:
+                # Reconcile actual provider token usage against reservation
+                prompt_toks = self.last_usage.get("prompt_tokens", 0)
+                comp_toks = self.last_usage.get("completion_tokens", 0)
+                if prompt_toks == 0 and comp_toks == 0:
+                    prompt_toks = max(1, len(system_prompt + user_prompt) // 4)
+                    comp_toks = max(1, len(text) // 4)
+                actual_cost = budget_manager.calculate_token_cost(used_model, prompt_toks, comp_toks)
+                budget_manager.reconcile(
+                    reservation_id=res_id,
+                    actual_cost_usd=actual_cost,
+                    model=used_model,
+                    prompt_tokens=prompt_toks,
+                    completion_tokens=comp_toks,
+                    action_type="llm_generation",
+                    details=f"tokens: {prompt_toks}+{comp_toks}",
+                )
+                res_id = None  # Reconciled successfully
+                return text, used_model
 
-        return None, "failed"
+            return None, "failed"
+        finally:
+            if res_id:
+                budget_manager.release(res_id)
 
     def _build_system_prompt(self, context: EnvironmentContext) -> str:
         ident_prompt = memory_store.format_identity_prompt()

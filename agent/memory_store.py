@@ -662,7 +662,7 @@ class MemoryStore:
                     elif action == "ANSWER_DM":
                         dms.append({
                             "recipient": details.get("to", ""),
-                            "text": details.get("text", ""),
+                            "char_count": details.get("char_count", len(details.get("text", ""))),
                         })
                     elif action == "NO_ACTION":
                         quiet_ticks += 1
