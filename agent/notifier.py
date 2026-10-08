@@ -280,14 +280,25 @@ class MasterNotifier:
             print(f"  Scene prompt: \"{scene_desc}\"")
 
             can_img, img_reason = budget_manager.can_generate_image()
-            img_res_id = budget_manager.reserve(0.045, action_type="image_generation") if can_img else None
+            img_res_id = budget_manager.reserve(0.045, action_type="image_generation", provider="kie.ai") if can_img else None
 
             img_bytes, prompt_used, err = None, "", img_reason
             if img_res_id:
                 img_bytes, prompt_used, err = image_engine.generate_image(scene_desc, dry_run=is_dry)
 
             if img_bytes:
-                res = bsky_client.publish_image_post(post_text, img_bytes, alt_text="Han Seo-yeon candid moment")
+                # Decouple billing: Image was successfully rendered by provider
+                if not is_dry and img_res_id:
+                    budget_manager.reconcile(
+                        img_res_id,
+                        actual_cost_usd=0.045,
+                        action_type="image_generation",
+                        details=prompt_used[:40],
+                    )
+                    img_res_id = None
+
+                alt_text = generator.derive_image_alt_text(scene_desc)
+                res = bsky_client.publish_image_post(post_text, img_bytes, alt_text=alt_text)
                 uri = res.get("uri", "")
                 if uri:
                     result["success"] = True
@@ -296,8 +307,6 @@ class MasterNotifier:
 
                     if not is_dry:
                         memory_store.record_recent_post(post_text, topic="master_ordered_image", post_id=uri, has_image=True)
-                        budget_manager.reconcile(img_res_id, actual_cost_usd=0.045, action_type="image_generation", details=prompt_used[:40])
-                        img_res_id = None
 
                     rkey = uri.split("/")[-1]
                     handle = config.bsky_handle or "syeonhn.bsky.social"

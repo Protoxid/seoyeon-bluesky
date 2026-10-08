@@ -171,6 +171,110 @@ class TestBudgetHardening(unittest.TestCase):
         finally:
             runner_module.budget_manager = orig_budget_mgr
 
+    def test_durable_reservations_persist_across_instances(self):
+        """Verifies active reservations are stored in the ledger and reload properly."""
+        res_id = self.budget_mgr.reserve(amount_usd=0.012, action_type="persistent_test")
+        self.assertIsNotNone(res_id)
+
+        # Create a new BudgetManager instance pointing to the same ledger file
+        new_mgr = BudgetManager(ledger_file=self.ledger_file)
+        self.assertEqual(new_mgr.get_reserved_amount(), 0.012)
+        active_res = new_mgr.get_active_reservations()
+        self.assertIn(res_id, active_res)
+        self.assertEqual(active_res[res_id]["amount_usd"], 0.012)
+
+        # Reconcile on the new manager
+        new_mgr.reconcile(reservation_id=res_id, actual_cost_usd=0.005)
+        self.assertEqual(new_mgr.get_reserved_amount(), 0.0)
+
+    def test_stale_reservation_expiration(self):
+        """Verifies reservations older than 15 minutes are automatically expired."""
+        res_id = self.budget_mgr.reserve(amount_usd=0.015, action_type="stale_test")
+        self.assertIsNotNone(res_id)
+
+        # Manually backdate the reservation to 20 minutes ago
+        data = self.budget_mgr._load_ledger()
+        self.assertIn(res_id, data.get("active_reservations", {}))
+        data["active_reservations"][res_id]["timestamp"] = "2026-01-01T00:00:00+00:00"
+        self.budget_mgr._save_ledger(data)
+
+        # Loading active reservations should clean up expired ones
+        self.assertEqual(self.budget_mgr.get_reserved_amount(), 0.0)
+        self.assertNotIn(res_id, self.budget_mgr.get_active_reservations())
+
+    def test_model_aware_cost_estimation(self):
+        """Verifies model-aware cost estimation accounts for reasoning tokens and margins."""
+        est_claude = self.budget_mgr.estimate_max_cost(
+            model="anthropic/claude-sonnet-5.5",
+            prompt_text="a short prompt",
+            max_tokens=100,
+            is_reasoning=True,
+        )
+        est_deepseek = self.budget_mgr.estimate_max_cost(
+            model="deepseek/deepseek-chat",
+            prompt_text="a short prompt",
+            max_tokens=100,
+            is_reasoning=False,
+        )
+        # Claude with reasoning headroom must estimate substantially higher than deepseek
+        self.assertGreater(est_claude, est_deepseek)
+        # Claude sonnet 5.5 estimate must be at least ~ $0.010 with minimum 700 tokens + 25% margin
+        self.assertGreaterEqual(est_claude, 0.010)
+
+    def test_contextual_alt_text_derivation(self):
+        """Verifies derive_image_alt_text creates rich, specific alt-text without generic placeholders."""
+        from agent.generator import derive_image_alt_text
+        alt = derive_image_alt_text("reading a novel at Seongsu cafe table with warm afternoon sunlight")
+        self.assertIn("reading a novel", alt.lower())
+        self.assertIn("seongsu", alt.lower())
+        self.assertNotEqual(alt, "Han Seo-yeon candid moment")
+
+        # Fallback when empty scene description
+        alt_empty = derive_image_alt_text("")
+        self.assertTrue(len(alt_empty) > 10)
+
+    def test_decoupled_image_billing_on_bluesky_failure(self):
+        """Verifies Kie.ai image generation charges the ledger even if Bluesky publishing fails."""
+        import agent.runner as runner_module
+        from agent.bsky_client import bsky_client
+        from agent.decision_engine import ActionType, DecisionOutcome
+
+        orig_budget_mgr = runner_module.budget_manager
+        runner_module.budget_manager = self.budget_mgr
+
+        try:
+            fake_outcome = DecisionOutcome(
+                selected_action=ActionType.PUBLISH_IMAGE_POST,
+                reason="Visual reflection",
+                target_data={},
+                intent="scene_photo",
+                candidate_scores={"PUBLISH_IMAGE_POST": 0.85},
+                all_candidates=[],
+            )
+
+            with patch("agent.runner.image_engine.generate_image", return_value=(b"fake_image_bytes", "a prompt", "scene desc")), \
+                 patch.object(bsky_client, "authenticate", return_value=True), \
+                 patch.object(bsky_client, "publish_image_post", side_effect=Exception("Bluesky network upload failed")), \
+                 patch("agent.generator.generator._query_openrouter", return_value="autumn day in seongsu."), \
+                 patch("agent.generator.validator.validate_outgoing_text", return_value=(True, "autumn day in seongsu.", None)), \
+                 patch("agent.weekly_planner.weekly_planner.get_current_activity", return_value={"activity": "walking", "area": "Seongsu", "vibe": "quiet", "phase": "afternoon", "day": "friday"}), \
+                 patch("agent.runner.decision_engine.evaluate", return_value=fake_outcome), \
+                 patch("agent.runner.notifier.check_and_send_evening_summary"), \
+                 patch("agent.runner.notifier.process_master_inbox", return_value=0):
+
+                # Run live tick (dry_run=False)
+                runner_module.run_tick(dry_run=False)
+
+                # The $0.045 Kie generation fee MUST be recorded in the ledger despite Bluesky upload exception!
+                data = self.budget_mgr._load_ledger()
+                history = data.get("history", [])
+                image_entries = [h for h in history if h.get("action_type") == "image_generation"]
+                self.assertEqual(len(image_entries), 1)
+                self.assertEqual(image_entries[0]["cost_usd"], 0.045)
+        finally:
+            runner_module.budget_manager = orig_budget_mgr
+
 
 if __name__ == "__main__":
     unittest.main()
+

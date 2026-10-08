@@ -118,8 +118,21 @@ class ContentGenerator:
           2. Fallback model: config.fallback_text_model (deepseek-v4.1-flash on OpenRouter)
         Enforces atomic pre-flight budget checks and reconciles actual provider token usage.
         """
-        # Atomic budget reservation
-        res_id = budget_manager.reserve(amount_usd=0.005, action_type="llm_generation")
+        # Model-aware atomic budget reservation
+        primary_model = config.primary_text_model
+        est_cost = budget_manager.estimate_max_cost(
+            model=primary_model,
+            prompt_text=system_prompt + user_prompt,
+            max_tokens=max_tokens,
+            is_reasoning=True,
+        )
+        res_id = budget_manager.reserve(
+            amount_usd=est_cost,
+            action_type="llm_generation",
+            provider="openrouter",
+            model=primary_model,
+            details=f"est_cost:${est_cost:.4f}",
+        )
         if not res_id:
             print(f"[Generator] Pre-flight budget reservation blocked LLM call: spending limit reached.")
             return None, "budget_exceeded"
@@ -714,5 +727,28 @@ class ContentGenerator:
         # Default authentic outdoor street selfie in Seongsu
         return "authentic handheld front-camera outdoor selfie walking along Seongsu red-brick sidewalk, fallen yellow ginkgo fan-leaves on pavement, brisk autumn breeze, natural eye-level phone camera framing"
 
+    def derive_image_alt_text(self, scene_desc: str) -> str:
+        """
+        Derives descriptive, realistic alt text from the synthesized scene description.
+        Replaces generic placeholders with specific visual context for accessibility.
+        """
+        if not scene_desc:
+            return "Candid everyday moment in Seongsu-dong, Seoul."
+        # Remove camera/film meta jargon from prompt for clean user alt text
+        clean = re.sub(
+            r"(?i)\b(candid|35mm|film photograph|point-of-view|front-camera|handheld|phone camera|natural phone camera grain|soft natural lighting|shallow depth of field|blurry background bokeh|no people)\b",
+            "",
+            scene_desc
+        )
+        clean = re.sub(r"\s+", " ", clean).strip(",. ")
+        if clean:
+            return clean[:1].upper() + clean[1:] + "."
+        return "Candid everyday moment in Seongsu-dong, Seoul."
+
 
 generator = ContentGenerator()
+
+
+def derive_image_alt_text(scene_desc: str) -> str:
+    """Module-level helper to derive contextual image alt-text."""
+    return generator.derive_image_alt_text(scene_desc)
