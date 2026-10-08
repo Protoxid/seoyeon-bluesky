@@ -353,6 +353,158 @@ class TestDecisionEngine(unittest.TestCase):
         self.assertEqual(outcome.selected_action, ActionType.REPLY_COMMENT)
         self.assertEqual(outcome.target_data.get("notification", {}).get("uri"), "at://did:plc:fresh/app.bsky.feed.post/fresh_comment")
 
+    def test_image_post_organic_selection(self):
+        # Morning stroll in Seongsu, 14h since last post, no recent image post
+        morning_context = EnvironmentContext(
+            seoul_time_iso="2026-10-06T08:30:00+09:00",
+            seoul_time_display="08:30 KST",
+            date_display="2026-10-06",
+            day_of_week="Tuesday",
+            is_weekend=False,
+            circadian_phase="morning",
+            season="autumn",
+            holiday_note=None,
+            weather=self.dummy_weather,
+            hours_since_last_post=14.0,
+            hours_since_last_action=8.0,
+            posts_today=0,
+            replies_today=0,
+            dms_today=0,
+            likes_today=0,
+            scheduled_area="Seongsu red-brick streets",
+        )
+
+        outcome = self.engine.evaluate(
+            context=morning_context,
+            notifications=[],
+            dms=[],
+            feed_items=[],
+            can_image=True,
+        )
+        self.assertEqual(outcome.selected_action, ActionType.PUBLISH_IMAGE_POST)
+        self.assertIn("PUBLISH_IMAGE_POST", outcome.candidate_scores)
+        self.assertGreaterEqual(outcome.candidate_scores["PUBLISH_IMAGE_POST"], 0.70)
+
+    def test_image_post_falls_back_to_text_when_image_disabled(self):
+        # Same context but can_image=False -> chooses text post
+        morning_context = EnvironmentContext(
+            seoul_time_iso="2026-10-06T08:30:00+09:00",
+            seoul_time_display="08:30 KST",
+            date_display="2026-10-06",
+            day_of_week="Tuesday",
+            is_weekend=False,
+            circadian_phase="morning",
+            season="autumn",
+            holiday_note=None,
+            weather=self.dummy_weather,
+            hours_since_last_post=14.0,
+            hours_since_last_action=8.0,
+            posts_today=0,
+            replies_today=0,
+            dms_today=0,
+            likes_today=0,
+        )
+
+        outcome = self.engine.evaluate(
+            context=morning_context,
+            notifications=[],
+            dms=[],
+            feed_items=[],
+            can_image=False,
+        )
+        self.assertEqual(outcome.selected_action, ActionType.PUBLISH_TEXT_POST)
+
+    def test_dm_deduplication_skips_handled_message(self):
+        from agent.memory_store import memory_store
+        handled_msg_id = "msg_handled_999"
+        memory_store.mark_dm_handled(handled_msg_id)
+
+        day_context = EnvironmentContext(
+            seoul_time_iso="2026-10-06T16:00:00+09:00",
+            seoul_time_display="16:00 KST",
+            date_display="2026-10-06",
+            day_of_week="Tuesday",
+            is_weekend=False,
+            circadian_phase="afternoon",
+            season="autumn",
+            holiday_note=None,
+            weather=self.dummy_weather,
+            hours_since_last_post=4.0,
+            hours_since_last_action=2.0,
+            posts_today=1,
+            replies_today=1,
+            dms_today=0,
+            likes_today=0,
+        )
+
+        handled_dm = {
+            "id": "convo_test_handled",
+            "unreadCount": 1,
+            "members": [
+                {"did": "did:plc:other", "handle": "friend.bsky.social"},
+                {"did": "did:plc:self", "handle": "syeonhn.bsky.social"},
+            ],
+            "lastMessage": {
+                "id": handled_msg_id,
+                "sender": {"did": "did:plc:other"},
+                "text": "are you free later?"
+            }
+        }
+
+        outcome = self.engine.evaluate(
+            context=day_context,
+            notifications=[],
+            dms=[handled_dm],
+            feed_items=[],
+            can_image=False,
+        )
+        self.assertNotEqual(outcome.selected_action, ActionType.ANSWER_DM)
+
+    def test_dm_skips_self_sent_last_message(self):
+        from agent.bsky_client import bsky_client
+        bsky_client.did = "did:plc:self"
+
+        day_context = EnvironmentContext(
+            seoul_time_iso="2026-10-06T16:00:00+09:00",
+            seoul_time_display="16:00 KST",
+            date_display="2026-10-06",
+            day_of_week="Tuesday",
+            is_weekend=False,
+            circadian_phase="afternoon",
+            season="autumn",
+            holiday_note=None,
+            weather=self.dummy_weather,
+            hours_since_last_post=4.0,
+            hours_since_last_action=2.0,
+            posts_today=1,
+            replies_today=1,
+            dms_today=0,
+            likes_today=0,
+        )
+
+        self_dm = {
+            "id": "convo_self_last",
+            "unreadCount": 1,
+            "members": [
+                {"did": "did:plc:other", "handle": "friend.bsky.social"},
+                {"did": "did:plc:self", "handle": "syeonhn.bsky.social"},
+            ],
+            "lastMessage": {
+                "id": "msg_self_111",
+                "sender": {"did": "did:plc:self"},
+                "text": "talk to you soon"
+            }
+        }
+
+        outcome = self.engine.evaluate(
+            context=day_context,
+            notifications=[],
+            dms=[self_dm],
+            feed_items=[],
+            can_image=False,
+        )
+        self.assertNotEqual(outcome.selected_action, ActionType.ANSWER_DM)
+
 
 if __name__ == "__main__":
     unittest.main()

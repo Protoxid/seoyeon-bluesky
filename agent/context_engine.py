@@ -79,6 +79,7 @@ class EnvironmentContext:
     posts_today: int
     replies_today: int
     dms_today: int
+    likes_today: int = 0
     city_texture: str = ""
     internal_state_desc: str = ""
     scheduled_activity: str = ""
@@ -220,6 +221,7 @@ def build_environment_context(
     posts_today: int = 0,
     replies_today: int = 0,
     dms_today: int = 0,
+    likes_today: int = 0,
 ) -> EnvironmentContext:
     """Builds a complete, rich EnvironmentContext snapshot."""
     now_kst = get_seoul_datetime()
@@ -267,6 +269,7 @@ def build_environment_context(
         posts_today=posts_today,
         replies_today=replies_today,
         dms_today=dms_today,
+        likes_today=likes_today,
         city_texture=city_texture,
         internal_state_desc=state_desc,
         scheduled_activity=scheduled_activity,

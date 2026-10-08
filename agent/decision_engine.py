@@ -96,9 +96,34 @@ class DecisionEngine:
                 unread = dm.get("unreadCount", 0)
                 if unread > 0 and convo_id:
                     members = dm.get("members", [])
-                    other_member = next((m for m in members if m.get("did") != config.bsky_handle), {})
+                    my_handle = (config.bsky_handle or "").lower().lstrip("@")
+                    try:
+                        from .bsky_client import bsky_client
+                        my_did = bsky_client.did
+                    except Exception:
+                        my_did = ""
+
+                    other_member = next(
+                        (
+                            m for m in members
+                            if (m.get("handle") or "").lower().lstrip("@") != my_handle
+                            and (not my_did or m.get("did") != my_did)
+                        ),
+                        {}
+                    )
                     handle = other_member.get("handle", "user")
                     profile = memory_store.get_user_profile(handle)
+
+                    # Deduplication: check last message in thread
+                    last_msg = dm.get("lastMessage", {})
+                    last_msg_id = last_msg.get("id", "")
+                    last_sender_did = last_msg.get("sender", {}).get("did", "")
+                    if my_did and last_sender_did == my_did:
+                        # Seo-yeon sent the last message; do not reply to self
+                        continue
+                    if last_msg_id and memory_store.has_replied_to_dm(last_msg_id):
+                        # Message was already answered
+                        continue
 
                     # Relationship weighting
                     dm_score = 0.70 if profile.relationship in ("regular", "friendly_acquaintance") else 0.55
@@ -108,7 +133,12 @@ class DecisionEngine:
                             score=dm_score,
                             confidence=0.80,
                             reason=f"Unread private message from @{handle} ({profile.relationship}).",
-                            target_data={"convo_id": convo_id, "handle": handle, "profile": profile},
+                            target_data={
+                                "convo_id": convo_id,
+                                "handle": handle,
+                                "profile": profile,
+                                "last_message_id": last_msg_id,
+                            },
                             intent="warm_personal_reply",
                         )
                     )
@@ -202,28 +232,58 @@ class DecisionEngine:
             if weather_inspire:
                 post_score = min(0.85, post_score + 0.15)
 
-            # Determine whether to post image or text
-            if can_image and config.allow_images and post_score > 0.50 and context.hours_since_last_post > 10.0:
-                # Occasional visual snapshot
+            # Determine whether this post warrants an accompanying photograph or text-only
+            wants_image = False
+            if can_image and config.allow_images:
+                try:
+                    from .budget_manager import budget_manager
+                    can_gen, _ = budget_manager.can_generate_image()
+                except Exception:
+                    can_gen = True
+
+                if can_gen and post_score >= 0.45:
+                    recent_posts = memory_store.get_recent_context().get("posts", [])
+                    hours_since_last_image = 999.0
+                    for p in recent_posts:
+                        if p.get("has_image"):
+                            try:
+                                p_dt = dt.datetime.fromisoformat(p.get("created_at", ""))
+                                if p_dt.tzinfo is None:
+                                    p_dt = p_dt.replace(tzinfo=dt.timezone.utc)
+                                diff = (dt.datetime.now(dt.timezone.utc) - p_dt).total_seconds() / 3600.0
+                                hours_since_last_image = max(0.0, diff)
+                                break
+                            except Exception:
+                                pass
+
+                    is_atmospheric = (
+                        weather_inspire
+                        or context.circadian_phase in ("morning", "evening", "deep_night")
+                        or bool(context.scheduled_area)
+                    )
+                    if hours_since_last_image >= 8.0 and is_atmospheric and context.hours_since_last_post >= 6.0:
+                        wants_image = True
+
+            if wants_image:
                 candidates.append(
                     ActionCandidate(
                         action=ActionType.PUBLISH_IMAGE_POST,
-                        score=post_score * 0.90,  # Slightly lower than text so text remains primary
-                        confidence=0.70,
-                        reason="Candid moment warrants an accompanying photo.",
+                        score=min(0.88, post_score + 0.05),
+                        confidence=0.75,
+                        reason="Candid visual moment and ambient setting warrant an accompanying photograph.",
                         intent="share_visual_moment",
                     )
                 )
-
-            candidates.append(
-                ActionCandidate(
-                    action=ActionType.PUBLISH_TEXT_POST,
-                    score=post_score,
-                    confidence=0.75,
-                    reason=f"Spontaneous thought ({context.hours_since_last_post:.1f}h since last post, {context.circadian_phase}).",
-                    intent="share_ordinary_thought",
+            else:
+                candidates.append(
+                    ActionCandidate(
+                        action=ActionType.PUBLISH_TEXT_POST,
+                        score=post_score,
+                        confidence=0.75,
+                        reason=f"Spontaneous thought ({context.hours_since_last_post:.1f}h since last post, {context.circadian_phase}).",
+                        intent="share_ordinary_thought",
+                    )
                 )
-            )
 
         # -------------------------------------------------------------
         # 5. Feed Browsing & Community Engagement (Thoughtful Reply or Like)
@@ -366,12 +426,13 @@ class DecisionEngine:
             raw_scores = {c.action.value: c.score for c in candidates}
             modulated_scores = state_manager.modulate_candidate_scores(raw_scores)
             for c in candidates:
-                c.score = modulated_scores.get(c.action.value, c.score)
+                c.score = max(0.0, min(1.0, round(modulated_scores.get(c.action.value, c.score), 3)))
         except Exception:
-            pass
+            for c in candidates:
+                c.score = max(0.0, min(1.0, round(c.score, 3)))
 
         # -------------------------------------------------------------
-        # Select winning action
+        # Select winning action & Calibrate Action Threshold
         # -------------------------------------------------------------
         # Sort candidates descending by score
         candidates.sort(key=lambda c: c.score, reverse=True)
@@ -381,6 +442,14 @@ class DecisionEngine:
             confidence=1.0,
             reason="No action candidate available."
         )
+
+        # Calibrated organic threshold: external outward actions require meaningful conviction (>= 0.50)
+        EXTERNAL_ACTION_THRESHOLD = 0.50
+        if winner.action != ActionType.NO_ACTION and winner.score < EXTERNAL_ACTION_THRESHOLD:
+            no_action_cand = next((c for c in candidates if c.action == ActionType.NO_ACTION), None)
+            if no_action_cand:
+                winner = no_action_cand
+                winner.reason = f"Organic motivation below threshold ({EXTERNAL_ACTION_THRESHOLD:.2f}). Remaining offline."
 
         score_dict = {c.action.value: round(c.score, 3) for c in candidates}
 

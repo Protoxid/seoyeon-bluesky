@@ -569,24 +569,6 @@ class BlueskyClient:
             {"repo": self.did, "collection": "app.bsky.feed.like", "record": record},
         )
 
-    def delete_post(self, post_uri_or_rkey: str) -> bool:
-        """Deletes a post by URI or rkey via com.atproto.repo.deleteRecord."""
-        if not self.ensure_session():
-            return False
-
-        rkey = post_uri_or_rkey.split("/")[-1]
-        if self.dry_run:
-            print(f"[DRY-RUN] Would delete post rkey: {rkey}")
-            return True
-
-        payload = {
-            "repo": self.did,
-            "collection": "app.bsky.feed.post",
-            "rkey": rkey,
-        }
-        res = self.xrpc_post("com.atproto.repo.deleteRecord", payload)
-        return bool(res)
-
     def resolve_handle(self, handle: str) -> Optional[str]:
         """Resolves a handle to its DID."""
         clean_handle = handle.lstrip("@").strip()

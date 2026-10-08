@@ -21,6 +21,8 @@ from .memory_store import memory_store
 from .state_manager import state_manager
 from .validator import validator
 
+from .vault import vault
+
 PRIVATE_JOURNAL_FILE = MEMORY_DIR / "private_journal.jsonl"
 
 
@@ -31,14 +33,19 @@ class MemoryConsolidator:
         self.journal_file = PRIVATE_JOURNAL_FILE
 
     def _append_journal(self, entry: Dict[str, Any]) -> None:
-        self.journal_file.parent.mkdir(parents=True, exist_ok=True)
-        with open(self.journal_file, "a", encoding="utf-8") as f:
-            f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+        if self.journal_file == PRIVATE_JOURNAL_FILE:
+            vault.append_journal(entry)
+        else:
+            self.journal_file.parent.mkdir(parents=True, exist_ok=True)
+            with open(self.journal_file, "a", encoding="utf-8") as f:
+                f.write(json.dumps(entry, ensure_ascii=False) + "\n")
 
     def read_recent_journal_entries(self, limit: int = 5) -> List[Dict[str, Any]]:
+        if self.journal_file == PRIVATE_JOURNAL_FILE:
+            return vault.read_journal_entries(limit=limit)
         if not self.journal_file.exists():
             return []
-        entries: List[Dict[str, Any]] = []
+        entries = []
         try:
             for line in self.journal_file.read_text(encoding="utf-8").splitlines():
                 if line.strip():

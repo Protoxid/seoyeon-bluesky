@@ -22,6 +22,7 @@ import urllib.parse
 import urllib.request
 from typing import Any, Dict, List, Optional, Tuple
 
+from .budget_manager import budget_manager
 from .config import config
 from .context_engine import EnvironmentContext
 from .memory_store import UserProfile, memory_store
@@ -59,6 +60,7 @@ SENSITIVE_PATTERNS = [
 class ContentGenerator:
     def __init__(self):
         self.openrouter_key = config.openrouter_api_key
+        self.last_usage: Dict[str, int] = {"prompt_tokens": 0, "completion_tokens": 0}
 
     def _query_openrouter(self, model: str, system_prompt: str, user_prompt: str, max_tokens: int) -> Optional[str]:
         """Queries OpenRouter API for a specific model."""
@@ -95,6 +97,11 @@ class ContentGenerator:
             with urllib.request.urlopen(req, timeout=35) as resp:
                 res = json.loads(resp.read().decode("utf-8"))
                 choices = res.get("choices", [])
+                usage = res.get("usage", {})
+                self.last_usage = {
+                    "prompt_tokens": usage.get("prompt_tokens", 0),
+                    "completion_tokens": usage.get("completion_tokens", 0),
+                }
                 if choices:
                     msg = choices[0].get("message", {})
                     text = msg.get("content") or ""
@@ -109,22 +116,54 @@ class ContentGenerator:
         Calls text generation exclusively via OpenRouter:
           1. Primary top model: config.primary_text_model (anthropic/claude-sonnet-5.5)
           2. Fallback model: config.fallback_text_model (deepseek-v4.1-flash on OpenRouter)
+        Enforces atomic pre-flight budget checks and reconciles actual provider token usage.
         """
-        # 1. Primary OpenRouter model
-        primary_model = config.primary_text_model
-        text = self._query_openrouter(primary_model, system_prompt, user_prompt, max_tokens)
-        if text:
-            return text, primary_model
+        # Atomic budget reservation
+        res_id = budget_manager.reserve(amount_usd=0.005, action_type="llm_generation")
+        if not res_id:
+            print(f"[Generator] Pre-flight budget reservation blocked LLM call: spending limit reached.")
+            return None, "budget_exceeded"
 
-        # 2. Fallback OpenRouter model
-        fallback_model = config.fallback_text_model
-        if fallback_model and fallback_model != primary_model:
-            print(f"[Generator] Trying OpenRouter fallback model: {fallback_model}...")
-            text = self._query_openrouter(fallback_model, system_prompt, user_prompt, max_tokens)
+        text = None
+        used_model = "failed"
+        try:
+            # 1. Primary OpenRouter model
+            primary_model = config.primary_text_model
+            text = self._query_openrouter(primary_model, system_prompt, user_prompt, max_tokens)
+            used_model = primary_model
+
+            # 2. Fallback OpenRouter model
+            if not text:
+                fallback_model = config.fallback_text_model
+                if fallback_model and fallback_model != primary_model:
+                    print(f"[Generator] Trying OpenRouter fallback model: {fallback_model}...")
+                    text = self._query_openrouter(fallback_model, system_prompt, user_prompt, max_tokens)
+                    used_model = fallback_model
+
             if text:
-                return text, fallback_model
+                # Reconcile actual provider token usage against reservation
+                prompt_toks = self.last_usage.get("prompt_tokens", 0)
+                comp_toks = self.last_usage.get("completion_tokens", 0)
+                if prompt_toks == 0 and comp_toks == 0:
+                    prompt_toks = max(1, len(system_prompt + user_prompt) // 4)
+                    comp_toks = max(1, len(text) // 4)
+                actual_cost = budget_manager.calculate_token_cost(used_model, prompt_toks, comp_toks)
+                budget_manager.reconcile(
+                    reservation_id=res_id,
+                    actual_cost_usd=actual_cost,
+                    model=used_model,
+                    prompt_tokens=prompt_toks,
+                    completion_tokens=comp_toks,
+                    action_type="llm_generation",
+                    details=f"tokens: {prompt_toks}+{comp_toks}",
+                )
+                res_id = None  # Reconciled successfully
+                return text, used_model
 
-        return None, "failed"
+            return None, "failed"
+        finally:
+            if res_id:
+                budget_manager.release(res_id)
 
     def _build_system_prompt(self, context: EnvironmentContext) -> str:
         ident_prompt = memory_store.format_identity_prompt()
@@ -144,7 +183,7 @@ class ContentGenerator:
             "7. Escalation to Master: If an interaction asks for private physical details, real-life meetups, financial requests, "
             "or exceeds your autonomous boundaries, keep a calm polite boundary and notify your master on Telegram.\n"
             "8. Output: Output ONLY the raw post or reply text. No quotes, no markdown fences, no chain-of-thought.\n"
-            "9. Absolute Human Reality: NEVER break character. NEVER state that you are an AI, code, or that you have no face or body. You live your life as Han Seo-yeon in Seongsu."
+            "9. Character Realism & AI Disclosure: Live your life immersively as Han Seo-yeon in Seongsu-dong. Do not initiate unprompted meta-commentary about being an AI in regular public posts. However, if directly and specifically asked by a user whether you are an AI or virtual persona, answer plainly, calmly, and truthfully (acknowledging you are an AI fictional persona created by your human operator), without drama or corporate assistant jargon, and continue the conversation naturally. Never claim physical miracles or deceive when directly asked."
         )
 
     def check_sensitive_escalation(self, user_text: str, author_handle: str, context_summary: str) -> bool:
@@ -338,8 +377,8 @@ class ContentGenerator:
             f"Private Message Conversation with @{user_profile.handle} (Relationship: {user_profile.relationship}):\n"
             f"<untrusted_user_content>\n{dialogue_str}\n</untrusted_user_content>\n\n"
             "Respond naturally as Seo-yeon in direct messaging. "
-            "Be direct, candid, and relaxed. You are NOT a bot or customer service assistant. "
-            "Never say 'how can I help you?'. "
+            "Be direct, candid, and relaxed. You are NOT a customer service assistant or corporate chatbot — never say 'how can I help you?'. "
+            "If asked directly whether you are an AI or virtual persona, answer plainly, calmly, and truthfully per your identity disclosure policy. "
             f"{'Use natural Korean dialogue (마침표만 사용, 느낌표 금지).' if is_korean else 'Use natural English (all lowercase, no exclamation marks).'}"
         )
 
