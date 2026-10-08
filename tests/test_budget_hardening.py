@@ -148,6 +148,7 @@ class TestBudgetHardening(unittest.TestCase):
                  patch.object(bsky_client, "publish_text_post", return_value={"uri": "at://test/post/1"}), \
                  patch("agent.generator.generator._query_openrouter", return_value="spontaneous evening thought in my flat."), \
                  patch("agent.generator.validator.validate_outgoing_text", return_value=(True, "spontaneous evening thought in my flat.", None)), \
+                 patch("agent.weekly_planner.weekly_planner.get_current_activity", return_value={"activity": "reading", "area": "Seongsu", "vibe": "quiet", "phase": "deep_night", "day": "friday"}), \
                  patch("agent.runner.decision_engine.evaluate", return_value=fake_outcome), \
                  patch("agent.runner.notifier.check_and_send_evening_summary"), \
                  patch("agent.runner.notifier.process_master_inbox", return_value=0):
