@@ -164,7 +164,7 @@ class TestBudgetHardening(unittest.TestCase):
                 history = data.get("history", [])
 
                 # There should be EXACTLY ONE cost entry from llm_generation (NO duplicate text_post entry)
-                self.assertEqual(len(history), 1)
+                self.assertEqual(len(history), 1, f"Expected 1 entry, got {len(history)}: {history}")
                 self.assertEqual(history[0]["action_type"], "llm_generation")
                 self.assertNotEqual(history[0]["action_type"], "text_post")
         finally:

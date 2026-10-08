@@ -10,7 +10,7 @@
   - **Quote-Posts (`app.bsky.feed.post` with `app.bsky.embed.record`)**: Autonomous commentary on discovered indie cinema, architecture, and literary thoughts from the community.
   - **Reposts (`app.bsky.feed.repost`)**: Re-sharing high-signal posts from respected creators and mutuals without diluting her timeline.
   - **Organic Follows (`app.bsky.graph.follow`)**: Gradually discovering and following accounts aligned with her genuine interests (authors, film critics, independent publishers, designers).
-  - **Direct Messages (`chat.bsky.convo.*`)**: Conversational, private, natural exchanges via AT Protocol chat proxy. Remembers past conversations and learned user facts.
+  - **Direct Messages (`chat.bsky.convo.*`)**: Conversational, private, natural exchanges via AT Protocol chat proxy. Remembers past conversations and learned user facts. Transcripts are encrypted in `data/vault.enc` and strictly protected against public log leakage.
   - **Rich Text Facets (`app.bsky.richtext.facet`)**: UTF-8 byte-indexed link and hashtag facets parsed automatically without breaking text aesthetics.
   - **Profile Record Updates (`app.bsky.actor.profile/self`)**: Autonomous avatar, banner, and bio updates synchronized directly to her decentralized repository.
   - **Spontaneous Observations**: Thoughts on ordinary life, cinema, typography, secondhand books, food, Seoul rain, and subway observations.

@@ -26,7 +26,7 @@ Always execute from the project root (`c:\AI-Project`):
 | **Weekly Plan** | `python agent_runner.py --plan-week` | Displays the synthesized 7-day weekly life itinerary across morning/afternoon/evening/night. |
 | **Regen Week** | `python agent_runner.py --force-plan` | Force-regenerates fresh 7-day schedule with OpenRouter LLM. |
 | **Consolidate** | `python agent_runner.py --consolidate` | Runs nightly memory consolidation pass and Seongsu flat private journal reflection. |
-| **Run Tests** | `python -m unittest discover -s tests -p "test_*.py"` | Runs full hermetic unit test suite (67+ tests). |
+| **Run Tests** | `python -m unittest discover -s tests -p "test_*.py"` | Runs full hermetic unit test suite (103 tests). |
 
 ---
 
@@ -38,7 +38,7 @@ Before committing or pushing any architectural or agent code changes, follow thi
    ```bash
    python -m unittest discover -s tests -p "test_*.py"
    ```
-   *Requirement*: All 67+ tests must pass cleanly (`OK`).
+   *Requirement*: All 103 tests across all modules must pass cleanly (`OK`).
 
 2. **Verify Agent Status**:
    ```bash
@@ -81,11 +81,25 @@ Seo-yeon maintains a resilient, private Telegram bond with her human creator and
 
 ---
 
-## 5. GitHub Actions Cloud Automation Workflow
+## 5. Encrypted Vault & Budget Hardening Operations
+
+- **Private Vault (`agent/vault.py`)**:
+  - `data/vault.enc` securely stores `private_journal.jsonl` and `private_dms.jsonl`.
+  - Requires `DATA_ENCRYPTION_KEY` in production environments (`ENV=production` or `GITHUB_ACTIONS=true`).
+  - **Safe Failure Mode**: Decryption failure prevents overwrites and safely halts execution (`runner.py` exits with code 1).
+  - Every ciphertext modification creates an automatic backup (`vault.enc.bak`) and uses atomic temporary file replacement (`os.replace`).
+- **Atomic Budget Guardrails (`agent/budget_manager.py`)**:
+  - `reserve(amount_usd, action_type)`: Pre-flights compute spend. If active reservations + daily spend > cap ($2.00/day, $30.00/month), returns `None` and blocks call.
+  - `reconcile(reservation_id, actual_cost_usd)`: Replaces hold with exact token-based cost on successful response.
+  - `release(reservation_id)`: Frees hold without charging ledger on call failures or model restraint.
+
+---
+
+## 6. GitHub Actions Cloud Automation Workflow
 
 - **Scheduler Workflow**: `.github/workflows/bluesky_scheduler.yml`
 - **Schedule**: Every 30 minutes during Seoul waking hours (07:00–01:30 KST = 22:00–16:30 UTC).
-- **Auto-Commit**: Automatically commits updated `data/memory/`, `data/budget_ledger.json`, and `data/logs/` back to `main` with `[skip ci]`.
+- **Auto-Commit**: Automatically commits updated `data/memory/`, `data/vault.enc`, `data/budget_ledger.json`, and `data/logs/` back to `main` with `[skip ci]`.
 - **Required Secrets**:
   - `BSKY_HANDLE`
   - `BSKY_APP_PASSWORD`
@@ -93,3 +107,4 @@ Seo-yeon maintains a resilient, private Telegram bond with her human creator and
   - `OPENROUTER_API_KEY`
   - `TELEGRAM_BOT_TOKEN`
   - `TELEGRAM_CHAT_ID`
+  - `DATA_ENCRYPTION_KEY`

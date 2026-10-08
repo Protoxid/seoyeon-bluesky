@@ -51,23 +51,26 @@ EVALUATE CANDIDATES
 
 ---
 
-## 3. Persistent Memory System (`data/memory/`)
+## 3. Persistent Memory System & Encrypted Vault (`data/memory/` & `data/vault.enc`)
 1. **Identity Memory (`identity_memory.json`)**:
    - Canonical facts from `CANON.md`: 25 years old (turns 26 on 23 Oct), lives in Seongsu, retrained from corporate marketing to pilates instructor, tight budget, dry understated voice.
 2. **User Memory (`user_memory.json`)**:
    - Relationship tracking (`stranger` → `friendly_acquaintance` → `regular` → `trusted_friend`), interaction count, known facts learned about the user.
+   - Private DM conversations use sanitized placeholders `[private direct message]` to prevent public log leaks.
 3. **Opinion Memory (`opinions_memory.json`)**:
    - Established stances on cinema, music, food, and Seoul life to prevent contradictory statements.
 4. **Recent Context (`recent_context.json`)**:
-   - Rolling history of past posts and replies. Tested via Jaccard and n-gram similarity to prevent repetitive themes, opening words, or selfie frequency.
+   - Rolling history of past posts, replies, and persistent handled DM IDs. Tested via Jaccard and n-gram similarity to prevent repetitive themes, opening words, or duplicate processing.
 5. **Episodic Memory (`episodic_memory.jsonl`)**:
    - Chronological log of notable interactions, milestones, and reflections.
 6. **Creator Relationship ("my master" / "my human")**:
    - Seo-yeon always refers to her human creator and operator as `"my master"` or `"my human"`.
    - **Interactive Bidirectional Telegram Bond (`agent/notifier.py`)**: She receives inbound messages from her master, recharges her social battery, and replies directly in character.
    - **Resilient Daily Evening Check-in & Catch-up**: Delivered late evening (≥ 21:00 KST). If any day is missed due to scheduler queues, she automatically catches up on the very next tick.
-7. **Private Journal (`private_journal.jsonl`)**:
-   - Internal late-night reflection notebook in her Seongsu flat; never broadcasted to the public.
+7. **Encrypted Private Vault (`data/vault.enc`)**:
+   - Encrypted bundle storing her internal late-night reflections (`private_journal.jsonl`) and unredacted DM transcripts (`private_dms.jsonl`).
+   - Strong Fernet cryptography (AES-128-CBC + HMAC-SHA256). In production (`ENV=production` or `GITHUB_ACTIONS=true`), strictly requires `DATA_ENCRYPTION_KEY` or `VAULT_KEY`. Deterministic dev fallbacks are forbidden.
+   - **Data Loss Prevention**: If decryption fails on load, saving and appending are blocked to prevent data corruption. Creates `vault.enc.bak` backups and uses atomic replacement (`os.replace`).
 8. **Dynamic Cognitive State (`agent_state.json`)**:
    - Biological circadian rhythms: social battery (0.0–1.0), physical fatigue (0.0–1.0), financial awareness, and creative drive.
 9. **Visual Consistency Inventory (`wardrobe_inventory.json`)**:
@@ -77,13 +80,18 @@ EVALUATE CANDIDATES
 
 ---
 
-## 4. Text Generation (OpenRouter Exclusive) & Kie.ai Image Generation
+## 4. Text Generation (OpenRouter Exclusive), Image Engine & Atomic Budgeting
 - **Text Generation**: Routed **EXCLUSIVELY** through OpenRouter API (`https://openrouter.ai/api/v1/chat/completions`).
   - Primary Model: `anthropic/claude-sonnet-5.5` (state-of-the-art intelligence, nuanced character adherence, natural dry tone without robotic exclamation marks).
   - Reasoning Token Headroom: Enforces `effective_tokens = max(max_tokens, 700)` with `timeout=35s` so mandatory reasoning never starves completion text.
   - Fallback Model: `deepseek-v4.1-flash` (fast, highly intelligent secondary on OpenRouter).
+  - Truthful AI Disclosure: Consistently allowed across generator prompts and validation rules when asked directly, without generic assistant jargon.
   - Natural Restraint Over Canned Fallbacks: Completely free of canned bot platitudes. If generation is unavailable or rejected by the validator, she cleanly stays offline (`NO_ACTION`).
   - Direct Opinion Answering: When a post poses a question, dilemma, or choice, she answers directly from her personal life, routine, and tastes with dry humor, rather than non-committal evasion.
+- **Atomic Budgeting & Single-Entry Accounting (`agent/budget_manager.py`)**:
+  - Pre-flight reservations (`reserve()`) hold estimated compute spend before LLM or image generation calls.
+  - Upon successful call, exact token usage is reconciled (`reconcile()`). Failed or restrained calls release holds (`release()`) without charging the ledger.
+  - Consolidated single-entry accounting prevents double-billing across generator tokens and runner actions. Hard daily ($2.00) and monthly ($30.00) caps.
 - **Discovery Feed & Multi-Language Filters (`agent/validator.py`)**:
   - Operates strictly in Korean and English. Rejects non-target scripts (Japanese Kana, Cyrillic, Arabic, CJK ideographs without Hangul, and non-target Romance text) and automatically drops commercial financial spam and bot advisors.
 - **Image Generation & Anonymous Settings Architecture**:
@@ -109,7 +117,7 @@ The workspace leverages the open [Google Antigravity Agent Skills](https://antig
 The system is fully deployed on **GitHub Actions**:
 - Workflow: `.github/workflows/bluesky_scheduler.yml`.
 - Schedule: Runs every 30 minutes during Seoul waking hours (07:00–01:30 KST = 22:00–16:30 UTC).
-- Commits state: Automatically commits updated `data/memory/`, `data/logs/`, and `data/budget_ledger.json` back to the repository with `[skip ci]`.
+- Commits state: Automatically commits updated `data/memory/`, `data/logs/`, `data/vault.enc`, and `data/budget_ledger.json` back to the repository with `[skip ci]`.
 - Required GitHub Secrets:
   - `BSKY_HANDLE`: `syeonhn.bsky.social`
   - `BSKY_APP_PASSWORD`: Bluesky App Password (with DM access enabled)
@@ -117,6 +125,7 @@ The system is fully deployed on **GitHub Actions**:
   - `OPENROUTER_API_KEY`: OpenRouter API key (sole text provider for Claude Sonnet 5.5 / DeepSeek)
   - `TELEGRAM_BOT_TOKEN`: Telegram bot token (for bidirectional communication with her master)
   - `TELEGRAM_CHAT_ID`: Telegram chat ID / recipient for master alerts
+  - `DATA_ENCRYPTION_KEY`: Dedicated AES-256 encryption key for `data/vault.enc`
 
 ---
 
@@ -153,6 +162,6 @@ python agent_runner.py --dry-run --force-action NO_ACTION
 python agent_runner.py --plan-week
 python agent_runner.py --force-plan
 
-# 9. Run full test suite
+# 9. Run full test suite (103 hermetic tests)
 python -m unittest discover -s tests -p "test_*.py"
 ```

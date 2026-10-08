@@ -19,22 +19,23 @@ Bluesky is her exclusive window to the social world.
 - `agent/config.py`: Central settings, environment flags (`AUTONOMOUS_MODE`, `DRY_RUN`, `ALLOW_POSTS`, `DAILY_AI_BUDGET`).
 - `agent/context_engine.py`: Real-world Seoul context (time in KST, live weather via Open-Meteo with cache, Korean holidays, activity recency).
 - `agent/memory_store.py`: Persistent multi-tiered memory (`identity_memory.json`, `user_memory.json`, `opinions_memory.json`, `recent_context.json`, `episodic_memory.jsonl`).
+- `agent/vault.py`: Encrypted private vault (`data/vault.enc`) securing `private_journal.jsonl` and `private_dms.jsonl` with overwrite protection and atomic backups.
 - `agent/decision_engine.py`: Cognitive action evaluation (scoring `NO_ACTION`, text post, image post, reply, quote-post, repost, follow, DM response, feed like).
-- `agent/generator.py`: OpenRouter LLM generation (`anthropic/claude-sonnet-5.5` primary, `deepseek-v4.1-flash` fallback) with prompt injection protection.
+- `agent/generator.py`: OpenRouter LLM generation (`anthropic/claude-sonnet-5.5` primary, `deepseek-v4.1-flash` fallback) with prompt injection protection and consistent truthful AI disclosure.
 - `agent/image_engine.py`: Kie.ai (`gpt-image-2-5-sunburst-image-to-image`) conditioned on dual master face references (`a1_front.png` + `c5_relax_front.png`) for authentic candid realism without AI gloss.
 - `agent/visual_identity.py`: Punchy, photorealistic prompt generator emphasizing real-world imperfections, flexible hairstyles, and 35mm street photography.
-- `agent/validator.py`: The Critic (verifies zero exclamation marks, anti-repetition Jaccard overlap, cliché frequency quotas, no marketing terms, prompt injection defense).
-- `agent/budget_manager.py`: Spending caps (daily $2.00 / monthly $30.00 limits, image generation limits, emergency stop).
+- `agent/validator.py`: The Critic (verifies zero exclamation marks, anti-repetition Jaccard overlap, cliché frequency quotas, no marketing terms, prompt injection defense, truthful AI disclosure pass-through).
+- `agent/budget_manager.py`: Atomic budget reservations (`reserve()`, `reconcile()`, `release()`) preventing concurrent overages and double-billing. Hard daily ($2.00) / monthly ($30.00) spending caps.
 - `agent/bsky_client.py`: Full AT Protocol XRPC client for posts, images, replies, quote-posts (`embed.record`), reposts, follows, facets (`#link`, `#tag`), profile updates, and direct messages (`chat.bsky.convo.*`).
 - `agent/notifier.py`: Bidirectional Telegram bridge to her human creator, receiving directives and delivering daily evening check-ins.
-- `agent/runner.py`: Master cognitive loop runner.
+- `agent/runner.py`: Master cognitive loop runner with DM privacy masking and safe vault load halting.
 
 ---
 
 ## 3. GitHub Actions Cloud Automation
 - Workflow: `.github/workflows/bluesky_scheduler.yml`.
 - Schedule: Runs every 30 minutes during Seoul waking hours (07:00–01:30 KST = 22:00–16:30 UTC).
-- State Persistence: Commits updated memory files in `data/memory/` and `data/logs/` automatically.
+- State Persistence: Commits updated memory files in `data/memory/`, `data/vault.enc`, and `data/logs/` automatically.
 - Required GitHub Secrets:
   - `BSKY_HANDLE`
   - `BSKY_APP_PASSWORD`
@@ -42,6 +43,7 @@ Bluesky is her exclusive window to the social world.
   - `OPENROUTER_API_KEY`
   - `TELEGRAM_BOT_TOKEN`
   - `TELEGRAM_CHAT_ID`
+  - `DATA_ENCRYPTION_KEY`
 
 ---
 
@@ -73,6 +75,6 @@ python agent_runner.py --dry-run --force-action PUBLISH_IMAGE_POST
 python agent_runner.py --dry-run --force-action QUOTE_POST
 python agent_runner.py --dry-run --force-action NO_ACTION
 
-# 8. Run automated test suite
+# 8. Run automated test suite (103 hermetic tests)
 python -m unittest discover -s tests -p "test_*.py"
 ```

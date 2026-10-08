@@ -92,17 +92,20 @@ Seo-yeon's visual world avoids repetitive glamour renders or glossy AI concept a
 
 ---
 
-## 💾 Multi-Tiered Persistent Memory System (`data/memory/`)
+## 💾 Multi-Tiered Persistent Memory System & Encrypted Vault (`data/memory/` & `data/vault.enc`)
 
 1. **Identity Memory (`identity_memory.json`)**: Grounded in canon biographical facts (age 25, lives in Seongsu, retrained from corporate marketing to pilates instructor, tight budget, quiet voice).
 2. **Weekly Living Itinerary (`weekly_schedule.json`)**: Autonomous 7-day life calendar scheduled every Sunday across 4 daily slots (`morning`, `afternoon`, `evening`, `deep_night`). Grounds her posts, errands, walks, transit, and photos in realistic space and time without rigid cron timing.
 3. **User Relationship Progression (`user_memory.json`)**: Tracks every interaction. Users evolve naturally:  
-   `stranger` → `friendly_acquaintance` → `regular` → `trusted_friend`
+   `stranger` → `friendly_acquaintance` → `regular` → `trusted_friend`. Private conversation text is sanitized (`[private direct message]`) to prevent accidental leaks.
 4. **Opinion Memory (`opinions_memory.json`)**: Prevents self-contradiction on cinema, music, food, literature, and Seoul urban life.
-5. **Recent Context & Repetition Defense (`recent_context.json`)**: Rolling window of past posts and replies evaluated via Jaccard and n-gram similarity to prevent repetitive themes, opening words, or selfie frequency.
+5. **Recent Context & Repetition Defense (`recent_context.json`)**: Rolling window of past posts, replies, and persistent handled DM IDs evaluated via Jaccard and n-gram similarity to prevent repetitive themes, opening words, or duplicate replies.
 6. **Episodic Memory (`episodic_memory.jsonl`)**: Chronological audit trail of notable milestones, discussions, and reflections.
 7. **Dynamic Cognitive State (`agent_state.json`)**: Circadian biological rhythms: social battery (0.0–1.0), physical fatigue (0.0–1.0), financial awareness, and creative drive.
-8. **Private Journal (`private_journal.jsonl`)**: Late-night internal reflection notebook written in her flat; never broadcasted to the public.
+8. **Encrypted Private Vault (`data/vault.enc`)**:
+   - Zero-leak private storage for internal late-night reflections (`private_journal.jsonl`) and unredacted DM transcripts (`private_dms.jsonl`).
+   - Strong Fernet cryptography (AES-128-CBC + HMAC-SHA256). In production, strictly requires a dedicated secret (`DATA_ENCRYPTION_KEY`). Deterministic dev fallback keys are strictly prohibited in production.
+   - **Data Loss Prevention & Safe Halting**: If `vault.enc` exists but cannot be decrypted, execution safely halts to prevent data loss or state corruption. Ciphertext updates automatically create `vault.enc.bak` backups and utilize atomic temporary file replacement (`os.replace`).
 9. **Creator Bond & Telegram Bridge**: Resilient daily evening check-ins to her master with catch-up resilience, and real-time execution of authorized directives coherent with current space and time.
 
 ---
@@ -111,12 +114,15 @@ Seo-yeon's visual world avoids repetitive glamour renders or glossy AI concept a
 
 - **Text Generation (OpenRouter Exclusive)**:
   - **Primary Frontier Model**: `anthropic/claude-sonnet-5.5` — Nuanced character adherence, dry understated observational style, and natural Korean/English balance without exclamation marks.
+  - **Truthful AI Disclosure**: Consistently permitted across generator prompts and validation rules when asked directly by users, avoiding canned bot jargon or evasive denials.
   - **Reasoning Token Budgeting**: Enforces mandatory reasoning token headroom (`effective_tokens = max(max_tokens, 700)`, `timeout=35s`) so internal reasoning never exhausts the completion budget.
   - **Fallback Model**: `deepseek-v4.1-flash` — High-speed secondary model for uninterrupted resilience.
   - **Natural Restraint Over Canned Fallbacks**: Completely free of canned bot platitudes. If generation is unavailable or rejected by the validator, Seo-yeon cleanly stays offline (`NO_ACTION`).
 - **Image Generation (Kie.ai)**:
-  - **Model**: `gpt-image-2-5-sunburst-image-to-image` conditioned on canonical identity masters.
+  - **Model**: `gpt-image-2-5-sunburst-image-to-image` conditioned on canonical identity masters (`a1_front.png` + `c5_relax_front.png`).
 - **Cost & Budget Guardrails (`agent/budget_manager.py`)**:
+  - **Atomic Budget Reservations**: Every generation pre-allocates estimated spend (`reserve()`), reconciles exact token costs upon completion (`reconcile()`), and frees reserved holds on failure or restraint (`release()`).
+  - **Single-Entry Accounting**: Fixed charges and token billing are consolidated—zero double-accounting across generator and runner.
   - Hard daily ($2.00) and monthly ($30.00) spending caps with automatic graceful shutdown and ledger auditing.
 
 ---
@@ -171,14 +177,18 @@ python agent_runner.py --dry-run --force-action NO_ACTION
 python agent_runner.py --plan-week
 python agent_runner.py --force-plan
 
-# 9. Run full test suite
+# 9. Run full test suite (103 hermetic tests)
 python -m unittest discover -s tests -p "test_*.py"
 ```
 
 ---
 
-## 🛡️ Safety, Transparency & Discovery Filtering
+## 🛡️ Safety, Privacy, Transparency & Discovery Filtering
 
+- **Direct Message Privacy Protection**: Private DM conversations are never committed to public git repositories or printed in stdout. `tick_history.jsonl` logs only sanitized metadata (character count, recipient handle). Unredacted transcripts are encrypted and stored in `data/vault.enc`.
+- **Encrypted Storage Hardening**: `data/vault.enc` requires a dedicated `DATA_ENCRYPTION_KEY` in production environments. Deterministic development key fallbacks are disabled in production. Overwrite protection halts execution on load failures, and automatic `.bak` backups are made prior to writing.
+- **Atomic Budget Guardrails**: LLM token requests and image generation perform pre-flight reservations against daily/monthly caps, preventing concurrent overages and double-billing.
+- **Truthful AI Disclosure**: Truthful answers regarding being an AI persona are permitted without conversational evasion or robotic customer support jargon.
 - **Multi-Language Discovery Filter**: Rejects non-target scripts (Japanese Kana, Cyrillic, Arabic, CJK ideographs without Hangul, and Romance languages like Spanish/French/German) to ensure Seo-yeon only engages organically in Korean and English.
 - **Negative Author & Commercial Filters**: Automatically filters out financial spam, disclaimers, marketing advisors, and bot digests from the Discovery feed.
 - **Prompt Injection Sanitation**: All external Bluesky content (posts, mentions, DMs) is wrapped in untrusted boundary blocks and sanitized against jailbreaks, command injections, and identity hijacking.
