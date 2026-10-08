@@ -1,8 +1,8 @@
 {
   "current_day": "2026-10-08",
   "current_month": "2026-10",
-  "daily_spend_usd": 0.002,
-  "monthly_spend_usd": 0.398,
+  "daily_spend_usd": 0.004,
+  "monthly_spend_usd": 0.4,
   "daily_images_count": 0,
   "history": [
     {
@@ -160,6 +160,12 @@
       "cost_usd": 0.002,
       "action_type": "browse_reply",
       "details": "to @orangestar.bsky.social"
+    },
+    {
+      "ts": "2026-10-08T04:58:21.916128+00:00",
+      "cost_usd": 0.002,
+      "action_type": "quote_post",
+      "details": "to @travelingadvisor.bsky.social"
     }
   ]
 }
