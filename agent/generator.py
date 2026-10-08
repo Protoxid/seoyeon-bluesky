@@ -25,7 +25,9 @@ from typing import Any, Dict, List, Optional, Tuple
 from .budget_manager import budget_manager
 from .config import config
 from .context_engine import EnvironmentContext
+from .goal_manager import goal_manager
 from .memory_store import UserProfile, memory_store
+from .narrative_engine import narrative_engine
 from .notifier import notifier
 from .validator import ContentValidator, validator
 
@@ -180,10 +182,21 @@ class ContentGenerator:
 
     def _build_system_prompt(self, context: EnvironmentContext) -> str:
         ident_prompt = memory_store.format_identity_prompt()
+        goals_prompt = goal_manager.get_goals_context_for_prompt()
+        narrative_prompt = narrative_engine.format_narrative_arcs_context()
+
+        extra_sections = []
+        if goals_prompt:
+            extra_sections.append(goals_prompt)
+        if narrative_prompt:
+            extra_sections.append(narrative_prompt)
+        extra_context_str = f"\n\n{chr(10).join(extra_sections)}" if extra_sections else ""
+
         return (
             f"{ident_prompt}\n\n"
             "ENVIRONMENT CONTEXT:\n"
-            f"{context.to_prompt_context()}\n\n"
+            f"{context.to_prompt_context()}"
+            f"{extra_context_str}\n\n"
             "STRICT BEHAVIORAL INVARIANTS:\n"
             "1. Voice: Dry, concrete, observant, lowercase, quiet humor, full stops only. NEVER use exclamation marks (!).\n"
             "2. Topics: Discuss ordinary life naturally (cinema, books, music, cooking, city textures, daily thoughts). "
@@ -338,11 +351,14 @@ class ContentGenerator:
             f"Relationship Level: {user_profile.relationship}\n"
             f"Known facts about user: {', '.join(user_profile.known_facts) if user_profile.known_facts else 'none yet'}\n"
         )
+        loop_context = narrative_engine.format_loops_for_user_prompt(user_profile.did, user_profile.handle)
+        loop_info = f"{loop_context}\n" if loop_context else ""
 
         is_korean = bool(re.search(r"[\uac00-\ud7a3]", target_text))
 
         user_prompt = (
             f"{user_info}\n"
+            f"{loop_info}"
             f"{chain_info}\n"
             "User's immediate message:\n"
             f"<untrusted_user_content>\n{sanitized_input}\n</untrusted_user_content>\n\n"
@@ -384,10 +400,14 @@ class ContentGenerator:
             dialogue_lines.append(f"@{sender}: {msg_text}")
         dialogue_str = "\n".join(dialogue_lines)
 
+        loop_context = narrative_engine.format_loops_for_user_prompt(user_profile.did, user_profile.handle)
+        loop_info = f"{loop_context}\n" if loop_context else ""
+
         is_korean = bool(re.search(r"[\uac00-\ud7a3]", latest_msg))
 
         user_prompt = (
             f"Private Message Conversation with @{user_profile.handle} (Relationship: {user_profile.relationship}):\n"
+            f"{loop_info}"
             f"<untrusted_user_content>\n{dialogue_str}\n</untrusted_user_content>\n\n"
             "Respond naturally as Seo-yeon in direct messaging. "
             "Be direct, candid, and relaxed. You are NOT a customer service assistant or corporate chatbot — never say 'how can I help you?'. "

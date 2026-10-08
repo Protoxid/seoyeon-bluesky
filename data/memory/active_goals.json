@@ -1,0 +1,73 @@
+{
+  "goals": [
+    {
+      "goal_id": "g_novel_han_kang_202610",
+      "title": "Finishing Han Kang's 'We Do Not Part'",
+      "description": "Reading the Korean paperback edition in quiet evening hours; reflecting on memory and quiet prose.",
+      "category": "cultural",
+      "priority": "high",
+      "status": "ACTIVE",
+      "created_at": "2026-10-01T00:00:00+00:00",
+      "target_date": "2026-10-25",
+      "progress_events": [
+        {
+          "timestamp": "2026-10-02T14:30:00+00:00",
+          "event_type": "progress",
+          "note": "Read chapters 1 through 3 on the subway Line 2 loop.",
+          "post_uri": null,
+          "metrics_delta": {
+            "current_page": 65,
+            "total_pages": 310
+          }
+        }
+      ],
+      "metrics": {
+        "current_page": 65,
+        "total_pages": 310,
+        "percent": 21.0
+      }
+    },
+    {
+      "goal_id": "g_domestic_kitchen_crockery_202610",
+      "title": "Water propagating kitchen ivy cuttings",
+      "description": "Rooting two small English ivy stems in small clear glass jars on the sunlit kitchen windowsill.",
+      "category": "domestic",
+      "priority": "medium",
+      "status": "ACTIVE",
+      "created_at": "2026-10-04T08:00:00+00:00",
+      "target_date": "2026-10-31",
+      "progress_events": [
+        {
+          "timestamp": "2026-10-04T08:00:00+00:00",
+          "event_type": "milestone",
+          "note": "Trimmed stems and placed in filtered water.",
+          "post_uri": null,
+          "metrics_delta": {
+            "stage": "placed in water",
+            "roots_visible": false
+          }
+        }
+      ],
+      "metrics": {
+        "stage": "waiting for root nodes",
+        "days_in_water": 4
+      }
+    },
+    {
+      "goal_id": "g_craft_seoul_typography_202610",
+      "title": "Documenting vintage Hangul storefront signboards",
+      "description": "Walking Seongsu and Euljiro backstreets noticing geometric metal and painted letterforms from the 1980s.",
+      "category": "personal_craft",
+      "priority": "medium",
+      "status": "ACTIVE",
+      "created_at": "2026-10-05T11:00:00+00:00",
+      "target_date": "2026-11-15",
+      "progress_events": [],
+      "metrics": {
+        "signs_documented": 3,
+        "target_signs": 10
+      }
+    }
+  ],
+  "updated_at": "2026-10-08T21:22:43.886778+00:00"
+}

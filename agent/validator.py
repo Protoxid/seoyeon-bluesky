@@ -277,6 +277,18 @@ class ContentValidator:
             if not rep_ok:
                 return False, cleaned, rep_reason
 
+        # 10. Temporal coherence check (prevent claiming future/impossible daily events)
+        if content_type in ("post", "reply"):
+            try:
+                from .narrative_engine import narrative_engine
+                from .context_engine import get_seoul_datetime
+                curr_hour = get_seoul_datetime().hour
+                temp_ok, temp_reason = narrative_engine.validate_temporal_statement(cleaned, curr_hour)
+                if not temp_ok:
+                    return False, cleaned, temp_reason or "Temporal inconsistency"
+            except Exception:
+                pass
+
         return True, cleaned, "Valid"
 
     @classmethod

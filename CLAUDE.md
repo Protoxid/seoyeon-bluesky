@@ -24,7 +24,9 @@ Bluesky is her exclusive window to the social world.
 - `agent/generator.py`: OpenRouter LLM generation (`anthropic/claude-sonnet-5.5` primary, `deepseek-v4.1-flash` fallback) with prompt injection protection and consistent truthful AI disclosure.
 - `agent/image_engine.py`: Kie.ai (`gpt-image-2-5-sunburst-image-to-image`) conditioned on dual master face references (`a1_front.png` + `c5_relax_front.png`) for authentic candid realism without AI gloss.
 - `agent/visual_identity.py`: Punchy, photorealistic prompt generator emphasizing real-world imperfections, flexible hairstyles, and 35mm street photography.
-- `agent/validator.py`: The Critic (verifies zero exclamation marks, anti-repetition Jaccard overlap, cliché frequency quotas, no marketing terms, prompt injection defense, truthful AI disclosure pass-through).
+- `agent/validator.py`: The Critic (verifies zero exclamation marks, anti-repetition Jaccard overlap, cliché frequency quotas, no marketing terms, prompt injection defense, temporal coherence verification, truthful AI disclosure pass-through).
+- `agent/goal_manager.py`: Autonomous goal lifecycle (`PROPOSED`, `ACTIVE`, `IN_PROGRESS`, `COMPLETED`, `PAUSED`, `ABANDONED`) with anti-cliché quotas (≤10% pilates/tea) and automatic keyword activity detection.
+- `agent/narrative_engine.py`: Narrative continuity engine managing open conversational loops, multi-day arcs, and temporal coherence validation.
 - `agent/budget_manager.py`: Atomic budget reservations (`reserve()`, `reconcile()`, `release()`) preventing concurrent overages and double-billing. Hard daily ($2.00) / monthly ($30.00) spending caps.
 - `agent/bsky_client.py`: Full AT Protocol XRPC client for posts, images, replies, quote-posts (`embed.record`), reposts, follows, facets (`#link`, `#tag`), profile updates, and direct messages (`chat.bsky.convo.*`).
 - `agent/notifier.py`: Bidirectional Telegram bridge to her human creator, receiving directives and delivering daily evening check-ins.
@@ -75,6 +77,9 @@ python agent_runner.py --dry-run --force-action PUBLISH_IMAGE_POST
 python agent_runner.py --dry-run --force-action QUOTE_POST
 python agent_runner.py --dry-run --force-action NO_ACTION
 
-# 8. Run automated test suite (103 hermetic tests)
+# 8. Run 30-day deterministic simulation harness
+python scripts/simulate_30_days.py --days 30
+
+# 9. Run automated test suite (124 hermetic tests)
 python -m unittest discover -s tests -p "test_*.py"
 ```
