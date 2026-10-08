@@ -426,12 +426,13 @@ class DecisionEngine:
             raw_scores = {c.action.value: c.score for c in candidates}
             modulated_scores = state_manager.modulate_candidate_scores(raw_scores)
             for c in candidates:
-                c.score = modulated_scores.get(c.action.value, c.score)
+                c.score = max(0.0, min(1.0, round(modulated_scores.get(c.action.value, c.score), 3)))
         except Exception:
-            pass
+            for c in candidates:
+                c.score = max(0.0, min(1.0, round(c.score, 3)))
 
         # -------------------------------------------------------------
-        # Select winning action
+        # Select winning action & Calibrate Action Threshold
         # -------------------------------------------------------------
         # Sort candidates descending by score
         candidates.sort(key=lambda c: c.score, reverse=True)
@@ -441,6 +442,14 @@ class DecisionEngine:
             confidence=1.0,
             reason="No action candidate available."
         )
+
+        # Calibrated organic threshold: external outward actions require meaningful conviction (>= 0.50)
+        EXTERNAL_ACTION_THRESHOLD = 0.50
+        if winner.action != ActionType.NO_ACTION and winner.score < EXTERNAL_ACTION_THRESHOLD:
+            no_action_cand = next((c for c in candidates if c.action == ActionType.NO_ACTION), None)
+            if no_action_cand:
+                winner = no_action_cand
+                winner.reason = f"Organic motivation below threshold ({EXTERNAL_ACTION_THRESHOLD:.2f}). Remaining offline."
 
         score_dict = {c.action.value: round(c.score, 3) for c in candidates}
 

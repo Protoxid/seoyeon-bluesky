@@ -63,6 +63,9 @@ def run_tick(
 ) -> int:
     is_dry = dry_run if dry_run is not None else config.dry_run
 
+    from .vault import vault
+    vault.load_vault()
+
     print_header(f"SEO-YEON HAN — AUTONOMOUS SOCIAL AGENT TICK {'[DRY-RUN]' if is_dry else '[LIVE]'}")
 
     # 1. Check Operational Status
@@ -320,12 +323,56 @@ def run_tick(
             bsky_client.update_seen()
 
     elif outcome.selected_action == ActionType.ANSWER_DM:
-        convo_id = outcome.target_data.get("convo_id")
+        convo_id = outcome.target_data.get("convo_id", "")
         handle = outcome.target_data.get("handle", "user")
         profile = outcome.target_data.get("profile") or memory_store.get_user_profile(handle)
+        last_msg_id = outcome.target_data.get("last_message_id", "")
 
         print(f"\n[Processing Direct Message Thread with @{handle}...]")
-        raw_msgs = bsky_client.get_convo_messages(convo_id, limit=10)
+
+        # 1. Pre-execution Safety: Verify message not already handled in memory
+        if last_msg_id and memory_store.has_replied_to_dm(last_msg_id):
+            print(f"  [SAFETY ABORT] Direct message {last_msg_id} already marked handled in memory. Preventing duplicate reply.")
+            executed = True
+            result_details = {"status": "aborted_duplicate_dm", "last_message_id": last_msg_id}
+            now_iso = dt.datetime.now(dt.timezone.utc).isoformat()
+            log_tick({
+                "ts": now_iso,
+                "seoul_time": context.seoul_time_display,
+                "action": "NO_ACTION",
+                "reason": f"Safety abort: already replied to @{handle}'s message ({last_msg_id}).",
+                "dry_run": is_dry,
+                "executed": True,
+                "details": result_details,
+                "budget": budget_manager.get_summary(),
+            })
+            return 0
+
+        raw_msgs = bsky_client.get_convo_messages(convo_id, limit=10) if convo_id else []
+
+        # 2. Pre-execution Safety: Verify last message was not sent by Seo-yeon
+        if raw_msgs:
+            newest = raw_msgs[-1] if isinstance(raw_msgs, list) else {}
+            newest_sender_did = newest.get("sender", {}).get("did", "")
+            if bsky_client.did and newest_sender_did == bsky_client.did:
+                print(f"  [SAFETY ABORT] Most recent message in convo {convo_id} was already sent by Seo-yeon. Preventing double response.")
+                if last_msg_id and not is_dry:
+                    memory_store.mark_dm_handled(last_msg_id)
+                executed = True
+                result_details = {"status": "aborted_already_sent_by_self", "convo_id": convo_id}
+                now_iso = dt.datetime.now(dt.timezone.utc).isoformat()
+                log_tick({
+                    "ts": now_iso,
+                    "seoul_time": context.seoul_time_display,
+                    "action": "NO_ACTION",
+                    "reason": f"Safety abort: already sent last message in conversation with @{handle}.",
+                    "dry_run": is_dry,
+                    "executed": True,
+                    "details": result_details,
+                    "budget": budget_manager.get_summary(),
+                })
+                return 0
+
         dm_history = []
         for m in raw_msgs:
             dm_history.append({
@@ -336,7 +383,7 @@ def run_tick(
         reply_text, model_used = generator.generate_dm_reply(dm_history, profile, context)
         print(f"  Draft DM ({model_used}): \"{reply_text}\"")
 
-        if not reply_text or model_used in ("failed", "fallback"):
+        if not reply_text or model_used in ("failed", "fallback", "budget_exceeded"):
             print(f"  [RESTRAINT ABORT] Could not formulate authentic DM response. Remaining silent.")
             executed = True
             result_details = {"status": "aborted_generation_failed", "convo_id": convo_id}
@@ -354,19 +401,38 @@ def run_tick(
             return 0
 
         res = bsky_client.send_dm(convo_id, reply_text)
-        if res:
+        is_delivered = False
+        if res and (res.get("id") or res.get("simulated")):
+            is_delivered = True
+        elif not is_dry and convo_id:
+            # Uncertain delivery outcome (e.g. timeout during HTTP request). Verify if message appeared on thread
+            print(f"  [VERIFYING DELIVERY] Checking if message reached server despite uncertain HTTP response...")
+            recent_msgs = bsky_client.get_convo_messages(convo_id, limit=3)
+            for m in recent_msgs:
+                if m.get("text") == reply_text and m.get("sender", {}).get("did") == bsky_client.did:
+                    is_delivered = True
+                    res = {"id": m.get("id")}
+                    print(f"  [DELIVERY CONFIRMED] Message was successfully posted to convo.")
+                    break
+
+        if is_delivered:
             print(f"  [SUCCESS] Direct Message Sent to @{handle}")
-            last_msg_id = outcome.target_data.get("last_message_id", "")
             sent_msg_id = res.get("id") or last_msg_id
             if convo_id and (sent_msg_id or last_msg_id):
                 bsky_client.mark_convo_read(convo_id, sent_msg_id or last_msg_id)
-            if last_msg_id:
-                memory_store.mark_dm_handled(last_msg_id)
             if not is_dry:
-                memory_store.record_user_interaction(handle, dm_history[-1]["text"] if dm_history else "", reply_text, "dm")
-                budget_manager.record_spend(0.002, "dm", f"to @{handle}")
+                if last_msg_id:
+                    memory_store.mark_dm_handled(last_msg_id)
+                if sent_msg_id:
+                    memory_store.mark_dm_handled(sent_msg_id)
+                memory_store.record_user_interaction(handle, "[private direct message]", "[private direct message reply]", "dm")
+                vault.append_private_dm(convo_id, handle, dm_history[-1]["text"] if dm_history else "", reply_text)
             executed = True
             result_details = {"dm_sent": True, "to": handle, "text": reply_text}
+        else:
+            print(f"  [ERROR] DM delivery to @{handle} failed or uncertain. Leaving message unhandled for next tick.")
+            executed = False
+            result_details = {"dm_sent": False, "to": handle, "error": "delivery_failed_or_uncertain"}
 
     elif outcome.selected_action == ActionType.BROWSE_AND_LIKE:
         post = outcome.target_data.get("post", {})
@@ -568,6 +634,9 @@ def run_tick(
     # 9. End-of-Day Evening Check-in & Catch-up to My Master
     notifier.check_and_send_evening_summary(context, dry_run=is_dry)
 
+    # 10. Persist Encrypted Private Vault
+    vault.save_vault()
+
     print("=" * 65 + "\n")
     return 0
 
@@ -673,9 +742,12 @@ def main() -> int:
         return 0
 
     if args.consolidate:
+        from .vault import vault
+        vault.load_vault()
         context = build_environment_context()
         from .consolidator import consolidator
         res = consolidator.consolidate(context, dry_run=args.dry_run, force=True)
+        vault.save_vault()
         return 0 if res.get("status") in ("success", "already_consolidated") else 1
 
     if args.ask_master:

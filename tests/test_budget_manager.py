@@ -48,6 +48,38 @@ class TestBudgetManager(unittest.TestCase):
         self.assertFalse(can_img_now)
         self.assertIn("Daily image limit reached", reason)
 
+    def test_calculate_token_cost(self):
+        # Claude Sonnet 5.5: $3.00/M prompt, $15.00/M completion
+        # 1,000 prompt tokens = $0.003, 1,000 completion tokens = $0.015 -> $0.018
+        cost = self.mgr.calculate_token_cost("anthropic/claude-sonnet-5.5", 1000, 1000)
+        self.assertAlmostEqual(cost, 0.018, places=5)
+
+        # DeepSeek Flash: $0.14/M prompt, $0.28/M completion
+        # 10,000 prompt tokens = $0.0014, 10,000 completion tokens = $0.0028 -> $0.0042
+        cost_ds = self.mgr.calculate_token_cost("deepseek-v4.1-flash", 10000, 10000)
+        self.assertAlmostEqual(cost_ds, 0.0042, places=5)
+
+    def test_record_token_usage(self):
+        cost = self.mgr.record_token_usage(
+            model="anthropic/claude-sonnet-5.5",
+            prompt_tokens=500,
+            completion_tokens=100,
+            action_type="post_text",
+            details="test post generation",
+        )
+        self.assertGreater(cost, 0.0)
+
+        summary = self.mgr.get_summary()
+        self.assertGreater(summary["daily_spend_usd"], 0.0)
+        self.assertEqual(summary["daily_tokens"], 600)
+        self.assertEqual(summary["monthly_tokens"], 600)
+
+    def test_record_image_spend(self):
+        cost = self.mgr.record_image_spend(model="gpt-image-2-5-sunburst", details="street selfie")
+        self.assertEqual(cost, 0.045)
+        summary = self.mgr.get_summary()
+        self.assertEqual(summary["daily_images_count"], 1)
+
 
 if __name__ == "__main__":
     unittest.main()

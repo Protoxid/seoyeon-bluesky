@@ -171,6 +171,10 @@ class StateManager:
             if "PUBLISH_IMAGE_POST" in modulated:
                 modulated["PUBLISH_IMAGE_POST"] = max(0.0, modulated["PUBLISH_IMAGE_POST"] - 0.20)
 
+        # Ensure all scores remain strictly within normalized [0.0, 1.0] interval
+        for k in modulated:
+            modulated[k] = max(0.0, min(1.0, round(modulated[k], 3)))
+
         return modulated
 
     def format_prompt_state(self) -> str:

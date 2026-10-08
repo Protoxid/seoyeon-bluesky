@@ -51,6 +51,7 @@ jobs:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          DATA_ENCRYPTION_KEY: ${{ secrets.DATA_ENCRYPTION_KEY || secrets.BSKY_APP_PASSWORD }}
           DRY_RUN: ${{ github.event.inputs.dry_run }}
 
         run: |
@@ -77,8 +78,8 @@ jobs:
                    data/memory/recent_context.json \
                    data/memory/agent_state.json \
                    data/memory/weekly_schedule.json \
-                   data/memory/private_journal.jsonl \
                    data/memory/active_goals.json \
+                   data/vault.enc \
                    data/logs/tick_history.jsonl \
                    data/budget_ledger.json \
                    data/weather_cache.json; do
