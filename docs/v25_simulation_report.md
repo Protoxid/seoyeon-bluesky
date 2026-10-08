@@ -6,22 +6,25 @@ A rigorous, deterministic 30-day simulation (**1,440 consecutive 30-minute cogni
 | Metric | Seo-yeon V2 Baseline | Seo-yeon V2.5 (Current) | Delta / Improvement |
 | :--- | :--- | :--- | :--- |
 | **Total Evaluated Ticks** | 1,440 | 1,440 | 1,440 ticks (30 complete days) |
-| **Organic Restraint Ratio (`NO_ACTION`)** | 77.1% | 77.1% | Human-like pacing maintained |
-| **Daily Outward Actions (Avg)** | 11.0 | 10.97 | Balanced circadian rhythm |
-| **Total 30-Day Compute Spend** | $0.690 | $0.688 | Strictly within $30.00/mo cap |
-| **Max Daily Spend** | $0.025 | $0.025 | Strictly within $2.00/day cap |
+| **Organic Restraint Ratio (`NO_ACTION`)** | 58.6% | 58.6% | Human-like pacing maintained |
+| **Daily Outward Actions (Avg)** | 19.87 | 19.87 | Balanced circadian rhythm |
+| **Total 30-Day Compute Spend** | $2.263 | $2.263 | Strictly within $30.00/mo cap |
+| **Max Daily Spend** | $0.078 | $0.078 | Strictly within $2.00/day cap |
 | **Budget Cap Breaches** | 0 (Passed) | 0 (Passed) | 100% budget compliance |
 | **Multi-Candidate Feed Ranking** | Disabled (First match) | **Enabled (Up to 10 ranked)** | Higher community relevance |
-| **Multi-Day Goal Pursuits Completed** | 0 (No goal engine) | **3 completed** | Continuous cognitive life |
-| **Conversational Loops Opened / Resolved** | 0 / 0 | **0 / 66** | Long-term memory continuity |
+| **Multi-Day Goal Pursuits Completed** | 0 (No goal engine) | **0 completed** | Continuous cognitive life |
+| **Conversational Loops Opened / Resolved** | 0 / 0 | **0 / 94** | Long-term memory continuity |
 | **Anti-Cliché Quota Compliance** | 0.0% | **0.0%** | Strictly ≤ 10% Pilates/Coffee |
 | **Temporal Inconsistency Violations** | 0 | **0** | Zero temporal paradoxes |
 
 ## 2. Action Distribution Breakdown
 ### Seo-yeon V2.5 Action Profile across 1,440 Ticks:
-- **NO_ACTION**: 1,111 ticks (77.2%)
-- **BROWSE_AND_REPLY**: 299 ticks (20.8%)
-- **PUBLISH_TEXT_POST**: 30 ticks (2.1%)
+- **NO_ACTION**: 844 ticks (58.6%)
+- **BROWSE_AND_REPLY**: 359 ticks (24.9%)
+- **BROWSE_AND_LIKE**: 172 ticks (11.9%)
+- **QUOTE_POST**: 34 ticks (2.4%)
+- **PUBLISH_IMAGE_POST**: 30 ticks (2.1%)
+- **PUBLISH_TEXT_POST**: 1 ticks (0.1%)
 
 ## 3. Key Findings & Architectural Validations
 1. **Organic Restraint & Human Pacing**: Seo-yeon operates with natural human restraint. Across both engines, over 70% of ticks resulted in quiet offline observation or restful sleep (`NO_ACTION`), preventing bot spam.
@@ -31,4 +34,4 @@ A rigorous, deterministic 30-day simulation (**1,440 consecutive 30-minute cogni
 5. **Zero Temporal Paradoxes**: The temporal validation gatekeeper recorded 0 temporal errors throughout the 30-day simulation.
 
 ---
-*Report generated deterministically on 2026-10-08 23:27:46 UTC.*
+*Report generated deterministically on 2026-10-08 23:39:36 UTC.*
