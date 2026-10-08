@@ -46,7 +46,16 @@ class TestDmReliability(unittest.TestCase):
         vault._load_error = None
         set_encryption_key_override("test_dm_reliability_key")
 
+        from agent.config import config
+        self.orig_app_pwd = config.bsky_app_password
+        self.orig_handle = config.bsky_handle
+        config.bsky_app_password = config.bsky_app_password or "test_mock_app_pwd"
+        config.bsky_handle = config.bsky_handle or "syeonhn.bsky.social"
+
     def tearDown(self):
+        from agent.config import config
+        config.bsky_app_password = self.orig_app_pwd
+        config.bsky_handle = self.orig_handle
         memory_store.recent_context_file = self.orig_ctx_file
         memory_store.users_file = self.orig_users_file
         import agent.runner as runner_module

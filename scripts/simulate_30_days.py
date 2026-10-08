@@ -31,6 +31,7 @@ from agent.decision_engine import ActionType, DecisionEngine
 from agent.goal_manager import GoalCategory, GoalManager
 from agent.memory_store import MemoryStore, UserProfile
 from agent.narrative_engine import NarrativeContinuityEngine
+from agent.state_manager import StateManager
 
 
 SIM_START_TIME = dt.datetime(2026, 10, 1, 0, 0, tzinfo=dt.timezone(dt.timedelta(hours=9)))
@@ -60,9 +61,20 @@ class SimulationRunner:
         
         # Isolated memory & state
         self.mem_store = MemoryStore(memory_dir=self.temp_dir)
-        self.goal_mgr = GoalManager(storage_file=self.temp_dir / "active_goals.json")
-        self.narrative_eng = NarrativeContinuityEngine(storage_file=self.temp_dir / "narrative_state.json")
-        self.engine = DecisionEngine()
+        self.state_mgr = StateManager(state_file=self.temp_dir / "agent_state.json")
+        if self.run_mode == "v2":
+            # Baseline V2: no persistent goals, no conversational loops, single candidate feed
+            empty_goals_file = self.temp_dir / "empty_goals.json"
+            empty_goals_file.write_text(json.dumps({"goals": []}), encoding="utf-8")
+            empty_narrative_file = self.temp_dir / "empty_narrative.json"
+            empty_narrative_file.write_text(json.dumps({"open_loops": [], "narrative_arcs": []}), encoding="utf-8")
+            self.goal_mgr = GoalManager(storage_file=empty_goals_file)
+            self.narrative_eng = NarrativeContinuityEngine(storage_file=empty_narrative_file)
+            self.engine = DecisionEngine(goal_mgr=self.goal_mgr, narrative_eng=self.narrative_eng, mem_store=self.mem_store, state_mgr=self.state_mgr)
+        else:
+            self.goal_mgr = GoalManager(storage_file=self.temp_dir / "active_goals.json")
+            self.narrative_eng = NarrativeContinuityEngine(storage_file=self.temp_dir / "narrative_state.json")
+            self.engine = DecisionEngine(goal_mgr=self.goal_mgr, narrative_eng=self.narrative_eng, mem_store=self.mem_store, state_mgr=self.state_mgr)
         
         # Accounting & metrics tracking
         self.total_ticks = 0
@@ -107,8 +119,20 @@ class SimulationRunner:
                 dms_today = 0
                 likes_today = 0
 
+                # In V2.5, daily life cycles advance personal pursuits and domestic arcs
+                if self.run_mode == "v25":
+                    self.goal_mgr.advance_active_goals_daily(days_elapsed=1)
+                    self.narrative_eng.advance_arcs_daily(days_elapsed=1)
+                
+                # Nightly biological recovery
+                st = self.state_mgr.get_state()
+                st.social_battery = 0.90
+                st.physical_fatigue = 0.15
+                self.state_mgr.save_state(st)
+
             hour = curr_time.hour
             circadian = self._get_circadian(hour)
+            self.state_mgr.update_circadian_dynamics(hour, curr_time.day)
             hours_since_last_post = (curr_time - last_post_time).total_seconds() / 3600.0
             hours_since_last_action = (curr_time - last_action_time).total_seconds() / 3600.0
 
@@ -143,7 +167,6 @@ class SimulationRunner:
             dms = self._generate_dm_stimulus(curr_time)
             notifs = []
 
-            # In V2 mode, mock that goal_manager has no goals and narrative engine is empty
             if self.run_mode == "v2":
                 mock_goals = []
             else:
@@ -157,6 +180,7 @@ class SimulationRunner:
                 dms=dms,
                 feed_items=feed_items,
                 can_image=can_image,
+                max_feed_candidates=1 if self.run_mode == "v2" else 10,
             )
 
             action = outcome.selected_action.value
@@ -195,24 +219,41 @@ class SimulationRunner:
                 last_action_time = curr_time
                 post_target = outcome.target_data.get("post", {})
                 author = post_target.get("author", {}).get("handle", "")
+                inbound_text = post_target.get("record", {}).get("text", "")
                 reply_text = f"@{author} that makes sense. line 2 river crossing has quiet rhythm."
+                if "recommend" in inbound_text.lower() or "cafe" in inbound_text.lower():
+                    reply_text = f"@{author} if you find that quiet table near ttukseom, let me know. i will check it next week."
                 self.total_generated_texts.append(reply_text)
                 self._check_cliche(reply_text)
                 if self.run_mode == "v25":
-                    # Check if loop resolution
-                    if "han kang" in post_target.get("record", {}).get("text", "").lower():
-                        self.loops_resolved += 1
+                    opened, resolved = self.narrative_eng.detect_and_manage_loops(
+                        partner_identifier=author,
+                        partner_handle=author,
+                        inbound_text=inbound_text,
+                        reply_text=reply_text,
+                        dry_run=False,
+                    )
+                    self.loops_opened += len(opened)
+                    self.loops_resolved += len(resolved)
 
             elif outcome.selected_action == ActionType.ANSWER_DM:
                 cost = 0.002
                 dms_today += 1
                 last_action_time = curr_time
-                dm_text = "thanks for the book recommendation. i will look for it this weekend."
+                inbound_text = "hey seo-yeon, can you recommend a good book to read on the subway Line 2 loop?"
+                dm_text = "i will check the secondhand bookstore near konkuk station this weekend and let you know."
                 self.total_generated_texts.append(dm_text)
                 self._check_cliche(dm_text)
                 if self.run_mode == "v25":
-                    self.loops_opened += 1
-                    self.narrative_eng.open_loop("did:plc:dm_friend", "dm_friend", "weekend book search", "promise_to_check", "checking secondhand shop")
+                    opened, resolved = self.narrative_eng.detect_and_manage_loops(
+                        partner_identifier="friendly_mutual.bsky.social",
+                        partner_handle="friendly_mutual.bsky.social",
+                        inbound_text=inbound_text,
+                        reply_text=dm_text,
+                        dry_run=False,
+                    )
+                    self.loops_opened += len(opened)
+                    self.loops_resolved += len(resolved)
 
             elif outcome.selected_action == ActionType.BROWSE_AND_LIKE:
                 likes_today += 1
@@ -229,6 +270,9 @@ class SimulationRunner:
             elif outcome.selected_action == ActionType.REPOST:
                 last_action_time = curr_time
 
+            if action != "NO_ACTION":
+                self.state_mgr.consume_interaction(action)
+
             # Record spend
             self.daily_spend_usd += cost
             self.monthly_spend_usd += cost
@@ -242,10 +286,9 @@ class SimulationRunner:
 
         # Goal completion count
         if self.run_mode == "v25":
-            for g in self.goal_mgr.get_all_goals():
-                if len(g.progress_events) >= 3:
-                    self.goal_mgr.complete_goal(g.goal_id)
             self.goals_completed = sum(1 for g in self.goal_mgr.get_all_goals() if g.status == "COMPLETED")
+        else:
+            self.goals_completed = 0
 
         # Compile metrics
         total_external_actions = sum(v for k, v in self.actions_count.items() if k != "NO_ACTION")
@@ -304,8 +347,8 @@ class SimulationRunner:
         return res
 
     def _generate_dm_stimulus(self, curr_time: dt.datetime) -> List[Dict[str, Any]]:
-        # Occasional unread DM (e.g. 1 in 80 ticks during waking hours)
-        if curr_time.hour >= 9 and curr_time.hour <= 22 and random.random() < 0.012:
+        # Occasional unread DM from a mutual during waking hours (approx once every 1.5 - 2 days)
+        if 10 <= curr_time.hour <= 21 and random.random() < 0.025:
             return [{
                 "id": f"convo_{curr_time.strftime('%Y%m%d%H%M')}",
                 "unreadCount": 1,
@@ -315,7 +358,7 @@ class SimulationRunner:
                 ],
                 "lastMessage": {
                     "id": f"msg_{curr_time.timestamp()}",
-                    "text": "hey seo-yeon, did you get a chance to read that han kang novel?",
+                    "text": "hey seo-yeon, can you recommend a good book to read on the subway Line 2 loop?",
                     "sender": {"handle": "friendly_mutual.bsky.social"},
                 }
             }]
@@ -359,15 +402,23 @@ def generate_comparative_report(v2_res: Dict[str, Any], v25_res: Dict[str, Any])
         f"| **Total 30-Day Compute Spend** | ${v2_res['total_spend_usd']:.3f} | ${v25_res['total_spend_usd']:.3f} | Strictly within $30.00/mo cap |",
         f"| **Max Daily Spend** | ${v2_res['max_daily_spend']:.3f} | ${v25_res['max_daily_spend']:.3f} | Strictly within $2.00/day cap |",
         f"| **Budget Cap Breaches** | {'YES' if v2_res['budget_cap_breached'] else '0 (Passed)'} | {'YES' if v25_res['budget_cap_breached'] else '0 (Passed)'} | 100% budget compliance |",
-        f"| **Multi-Candidate Feed Ranking** | Disabled (First match) | **Enabled (Up to 10 ranked)** | Higher community relevance |",
-        f"| **Multi-Day Goal Pursuits Completed** | 0 (No goal engine) | **{v25_res['goals_completed']} completed** | Continuous cognitive life |",
-        f"| **Conversational Loops Opened / Resolved** | 0 / 0 | **{v25_res['loops_opened']} / {v25_res['loops_resolved']}** | Long-term memory continuity |",
+        f"| **Multi-Candidate Feed Ranking** | Disabled (Single candidate) | **Enabled (Up to 10 ranked)** | Higher community relevance |",
+        f"| **Multi-Day Goal Pursuits Completed** | {v2_res['goals_completed']} (No goal engine) | **{v25_res['goals_completed']} completed** | Continuous cognitive life |",
+        f"| **Conversational Loops Opened / Resolved** | {v2_res['loops_opened']} / {v2_res['loops_resolved']} | **{v25_res['loops_opened']} / {v25_res['loops_resolved']}** | Long-term memory continuity |",
         f"| **Anti-Cliché Quota Compliance** | {v2_res['cliche_ratio'] * 100:.1f}% | **{v25_res['cliche_ratio'] * 100:.1f}%** | Strictly ≤ 10% Pilates/Coffee |",
         f"| **Temporal Inconsistency Violations** | {v2_res['temporal_coherence_failures']} | **{v25_res['temporal_coherence_failures']}** | Zero temporal paradoxes |",
         "",
         "## 2. Action Distribution Breakdown",
-        "### Seo-yeon V2.5 Action Profile across 1,440 Ticks:",
+        "### Seo-yeon V2 Baseline Action Profile across 1,440 Ticks:",
     ]
+    for action, count in sorted(v2_res["actions_breakdown"].items(), key=lambda x: x[1], reverse=True):
+        pct = (count / v2_res["total_ticks"]) * 100
+        md.append(f"- **{action}**: {count:,} ticks ({pct:.1f}%)")
+
+    md.extend([
+        "",
+        "### Seo-yeon V2.5 Action Profile across 1,440 Ticks:",
+    ])
     for action, count in sorted(v25_res["actions_breakdown"].items(), key=lambda x: x[1], reverse=True):
         pct = (count / v25_res["total_ticks"]) * 100
         md.append(f"- **{action}**: {count:,} ticks ({pct:.1f}%)")
@@ -375,14 +426,14 @@ def generate_comparative_report(v2_res: Dict[str, Any], v25_res: Dict[str, Any])
     md.extend([
         "",
         "## 3. Key Findings & Architectural Validations",
-        "1. **Organic Restraint & Human Pacing**: Seo-yeon operates with natural human restraint. Across both engines, over 70% of ticks resulted in quiet offline observation or restful sleep (`NO_ACTION`), preventing bot spam.",
-        "2. **Goal Continuity & Coherent Life Projects**: In V2.5, she actively advanced persistent pursuits (Han Kang novel reading, water propagating ivy cuttings, documenting typography signboards), completing 2 multi-day goals with full metric audit logs.",
-        "3. **Conversational Loops**: V2.5 successfully opened and tracked user commitments across separate runner ticks without state corruption, eliminating amnesia in user conversations.",
-        "4. **Financial Hardening**: Across 1,440 ticks, total compute expenditure was strictly controlled (averaging ~$0.02 - $0.05/day), never breaching the $2.00 daily or $30.00 monthly cap.",
-        "5. **Zero Temporal Paradoxes**: The temporal validation gatekeeper recorded 0 temporal errors throughout the 30-day simulation.",
+        f"1. **Organic Restraint & Human Pacing**: Seo-yeon operates with natural human restraint. Across the 30-day simulation, {v25_res['restraint_ratio'] * 100:.1f}% of ticks in V2.5 resulted in quiet offline observation or restful sleep (`NO_ACTION`), avoiding robotic spam.",
+        f"2. **Goal Continuity & Coherent Life Projects**: In V2.5, she actively advanced persistent pursuits (Han Kang novel reading, water propagating ivy cuttings, documenting typography signboards), completing {v25_res['goals_completed']} multi-day goals with full metric audit logs (compared to {v2_res['goals_completed']} in baseline V2).",
+        f"3. **Conversational Loops**: V2.5 successfully opened {v25_res['loops_opened']} conversational loops and resolved {v25_res['loops_resolved']} user commitments across separate runner ticks without state corruption, eliminating amnesia in user conversations.",
+        f"4. **Financial Hardening**: Across 1,440 ticks, total compute expenditure was strictly controlled (${v25_res['total_spend_usd']:.3f} total, max ${v25_res['max_daily_spend']:.3f}/day), never breaching the $2.00 daily or $30.00 monthly cap.",
+        f"5. **Zero Temporal Paradoxes**: The temporal validation gatekeeper recorded {v25_res['temporal_coherence_failures']} temporal errors throughout the 30-day simulation.",
         "",
         "---",
-        f"*Report generated deterministically on {dt.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} UTC.*",
+        f"*Report generated deterministically on {dt.datetime.now(dt.timezone.utc).strftime('%Y-%m-%d %H:%M:%S')} UTC.*",
     ])
     return "\n".join(md)
 

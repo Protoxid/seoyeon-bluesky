@@ -129,6 +129,14 @@ class NarrativeContinuityEngine:
         self.storage_file = storage_file or NARRATIVE_STATE_FILE
         self._ensure_storage()
 
+    @property
+    def state_file(self) -> pathlib.Path:
+        return self.storage_file
+
+    @state_file.setter
+    def state_file(self, value: pathlib.Path) -> None:
+        self.storage_file = value
+
     def _ensure_storage(self) -> None:
         if not self.storage_file.exists():
             self.storage_file.parent.mkdir(parents=True, exist_ok=True)
@@ -230,6 +238,75 @@ class NarrativeContinuityEngine:
             lines.append(f"- [{l.loop_type}] Topic: {l.topic} (Context: {l.context_note})")
         return "\n".join(lines)
 
+    def detect_and_manage_loops(
+        self,
+        partner_identifier: str,
+        partner_handle: str,
+        inbound_text: str,
+        reply_text: str,
+        dry_run: bool = False,
+    ) -> Tuple[List[str], List[str]]:
+        """
+        Automatically inspects inbound text and Seo-yeon's reply to:
+        1. Resolve any existing open loops with this partner that are now addressed.
+        2. Open a new conversational loop if a promise, question, or recommendation was made.
+        Returns (opened_loop_ids, resolved_loop_ids).
+        """
+        opened_ids: List[str] = []
+        resolved_ids: List[str] = []
+
+        clean_handle = partner_handle.lstrip("@").strip()
+        inbound_lower = inbound_text.lower()
+        reply_lower = reply_text.lower()
+
+        # 1. Resolve existing open loops if addressed
+        existing_loops = self.get_open_loops_for_user(partner_identifier, clean_handle)
+        for loop in existing_loops:
+            topic_tokens = [w.lower() for w in re.findall(r"\w+", loop.topic) if len(w) > 3]
+            topic_matched = any(t in reply_lower or t in inbound_lower for t in topic_tokens)
+            if topic_matched or len(existing_loops) == 1:
+                if not dry_run:
+                    self.resolve_loop(loop.loop_id, resolution_note=f"Addressed in reply: {reply_text[:100]}")
+                resolved_ids.append(loop.loop_id)
+
+        # 2. Detect if a new loop should be opened
+        recom_triggers = ("recommend", "should read", "check out", "listen to", "what do you think of", "have you tried", "추천", "들어봐", "읽어봐", "가봐", "어때")
+        promise_triggers = ("i will read", "i'll read", "i'll check", "will check", "will listen", "let me try", "i will look", "look for it", "읽어볼게", "찾아볼게", "다음에 가볼게", "들어볼게", "알려줄게")
+
+        is_recom = any(t in inbound_lower for t in recom_triggers)
+        is_promise = any(t in reply_lower for t in promise_triggers)
+
+        if is_recom or is_promise:
+            topic = "shared recommendation"
+            if "book" in inbound_lower or "novel" in inbound_lower or "책" in inbound_lower or "소설" in inbound_lower:
+                topic = "book recommendation"
+            elif "movie" in inbound_lower or "film" in inbound_lower or "영화" in inbound_lower:
+                topic = "film recommendation"
+            elif "cafe" in inbound_lower or "coffee" in inbound_lower or "tea" in inbound_lower or "카페" in inbound_lower:
+                topic = "cafe recommendation"
+            elif "music" in inbound_lower or "song" in inbound_lower or "album" in inbound_lower or "음악" in inbound_lower:
+                topic = "music recommendation"
+            else:
+                words = inbound_text.split()
+                if len(words) >= 3:
+                    topic = " ".join(words[:4])
+
+            loop_type = "recommendation_received" if is_recom else "promise_to_check"
+            context_note = f"User: '{inbound_text[:60]}', Seo-yeon: '{reply_text[:60]}'"
+            if not dry_run:
+                loop = self.open_loop(
+                    partner_identifier=partner_identifier,
+                    partner_handle=clean_handle,
+                    topic=topic,
+                    loop_type=loop_type,
+                    context_note=context_note,
+                )
+                opened_ids.append(loop.loop_id)
+            else:
+                opened_ids.append("simulated_loop")
+
+        return opened_ids, resolved_ids
+
     # --- Multi-Day Narrative Arcs ---
 
     def get_active_narrative_arcs(self) -> List[NarrativeArc]:
@@ -255,6 +332,52 @@ class NarrativeContinuityEngine:
         if updated:
             self._save_raw(data)
         return updated
+
+    def advance_arcs_daily(self, days_elapsed: int = 1, dry_run: bool = False) -> List[str]:
+        """
+        Advances active multi-day narrative arcs (persimmons drying, ceramics seasoning, etc.)
+        as natural calendar days pass during nightly consolidation. Appends milestones when
+        stages are reached, and marks arcs CONCLUDED when finished.
+        """
+        data = self._load_raw()
+        arcs = data.get("narrative_arcs", [])
+        advanced_notes: List[str] = []
+        today_str = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%d")
+
+        for arc in arcs:
+            if arc.get("status") != "ACTIVE":
+                continue
+
+            aid = arc.get("arc_id", "")
+            milestones = arc.get("milestones", [])
+            stage_count = len(milestones)
+
+            if aid == "arc_autumn_persimmon_curtain":
+                stages = [
+                    "Skin has formed a leathery translucent coat; gently massaged the fruit by the window.",
+                    "Fruit has deepened into rich amber; pulp softening nicely in the crisp autumn breeze.",
+                    "Delicate crystalline white sugar bloom (si-seong) beginning to dust the dried skin.",
+                    "Fully cured dried persimmons (gotgam); sliced one with warm roasted barley tea.",
+                ]
+                idx = stage_count - 1
+                if 0 <= idx < len(stages):
+                    next_note = stages[idx]
+                    if not dry_run:
+                        milestones.append({"date": today_str, "note": next_note})
+                        arc["milestones"] = milestones
+                        if idx == len(stages) - 1:
+                            arc["status"] = "CONCLUDED"
+                    advanced_notes.append(f"{arc.get('title')}: {next_note}")
+            else:
+                if stage_count >= 4:
+                    if not dry_run:
+                        arc["status"] = "CONCLUDED"
+                    advanced_notes.append(f"{arc.get('title')}: Concluded naturally after multiple milestones.")
+
+        if advanced_notes and not dry_run:
+            self._save_raw(data)
+
+        return advanced_notes
 
     def format_narrative_arcs_context(self) -> str:
         """Formats active narrative arcs for LLM generation context."""

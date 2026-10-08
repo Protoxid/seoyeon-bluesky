@@ -365,6 +365,13 @@ def run_tick(
                     notification_uri=notif.get("uri", "")
                 )
                 goal_manager.detect_and_record_goal_activity(reply_text, post_uri=res.get("uri"))
+                narrative_engine.detect_and_manage_loops(
+                    partner_identifier=notif.get("author", {}).get("did", target_author),
+                    partner_handle=target_author,
+                    inbound_text=user_text,
+                    reply_text=reply_text,
+                    dry_run=is_dry,
+                )
             executed = True
             result_details = {"reply_uri": res.get("uri"), "reply_text": reply_text}
 
@@ -476,6 +483,13 @@ def run_tick(
                     memory_store.mark_dm_handled(sent_msg_id)
                 memory_store.record_user_interaction(handle, "[private direct message]", "[private direct message reply]", "dm")
                 vault.append_private_dm(convo_id, handle, dm_history[-1]["text"] if dm_history else "", reply_text)
+                narrative_engine.detect_and_manage_loops(
+                    partner_identifier=convo_id or handle,
+                    partner_handle=handle,
+                    inbound_text=dm_history[-1]["text"] if dm_history else "",
+                    reply_text=reply_text,
+                    dry_run=is_dry,
+                )
             executed = True
             result_details = {"dm_sent": True, "to": handle, "char_count": len(reply_text)}
         else:
@@ -588,6 +602,13 @@ def run_tick(
                     notification_uri=target_uri
                 )
                 goal_manager.detect_and_record_goal_activity(reply_text, post_uri=res.get("uri"))
+                narrative_engine.detect_and_manage_loops(
+                    partner_identifier=post.get("author", {}).get("did", target_author),
+                    partner_handle=target_author,
+                    inbound_text=user_text,
+                    reply_text=reply_text,
+                    dry_run=is_dry,
+                )
             executed = True
             result_details = {"reply_uri": res.get("uri"), "reply_text": reply_text}
 

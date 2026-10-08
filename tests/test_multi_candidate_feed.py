@@ -20,6 +20,7 @@ from agent.decision_engine import ActionType, DecisionEngine
 from agent.goal_manager import GoalManager
 from agent.memory_store import UserProfile, memory_store
 from agent.narrative_engine import NarrativeContinuityEngine
+from agent.state_manager import state_manager
 
 
 class TestMultiCandidateFeed(unittest.TestCase):
@@ -29,20 +30,29 @@ class TestMultiCandidateFeed(unittest.TestCase):
         self.narrative_file = self.test_dir / "narrative_state.json"
         self.users_file = self.test_dir / "user_memory.json"
         self.recent_ctx_file = self.test_dir / "recent_context.json"
+        self.state_file = self.test_dir / "agent_state.json"
 
         self.orig_users_file = memory_store.users_file
         self.orig_ctx_file = memory_store.recent_context_file
+        self.orig_state_file = state_manager.state_file
+        self.orig_state = state_manager._state
+
         memory_store.users_file = self.users_file
         memory_store.recent_context_file = self.recent_ctx_file
         memory_store._init_defaults()
 
+        state_manager.state_file = self.state_file
+        state_manager._state = None
+
         self.goal_mgr = GoalManager(storage_file=self.goals_file)
         self.narrative_eng = NarrativeContinuityEngine(storage_file=self.narrative_file)
-        self.engine = DecisionEngine()
+        self.engine = DecisionEngine(goal_mgr=self.goal_mgr, narrative_eng=self.narrative_eng, mem_store=memory_store)
 
     def tearDown(self):
         memory_store.users_file = self.orig_users_file
         memory_store.recent_context_file = self.orig_ctx_file
+        state_manager.state_file = self.orig_state_file
+        state_manager._state = self.orig_state
         shutil.rmtree(self.test_dir, ignore_errors=True)
 
     def test_multi_candidate_ranking_selects_most_relevant_post(self):

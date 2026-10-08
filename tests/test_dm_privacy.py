@@ -56,7 +56,16 @@ class TestDmPrivacy(unittest.TestCase):
         vault.enc_file = self.test_dir / "vault.enc"
         set_encryption_key_override("test_dm_privacy_key")
 
+        from agent.config import config
+        self.orig_app_pwd = config.bsky_app_password
+        self.orig_handle = config.bsky_handle
+        config.bsky_app_password = config.bsky_app_password or "test_mock_app_pwd"
+        config.bsky_handle = config.bsky_handle or "syeonhn.bsky.social"
+
     def tearDown(self):
+        from agent.config import config
+        config.bsky_app_password = self.orig_app_pwd
+        config.bsky_handle = self.orig_handle
         runner_module.TICK_LOG_FILE = self.orig_tick_file
         runner_module.LOGS_DIR = self.orig_logs_dir
         memory_store.users_file = self.orig_user_file

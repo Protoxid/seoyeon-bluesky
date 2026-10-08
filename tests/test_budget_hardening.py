@@ -47,7 +47,14 @@ class TestBudgetHardening(unittest.TestCase):
         vault._load_error = None
         set_encryption_key_override("test_budget_hardening_key")
 
+        self.orig_app_pwd = config.bsky_app_password
+        self.orig_handle = config.bsky_handle
+        config.bsky_app_password = config.bsky_app_password or "test_mock_app_pwd"
+        config.bsky_handle = config.bsky_handle or "syeonhn.bsky.social"
+
     def tearDown(self):
+        config.bsky_app_password = self.orig_app_pwd
+        config.bsky_handle = self.orig_handle
         from agent.memory_store import memory_store
         memory_store.recent_context_file = self.orig_ctx_file
         memory_store.users_file = self.orig_users_file

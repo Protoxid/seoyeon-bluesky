@@ -157,6 +157,14 @@ class GoalManager:
         self.storage_file = storage_file or GOALS_FILE
         self._ensure_storage()
 
+    @property
+    def goals_file(self) -> pathlib.Path:
+        return self.storage_file
+
+    @goals_file.setter
+    def goals_file(self, value: pathlib.Path) -> None:
+        self.storage_file = value
+
     def _ensure_storage(self) -> None:
         """Ensures the storage file exists with valid structure."""
         if not self.storage_file.exists():
@@ -373,7 +381,7 @@ class GoalManager:
     def detect_and_record_goal_activity(self, text: str, post_uri: Optional[str] = None) -> List[str]:
         """
         Scans published text or interaction content to check if it organically touches
-        upon an active goal, registering a progress milestone automatically.
+        upon an active goal, registering a progress milestone and updating concrete metrics.
         """
         text_lower = text.lower()
         advanced_goal_ids = []
@@ -387,21 +395,121 @@ class GoalManager:
         for goal in self.get_active_goals():
             gid = goal.goal_id
             kw_list = keywords_map.get(gid, [])
-            # Also extract title tokens as generic fallback
             title_tokens = [w.lower() for w in re.findall(r"\w+", goal.title) if len(w) > 3]
             match = any(kw in text_lower for kw in kw_list) or (sum(1 for t in title_tokens if t in text_lower) >= 2)
 
             if match:
                 snippet = text[:150] + "..." if len(text) > 150 else text
+                metrics = dict(goal.metrics)
+                note = f"Organically referenced in social reflection: \"{snippet}\""
+                metrics_update = None
+
+                if gid == "g_novel_han_kang_202610":
+                    curr_page = metrics.get("current_page", 65)
+                    total_pages = metrics.get("total_pages", 310)
+                    new_page = min(total_pages, curr_page + 15)
+                    percent = round((new_page / total_pages) * 100, 1)
+                    metrics_update = {"current_page": new_page, "percent": percent}
+                    note = f"Social reflection on han kang novel (page {new_page}/{total_pages}): \"{snippet}\""
+                    if new_page >= total_pages:
+                        self.complete_goal(gid, note="Finished reading Han Kang novel following reflection.", post_uri=post_uri)
+                        advanced_goal_ids.append(gid)
+                        continue
+
+                elif gid == "g_craft_seoul_typography_202610":
+                    signs = metrics.get("signs_documented", 3)
+                    target = metrics.get("target_signs", 10)
+                    new_signs = min(target, signs + 1)
+                    metrics_update = {"signs_documented": new_signs}
+                    note = f"Social reflection on vintage signboards. Documented {new_signs}/{target}."
+                    if new_signs >= target:
+                        self.complete_goal(gid, note="Completed documentation of 10 storefront signboards.", post_uri=post_uri)
+                        advanced_goal_ids.append(gid)
+                        continue
+
                 self.record_progress(
                     goal_id=gid,
-                    note=f"Organically referenced in social reflection: \"{snippet}\"",
+                    note=note,
                     event_type="reflection",
+                    metrics_update=metrics_update,
                     post_uri=post_uri,
                 )
                 advanced_goal_ids.append(gid)
 
         return advanced_goal_ids
+
+    def advance_active_goals_daily(
+        self,
+        context: Optional[Any] = None,
+        days_elapsed: int = 1,
+        dry_run: bool = False,
+    ) -> List[str]:
+        """
+        Advances active personal pursuits autonomously as calendar days elapse
+        (during quiet evening reflection or nightly consolidation pass).
+        Ensures reading progresses, plant cuttings root, and craft projects advance
+        without requiring constant social media posting.
+        """
+        advanced_notes: List[str] = []
+        for goal in self.get_active_goals():
+            gid = goal.goal_id
+            metrics = dict(goal.metrics)
+
+            if gid == "g_novel_han_kang_202610":
+                curr_page = metrics.get("current_page", 65)
+                total_pages = metrics.get("total_pages", 310)
+                new_page = min(total_pages, curr_page + 20 * days_elapsed)
+                percent = round((new_page / total_pages) * 100, 1)
+                metrics["current_page"] = new_page
+                metrics["percent"] = percent
+                note = f"Read quiet pages before sleep ({new_page}/{total_pages} pages, {percent}%)."
+
+                if new_page >= total_pages:
+                    if not dry_run:
+                        self.complete_goal(gid, note="Finished reading the complete Korean edition of Han Kang's 'We Do Not Part'.")
+                    advanced_notes.append(f"{goal.title}: Completed ({total_pages}/{total_pages} pages)")
+                else:
+                    if not dry_run:
+                        self.record_progress(gid, note=note, event_type="progress", metrics_update=metrics)
+                    advanced_notes.append(f"{goal.title}: {note}")
+
+            elif gid == "g_domestic_kitchen_crockery_202610":
+                days_in_water = metrics.get("days_in_water", 4) + days_elapsed
+                metrics["days_in_water"] = days_in_water
+                if days_in_water >= 21:
+                    metrics["stage"] = "fully rooted, ready to pot"
+                    if not dry_run:
+                        self.complete_goal(gid, note="Both ivy cuttings have developed robust 3-inch white roots and were potted into soil.")
+                    advanced_notes.append(f"{goal.title}: Completed (roots mature after {days_in_water} days)")
+                elif days_in_water >= 10:
+                    metrics["stage"] = "first pale root tips emerged"
+                    metrics["roots_visible"] = True
+                    note = f"First white root tips emerged from the lower node in the glass jar (day {days_in_water})."
+                    if not dry_run:
+                        self.record_progress(gid, note=note, event_type="milestone", metrics_update=metrics)
+                    advanced_notes.append(f"{goal.title}: {note}")
+                else:
+                    note = f"Changed filtered water on the sunny windowsill (day {days_in_water})."
+                    if not dry_run:
+                        self.record_progress(gid, note=note, event_type="progress", metrics_update=metrics)
+                    advanced_notes.append(f"{goal.title}: {note}")
+
+            elif gid == "g_craft_seoul_typography_202610":
+                signs = metrics.get("signs_documented", 3)
+                target = metrics.get("target_signs", 10)
+                new_signs = min(target, signs + 1)
+                metrics["signs_documented"] = new_signs
+                if new_signs >= target:
+                    if not dry_run:
+                        self.complete_goal(gid, note=f"Completed documenting {target} vintage Hangul storefront signboards across Seongsu and Euljiro.")
+                    advanced_notes.append(f"{goal.title}: Completed ({target}/{target} signs)")
+                else:
+                    note = f"Cataloged painted enamel signboard in alley ({new_signs}/{target})."
+                    if not dry_run:
+                        self.record_progress(gid, note=note, event_type="progress", metrics_update=metrics)
+                    advanced_notes.append(f"{goal.title}: {note}")
+
+        return advanced_notes
 
 
 goal_manager = GoalManager()

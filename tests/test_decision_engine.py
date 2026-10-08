@@ -2,14 +2,21 @@
 tests/test_decision_engine.py — Unit tests for the Cognitive Decision Engine.
 """
 
+import pathlib
+import tempfile
 import unittest
 from agent.decision_engine import ActionType, DecisionEngine
 from agent.context_engine import EnvironmentContext, WeatherSnapshot
+from agent.state_manager import StateManager, AgentState
 
 
 class TestDecisionEngine(unittest.TestCase):
     def setUp(self):
-        self.engine = DecisionEngine()
+        self.tmp_dir = tempfile.TemporaryDirectory()
+        self.test_state_file = pathlib.Path(self.tmp_dir.name) / "agent_state.json"
+        self.test_state_mgr = StateManager(state_file=self.test_state_file)
+        self.test_state_mgr.save_state(AgentState(social_battery=0.85, physical_fatigue=0.20))
+        self.engine = DecisionEngine(state_mgr=self.test_state_mgr)
         self.dummy_weather = WeatherSnapshot(
             temperature_c=20.0,
             description="clear",
@@ -18,6 +25,9 @@ class TestDecisionEngine(unittest.TestCase):
             windspeed_kmh=5.0,
             retrieved_at="2026-10-03T12:00:00Z"
         )
+
+    def tearDown(self):
+        self.tmp_dir.cleanup()
 
     def test_deep_night_prefers_no_action(self):
         # 03:00 KST, no urgent incoming stimuli

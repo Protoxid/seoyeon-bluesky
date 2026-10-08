@@ -59,6 +59,54 @@ class DecisionOutcome:
 
 
 class DecisionEngine:
+    def __init__(
+        self,
+        goal_mgr: Optional[Any] = None,
+        narrative_eng: Optional[Any] = None,
+        mem_store: Optional[Any] = None,
+        state_mgr: Optional[Any] = None,
+    ):
+        self._goal_mgr = goal_mgr
+        self._narrative_eng = narrative_eng
+        self._mem_store = mem_store
+        self._state_mgr = state_mgr
+
+    @property
+    def goal_manager(self) -> Any:
+        return self._goal_mgr or goal_manager
+
+    @goal_manager.setter
+    def goal_manager(self, value: Any) -> None:
+        self._goal_mgr = value
+
+    @property
+    def narrative_engine(self) -> Any:
+        return self._narrative_eng or narrative_engine
+
+    @narrative_engine.setter
+    def narrative_engine(self, value: Any) -> None:
+        self._narrative_eng = value
+
+    @property
+    def memory_store(self) -> Any:
+        return self._mem_store or memory_store
+
+    @memory_store.setter
+    def memory_store(self, value: Any) -> None:
+        self._mem_store = value
+
+    @property
+    def state_manager(self) -> Any:
+        try:
+            from .state_manager import state_manager as default_sm
+            return self._state_mgr or default_sm
+        except Exception:
+            return self._state_mgr
+
+    @state_manager.setter
+    def state_manager(self, value: Any) -> None:
+        self._state_mgr = value
+
     def evaluate(
         self,
         context: EnvironmentContext,
@@ -66,8 +114,13 @@ class DecisionEngine:
         dms: List[Dict[str, Any]],
         feed_items: List[Dict[str, Any]],
         can_image: bool = True,
+        max_feed_candidates: int = 10,
     ) -> DecisionOutcome:
         """Evaluates current sensory inputs and decides the most natural action."""
+        gm = self.goal_manager
+        ne = self.narrative_engine
+        ms = self.memory_store
+
         candidates: List[ActionCandidate] = []
 
         # -------------------------------------------------------------
@@ -115,7 +168,7 @@ class DecisionEngine:
                         {}
                     )
                     handle = other_member.get("handle", "user")
-                    profile = memory_store.get_user_profile(handle)
+                    profile = ms.get_user_profile(handle)
 
                     # Deduplication: check last message in thread
                     last_msg = dm.get("lastMessage", {})
@@ -124,7 +177,7 @@ class DecisionEngine:
                     if my_did and last_sender_did == my_did:
                         # Seo-yeon sent the last message; do not reply to self
                         continue
-                    if last_msg_id and memory_store.has_replied_to_dm(last_msg_id):
+                    if last_msg_id and ms.has_replied_to_dm(last_msg_id):
                         # Message was already answered
                         continue
 
@@ -159,7 +212,7 @@ class DecisionEngine:
 
                 notif_uri = notif.get("uri", "")
                 if notif_uri:
-                    if memory_store.has_replied_to_notification(notif_uri) or memory_store.has_replied_to_post(notif_uri):
+                    if ms.has_replied_to_notification(notif_uri) or ms.has_replied_to_post(notif_uri):
                         continue
 
                 author = notif.get("author", {})
@@ -178,7 +231,7 @@ class DecisionEngine:
                 if is_inj:
                     continue
 
-                profile = memory_store.get_user_profile(author.get("handle", ""))
+                profile = ms.get_user_profile(author.get("handle", ""))
 
                 if reason == "reply":
                     # Comment under her post
@@ -245,7 +298,7 @@ class DecisionEngine:
                     can_gen = True
 
                 if can_gen and post_score >= 0.45:
-                    recent_posts = memory_store.get_recent_context().get("posts", [])
+                    recent_posts = ms.get_recent_context().get("posts", [])
                     hours_since_last_image = 999.0
                     for p in recent_posts:
                         if p.get("has_image"):
@@ -301,13 +354,13 @@ class DecisionEngine:
             best_repost_candidate: Optional[ActionCandidate] = None
 
             evaluated_count = 0
-            active_goals = goal_manager.get_active_goals()
+            active_goals = gm.get_active_goals()
             goal_keywords = []
             for g in active_goals:
                 goal_keywords.extend([w.lower() for w in re.findall(r"\w+", f"{g.title} {g.description}") if len(w) > 3])
 
             for item in feed_items:
-                if evaluated_count >= 10:
+                if evaluated_count >= max_feed_candidates:
                     break
 
                 post = item.get("post", item) if isinstance(item, dict) else {}
@@ -340,16 +393,16 @@ class DecisionEngine:
                 text_lower = text.lower()
 
                 # User profile and memory context
-                author_profile = memory_store.get_user_profile(author_handle, did=author_did)
+                author_profile = ms.get_user_profile(author_handle, did=author_did)
                 is_connected_user = author_profile.relationship in ("regular", "trusted_friend", "friendly_acquaintance")
-                open_loops = narrative_engine.get_open_loops_for_user(author_did, author_handle)
+                open_loops = ne.get_open_loops_for_user(author_did, author_handle)
                 has_goal_overlap = any(kw in text_lower for kw in goal_keywords) if goal_keywords else False
 
                 # 5a. Thoughtful Reply Candidate Evaluation
                 if (
                     config.allow_replies
                     and context.replies_today < config.max_replies_per_day
-                    and not memory_store.has_replied_to_post(post_uri)
+                    and not ms.has_replied_to_post(post_uri)
                 ):
                     # Base pacing by time of day & hours of downtime
                     if context.circadian_phase in ("morning", "afternoon", "evening"):
@@ -417,7 +470,7 @@ class DecisionEngine:
                     config.allow_posts
                     and context.posts_today < config.max_posts_per_day
                     and context.hours_since_last_post >= 4.0
-                    and not memory_store.has_replied_to_post(post_uri)
+                    and not ms.has_replied_to_post(post_uri)
                     and len(text.strip()) >= 30
                 ):
                     quote_score = 0.48 if context.hours_since_last_action >= 1.5 else 0.30
@@ -464,9 +517,9 @@ class DecisionEngine:
         # Modulate scores with cognitive state & social battery
         # -------------------------------------------------------------
         try:
-            from .state_manager import state_manager
+            sm = self.state_manager
             raw_scores = {c.action.value: c.score for c in candidates}
-            modulated_scores = state_manager.modulate_candidate_scores(raw_scores)
+            modulated_scores = sm.modulate_candidate_scores(raw_scores)
             for c in candidates:
                 c.score = max(0.0, min(1.0, round(modulated_scores.get(c.action.value, c.score), 3)))
         except Exception:

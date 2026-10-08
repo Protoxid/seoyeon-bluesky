@@ -29,8 +29,18 @@ PRIVATE_JOURNAL_FILE = MEMORY_DIR / "private_journal.jsonl"
 class MemoryConsolidator:
     """Manages Seo-yeon's nightly cognitive consolidation."""
 
-    def __init__(self):
+    def __init__(
+        self,
+        goal_mgr=None,
+        narrative_eng=None,
+        state_mgr=None,
+        mem_store=None,
+    ):
         self.journal_file = PRIVATE_JOURNAL_FILE
+        self._goal_manager = goal_mgr
+        self._narrative_engine = narrative_eng
+        self._state_manager = state_mgr
+        self._memory_store = mem_store
 
     def _append_journal(self, entry: Dict[str, Any]) -> None:
         if self.journal_file == PRIVATE_JOURNAL_FILE:
@@ -67,7 +77,9 @@ class MemoryConsolidator:
         is_dry = dry_run if dry_run is not None else config.dry_run
         now_kst = get_seoul_datetime()
         today_str = now_kst.strftime("%Y-%m-%d")
-        st = state_manager.get_state()
+        sm = self._state_manager or state_manager
+        ms = self._memory_store or memory_store
+        st = sm.get_state()
 
         if not force and st.last_consolidation_date == today_str and not is_dry:
             return {
@@ -80,7 +92,7 @@ class MemoryConsolidator:
 
         # 1. User Relationship Consolidation
         relationships_evolved = []
-        user_profiles = memory_store.get_all_users()
+        user_profiles = ms.get_all_users()
         for handle, profile in user_profiles.items():
             old_rel = profile.relationship
             new_rel = old_rel
@@ -97,7 +109,7 @@ class MemoryConsolidator:
                 profile.relationship = new_rel
                 relationships_evolved.append(f"@{handle}: {old_rel} -> {new_rel}")
                 if not is_dry:
-                    memory_store.save_user_profile(profile)
+                    ms.save_user_profile(profile)
 
         # 2. Generate Private Journal Reflection
         from .generator import generator
@@ -152,10 +164,10 @@ class MemoryConsolidator:
             st.physical_fatigue = 0.15
             st.last_consolidation_date = today_str
             st.mood_descriptor = "quietly rested, calm autumn morning ahead"
-            state_manager.save_state(st)
+            sm.save_state(st)
 
             # 4. Log episodic memory
-            memory_store.log_episode(
+            ms.log_episode(
                 "nightly_consolidation",
                 f"Nightly memory consolidation for {today_str}",
                 {
@@ -163,6 +175,19 @@ class MemoryConsolidator:
                     "journal_excerpt": journal_text[:80],
                 },
             )
+
+        # 4b. Autonomous Goal & Multi-Day Narrative Arc Progression
+        goals_progressed = []
+        arcs_progressed = []
+        try:
+            from .goal_manager import goal_manager
+            from .narrative_engine import narrative_engine
+            gm = self._goal_manager or goal_manager
+            ne = self._narrative_engine or narrative_engine
+            goals_progressed = gm.advance_active_goals_daily(context=env_ctx, days_elapsed=1, dry_run=is_dry)
+            arcs_progressed = ne.advance_arcs_daily(days_elapsed=1, dry_run=is_dry)
+        except Exception as e:
+            print(f"  [Cognitive Continuity Note] Routine progression: {e}")
 
         # 5. Weekly Schedule Maintenance (Silent Sunday pass or week-boundary check)
         try:
