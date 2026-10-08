@@ -26,7 +26,8 @@ Always execute from the project root (`c:\AI-Project`):
 | **Weekly Plan** | `python agent_runner.py --plan-week` | Displays the synthesized 7-day weekly life itinerary across morning/afternoon/evening/night. |
 | **Regen Week** | `python agent_runner.py --force-plan` | Force-regenerates fresh 7-day schedule with OpenRouter LLM. |
 | **Consolidate** | `python agent_runner.py --consolidate` | Runs nightly memory consolidation pass and Seongsu flat private journal reflection. |
-| **Run Tests** | `python -m unittest discover -s tests -p "test_*.py"` | Runs full hermetic unit test suite (103 tests). |
+| **Simulate** | `python scripts/simulate_30_days.py --days 30` | Runs 30-day (1,440-tick) deterministic simulation benchmark comparing V2 vs V2.5. |
+| **Run Tests** | `python -m unittest discover -s tests -p "test_*.py"` | Runs full hermetic unit test suite (124 tests). |
 
 ---
 
@@ -38,7 +39,7 @@ Before committing or pushing any architectural or agent code changes, follow thi
    ```bash
    python -m unittest discover -s tests -p "test_*.py"
    ```
-   *Requirement*: All 103 tests across all modules must pass cleanly (`OK`).
+   *Requirement*: All 124 tests across all modules must pass cleanly (`OK`).
 
 2. **Verify Agent Status**:
    ```bash

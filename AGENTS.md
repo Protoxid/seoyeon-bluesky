@@ -77,6 +77,15 @@ EVALUATE CANDIDATES
    - Wardrobe items and baseline textures grounding image prompts.
 10. **Weekly Living Itinerary (`weekly_schedule.json`)**:
    - 7-day schedule synthesized every Sunday evening across 4 daily slots (`morning`, `afternoon`, `evening`, `deep_night`). Grounds her thoughts, errands, transit, and photos in realistic space and time without rigid cron timing.
+11. **Autonomous Goal Lifecycle (`agent/goal_manager.py` & `data/memory/active_goals.json`)**:
+   - Tracks ongoing personal goals across standard lifecycle states (`PROPOSED`, `ACTIVE`, `IN_PROGRESS`, `COMPLETED`, `PAUSED`, `ABANDONED`).
+   - Grounded in canon interests (cinema, essay writing, pottery, Hangul typography, vintage film development, neighborhood walking).
+   - Strict Anti-Cliché Quota: Pilates and coffee/tea goals are capped at ≤ 10% of total active goals.
+   - Automatic Progress Tracking: Scans outgoing posts and replies for goal keywords, recording progress events and advancing completion percentage automatically.
+12. **Narrative Continuity Engine (`agent/narrative_engine.py` & `data/memory/narrative_state.json`)**:
+   - **Open Conversational Loops**: Remembers commitments, book recommendations, and conversational threads with mutuals across sessions without amnesia (`open_loop`, `resolve_loop`).
+   - **Multi-Day Narrative Arcs**: Tracks temporal unfolding of multi-day projects (drying autumn persimmons, reading lengthy literature, seasoning ceramic cookware) across stages (`started` → `in_progress` → `maturing` → `concluded`).
+   - **Temporal Coherence Validator**: Detects and rejects chronological paradoxes in generated content (e.g. claiming to eat dinner at 09:00 KST, or claiming deep-night rest at midday).
 
 ---
 
@@ -88,16 +97,19 @@ EVALUATE CANDIDATES
   - Truthful AI Disclosure: Consistently allowed across generator prompts and validation rules when asked directly, without generic assistant jargon.
   - Natural Restraint Over Canned Fallbacks: Completely free of canned bot platitudes. If generation is unavailable or rejected by the validator, she cleanly stays offline (`NO_ACTION`).
   - Direct Opinion Answering: When a post poses a question, dilemma, or choice, she answers directly from her personal life, routine, and tastes with dry humor, rather than non-committal evasion.
-- **Atomic Budgeting & Single-Entry Accounting (`agent/budget_manager.py`)**:
-  - Pre-flight reservations (`reserve()`) hold estimated compute spend before LLM or image generation calls.
-  - Upon successful call, exact token usage is reconciled (`reconcile()`). Failed or restrained calls release holds (`release()`) without charging the ledger.
+- **Multi-Candidate Feed Evaluation (`agent/decision_engine.py`)**:
+  - Scores up to 10 candidates from timeline and discovery feeds based on relationship tier, open conversational loops with the author, relevant active goal keywords, recency, and language quality.
+- **Atomic Budgeting & Durable Reservations (`agent/budget_manager.py`)**:
+  - Durable Reservations: Pre-flight reservations stored in `data["active_reservations"]` survive process and CI runner restarts, with automatic 15-minute expiration of stale holds.
+  - Model-Aware Cost Estimation: Accurately sizes Sonnet 5.5 reasoning token margins before sending requests.
+  - Decoupled Image Billing: Image generation cost ($0.045) is reconciled immediately upon image byte retrieval from Kie.ai, ensuring accurate accounting even if subsequent Bluesky uploads fail.
   - Consolidated single-entry accounting prevents double-billing across generator tokens and runner actions. Hard daily ($2.00) and monthly ($30.00) caps.
 - **Discovery Feed & Multi-Language Filters (`agent/validator.py`)**:
   - Operates strictly in Korean and English. Rejects non-target scripts (Japanese Kana, Cyrillic, Arabic, CJK ideographs without Hangul, and non-target Romance text) and automatically drops commercial financial spam and bot advisors.
 - **Image Generation & Anonymous Settings Architecture**:
   - **The Consistency Solution**: Because generative image models cannot reproduce identical indoor room layouts (such as her private flat or gym studio) across weeks, daytime and evening photos prioritize **anonymous outdoor settings** (Seongsu red-brick sidewalks, crosswalks, fallen ginkgo leaves, Line 2 transit bridge) or **incidental POV macros** (a stray cat met on the way to the studio, hands holding a warm tea cup, book on an outdoor table with heavy background bokeh). Deep night is strictly tight in-bed selfies (under duvet, messy bedhead, dim night lamp).
   - **Identity Anchoring**: Selfies are conditioned on dual canonical face masters through **Kie.ai** API (`gpt-image-2-5-sunburst-image-to-image`) anchored to `personas/seoyeon/master/a/a1_front.png` and `personas/seoyeon/master/c/c5_relax_front.png`.
-  - **POV Auto-Detection**: Incidental environmental shots (stray cats, tea cups, books, transit) automatically omit face references to produce pure 35mm film street captures.
+  - **POV Auto-Detection**: Incidental environmental shots (stray cats, tea cups, books, transit) automatically omit face references to produce pure 35mm film street captures. Contextual image alt text is derived automatically from the visual scene prompt.
 - **Telegram Escalation**: When sensitive inquiries occur (e.g. users asking for real-life meetups, personal contact details) or when agent decisions require master approval, she notifies her master via Telegram Bot API.
 
 ---
@@ -132,7 +144,7 @@ The system is fully deployed on **GitHub Actions**:
 ## 7. Daily Command Cheatsheet
 From project root:
 ```powershell
-# 1. View live agent dashboard (Seoul time, weather, memory, budget, cognitive state)
+# 1. View live agent dashboard (Seoul time, weather, memory, goals, budget, cognitive state)
 python agent_runner.py --status
 
 # 2. Run single autonomous tick in safe DRY-RUN mode (no publishing)
@@ -162,6 +174,10 @@ python agent_runner.py --dry-run --force-action NO_ACTION
 python agent_runner.py --plan-week
 python agent_runner.py --force-plan
 
-# 9. Run full test suite (103 hermetic tests)
+# 9. Run 30-day deterministic simulation harness
+python scripts/simulate_30_days.py --days 30
+
+# 10. Run full test suite (124 hermetic tests)
 python -m unittest discover -s tests -p "test_*.py"
 ```
+

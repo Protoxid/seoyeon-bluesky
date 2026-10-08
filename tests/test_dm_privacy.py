@@ -157,6 +157,42 @@ class TestDmPrivacy(unittest.TestCase):
         self.assertEqual(dms[0]["char_count"], 42)
         self.assertNotIn("text", dms[0])
 
+    def test_did_first_tracking_preserves_profile(self):
+        """Verifies DID-first tracking preserves profile history across handle changes."""
+        did = "did:plc:abcdef123456789"
+        old_handle = "old_user.bsky.social"
+        new_handle = "new_user.bsky.social"
+
+        # Record interaction with initial handle
+        memory_store.record_user_interaction(
+            handle=old_handle,
+            incoming_text="hello",
+            outgoing_text="chatting about film",
+            interaction_type="reply",
+            did=did,
+        )
+
+        profile = memory_store.get_user_profile(did)
+        self.assertEqual(profile.handle, old_handle)
+        self.assertEqual(profile.interaction_count, 1)
+
+        # Later, user renamed their handle but has same DID
+        memory_store.record_user_interaction(
+            handle=new_handle,
+            incoming_text="hello again",
+            outgoing_text="second chat about photography",
+            interaction_type="reply",
+            did=did,
+        )
+
+        # Look up by new handle or DID
+        profile_by_did = memory_store.get_user_profile(did)
+        profile_by_new_handle = memory_store.get_user_profile(new_handle)
+        self.assertEqual(profile_by_did.interaction_count, 2)
+        self.assertEqual(profile_by_new_handle.did, did)
+        self.assertEqual(profile_by_new_handle.interaction_count, 2)
+
 
 if __name__ == "__main__":
     unittest.main()
+

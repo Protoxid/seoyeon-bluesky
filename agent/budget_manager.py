@@ -41,7 +41,6 @@ IMAGE_GEN_COST = 0.045  # Kie.ai GPT Image 2.5 per generation (~$0.045)
 class BudgetManager:
     def __init__(self, ledger_file: pathlib.Path = BUDGET_LEDGER_FILE):
         self.ledger_file = ledger_file
-        self._active_reservations: Dict[str, Dict[str, Any]] = {}
         DATA_DIR.mkdir(parents=True, exist_ok=True)
         self._ensure_ledger()
 
@@ -62,6 +61,7 @@ class BudgetManager:
                 "daily_images_count": 0,
                 "daily_tokens": 0,
                 "monthly_tokens": 0,
+                "active_reservations": {},
                 "history": [],
             }
             self.ledger_file.write_text(json.dumps(initial_data, indent=2), encoding="utf-8")
@@ -89,6 +89,32 @@ class BudgetManager:
             data["monthly_spend_usd"] = 0.0
             data["monthly_tokens"] = 0
 
+        if "active_reservations" not in data or not isinstance(data["active_reservations"], dict):
+            data["active_reservations"] = {}
+
+        # Expire stale reservations (> 15 mins old) from interrupted or crashed runner executions
+        now_utc = dt.datetime.now(dt.timezone.utc)
+        stale_cutoff = now_utc - dt.timedelta(minutes=15)
+        active_res = data["active_reservations"]
+        expired_keys = []
+        for res_id, res_info in list(active_res.items()):
+            ts_str = res_info.get("timestamp")
+            if ts_str:
+                try:
+                    ts = dt.datetime.fromisoformat(ts_str)
+                    if ts.tzinfo is None:
+                        ts = ts.replace(tzinfo=dt.timezone.utc)
+                    if ts < stale_cutoff:
+                        expired_keys.append(res_id)
+                except Exception:
+                    expired_keys.append(res_id)
+
+        if expired_keys:
+            for k in expired_keys:
+                print(f"[BudgetManager] Expiring stale reservation {k} from prior interrupted execution.")
+                del active_res[k]
+            self._save_ledger(data)
+
         return data
 
     def _save_ledger(self, data: Dict[str, Any]) -> None:
@@ -96,22 +122,54 @@ class BudgetManager:
 
     def get_reserved_amount(self) -> float:
         """Returns the total dollar amount currently held under active reservations."""
-        return sum(r.get("amount_usd", 0.0) for r in self._active_reservations.values())
+        data = self._load_ledger()
+        return sum(r.get("amount_usd", 0.0) for r in data.get("active_reservations", {}).values())
 
-    def calculate_token_cost(self, model: str, prompt_tokens: int, completion_tokens: int) -> float:
-        """Calculates exact dollar cost for token usage according to provider pricing."""
+    def get_active_reservations(self) -> Dict[str, Any]:
+        """Returns the dictionary of currently active reservations."""
+        data = self._load_ledger()
+        return data.get("active_reservations", {})
+
+    def _get_model_pricing(self, model: str) -> Dict[str, float]:
         pricing = MODEL_PRICING.get(model)
         if not pricing:
             for k, p in MODEL_PRICING.items():
                 if k != "_default" and (k in model or model in k):
-                    pricing = p
-                    break
-        if not pricing:
-            pricing = MODEL_PRICING["_default"]
+                    return p
+            return MODEL_PRICING["_default"]
+        return pricing
 
+    def calculate_token_cost(self, model: str, prompt_tokens: int, completion_tokens: int) -> float:
+        """Calculates exact dollar cost for token usage according to provider pricing."""
+        pricing = self._get_model_pricing(model)
         cost = (prompt_tokens / 1_000_000.0) * pricing["input_per_m"] + \
                (completion_tokens / 1_000_000.0) * pricing["output_per_m"]
         return round(cost, 6)
+
+    def estimate_max_cost(
+        self,
+        model: str,
+        prompt_text: str = "",
+        max_tokens: int = 150,
+        is_reasoning: bool = True,
+    ) -> float:
+        """
+        Estimates upper-bound dollar cost of an LLM request before execution,
+        accounting for prompt tokens, maximum completion tokens, reasoning tokens,
+        and a 25% uncertainty margin.
+        """
+        pricing = self._get_model_pricing(model)
+        # Approximate 3.5 chars per token for mixed Korean/English prompts
+        approx_prompt_tokens = max(50, int(len(prompt_text) / 3.5)) if prompt_text else 350
+
+        # Enforce reasoning token headroom for models like Claude Sonnet 5.5
+        effective_output_tokens = max(max_tokens, 700) if is_reasoning else max_tokens
+
+        raw_estimate = (approx_prompt_tokens / 1_000_000.0) * pricing["input_per_m"] + \
+                       (effective_output_tokens / 1_000_000.0) * pricing["output_per_m"]
+
+        conservative_estimate = raw_estimate * 1.25
+        return round(max(0.002, conservative_estimate), 6)
 
     def can_spend(self, estimated_cost: float = 0.005) -> Tuple[bool, str]:
         """Checks if estimated spend (plus active reservations) is within caps."""
@@ -140,23 +198,45 @@ class BudgetManager:
 
         return self.can_spend(IMAGE_GEN_COST)
 
-    def reserve(self, amount_usd: float = 0.005, action_type: str = "llm", details: str = "") -> Optional[str]:
+    def reserve(
+        self,
+        amount_usd: float = 0.005,
+        action_type: str = "llm",
+        details: str = "",
+        provider: str = "openrouter",
+        model: str = "",
+    ) -> Optional[str]:
         """
-        Atomically checks availability and reserves funds prior to starting an API call.
+        Atomically checks availability and durably records reservation in the ledger
+        prior to starting an API call. Survives runner restarts.
         Returns reservation_id if approved, None if budget exhausted.
         """
-        ok, _ = self.can_spend(estimated_cost=amount_usd)
-        if not ok:
+        data = self._load_ledger()
+        reserved = self.get_reserved_amount()
+        daily = data.get("daily_spend_usd", 0.0) + reserved
+        monthly = data.get("monthly_spend_usd", 0.0) + reserved
+
+        if daily + amount_usd > config.daily_ai_budget:
+            return None
+        if monthly + amount_usd > config.monthly_ai_budget:
             return None
 
         res_id = f"res_{uuid.uuid4().hex[:12]}"
-        self._active_reservations[res_id] = {
+        reservation_record = {
             "reservation_id": res_id,
-            "amount_usd": amount_usd,
+            "amount_usd": round(amount_usd, 6),
             "action_type": action_type,
+            "provider": provider,
+            "model": model,
             "details": details,
+            "status": "held",
             "timestamp": dt.datetime.now(dt.timezone.utc).isoformat(),
         }
+
+        if "active_reservations" not in data:
+            data["active_reservations"] = {}
+        data["active_reservations"][res_id] = reservation_record
+        self._save_ledger(data)
         return res_id
 
     def reconcile(
@@ -173,10 +253,10 @@ class BudgetManager:
         Reconciles an active reservation with actual incurred cost, releasing the reserve
         and committing the single definitive charge to the ledger.
         """
-        if reservation_id and reservation_id in self._active_reservations:
-            del self._active_reservations[reservation_id]
-
         data = self._load_ledger()
+        if reservation_id and "active_reservations" in data and reservation_id in data["active_reservations"]:
+            del data["active_reservations"][reservation_id]
+
         data["daily_spend_usd"] = round(data.get("daily_spend_usd", 0.0) + actual_cost_usd, 4)
         data["monthly_spend_usd"] = round(data.get("monthly_spend_usd", 0.0) + actual_cost_usd, 4)
 
@@ -207,8 +287,12 @@ class BudgetManager:
 
     def release(self, reservation_id: Optional[str]) -> None:
         """Releases an active reservation without committing any charges (e.g. on call failure)."""
-        if reservation_id and reservation_id in self._active_reservations:
-            del self._active_reservations[reservation_id]
+        if not reservation_id:
+            return
+        data = self._load_ledger()
+        if "active_reservations" in data and reservation_id in data["active_reservations"]:
+            del data["active_reservations"][reservation_id]
+            self._save_ledger(data)
 
     def record_spend(self, cost_usd: float, action_type: str, details: str = "") -> None:
         """Records a direct charge without prior reservation."""

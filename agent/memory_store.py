@@ -181,15 +181,32 @@ class MemoryStore:
         return "\n".join(lines)
 
     # --- User Memory Access ---
-    def get_user_profile(self, handle: str) -> UserProfile:
-        clean_handle = handle.lstrip("@").lower().strip()
+    def get_user_profile(self, handle_or_did: str, did: str = "") -> UserProfile:
+        target_did = did or (handle_or_did if handle_or_did.startswith("did:") else "")
+        clean_handle = handle_or_did.lstrip("@").lower().strip()
         try:
             data = json.loads(self.users_file.read_text(encoding="utf-8"))
+            # 1. Primary DID lookup
+            if target_did:
+                for k, u in data.items():
+                    if u.get("did") == target_did or k == target_did:
+                        return UserProfile(
+                            handle=u.get("handle", clean_handle),
+                            did=target_did,
+                            relationship=u.get("relationship", "stranger"),
+                            interaction_style=u.get("interaction_style", "neutral"),
+                            sentiment=u.get("sentiment", "neutral"),
+                            known_facts=u.get("known_facts", []),
+                            interaction_count=u.get("interaction_count", 0),
+                            last_interaction=u.get("last_interaction", ""),
+                            history=u.get("history", []),
+                        )
+            # 2. Handle fallback lookup
             if clean_handle in data:
                 u = data[clean_handle]
                 return UserProfile(
-                    handle=clean_handle,
-                    did=u.get("did", ""),
+                    handle=u.get("handle", clean_handle),
+                    did=u.get("did", target_did),
                     relationship=u.get("relationship", "stranger"),
                     interaction_style=u.get("interaction_style", "neutral"),
                     sentiment=u.get("sentiment", "neutral"),
@@ -200,7 +217,7 @@ class MemoryStore:
                 )
         except Exception:
             pass
-        return UserProfile(handle=clean_handle)
+        return UserProfile(handle=clean_handle, did=target_did)
 
     def save_user_profile(self, profile: UserProfile) -> None:
         clean_handle = profile.handle.lstrip("@").lower().strip()
@@ -208,6 +225,11 @@ class MemoryStore:
             data = json.loads(self.users_file.read_text(encoding="utf-8")) if self.users_file.exists() else {}
         except Exception:
             data = {}
+        # If this profile has a DID, remove any legacy key for the same DID with a different handle
+        if profile.did:
+            old_keys = [k for k, v in data.items() if (v.get("did") == profile.did or k == profile.did) and k != clean_handle]
+            for ok in old_keys:
+                del data[ok]
         data[clean_handle] = asdict(profile)
         self.users_file.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
 
@@ -244,7 +266,10 @@ class MemoryStore:
         discovered_fact: Optional[str] = None
     ) -> None:
         """Updates user profile following an interaction."""
-        prof = self.get_user_profile(handle)
+        prof = self.get_user_profile(handle, did=did)
+        clean_handle = handle.lstrip("@").lower().strip()
+        if clean_handle and not clean_handle.startswith("did:"):
+            prof.handle = clean_handle
         if did:
             prof.did = did
         prof.interaction_count += 1

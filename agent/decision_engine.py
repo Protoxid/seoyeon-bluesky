@@ -12,12 +12,15 @@ from __future__ import annotations
 
 import datetime as dt
 import enum
+import re
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Tuple
 
 from .config import config
 from .context_engine import EnvironmentContext
+from .goal_manager import goal_manager
 from .memory_store import UserProfile, memory_store
+from .narrative_engine import narrative_engine
 from .validator import ContentValidator
 
 
@@ -288,11 +291,25 @@ class DecisionEngine:
         # -------------------------------------------------------------
         # 5. Feed Browsing & Community Engagement (Thoughtful Reply or Like)
         # -------------------------------------------------------------
+        # -------------------------------------------------------------
+        # 5. Feed Browsing & Multi-Candidate Evaluation (Rank up to 10 items)
+        # -------------------------------------------------------------
         if feed_items and context.circadian_phase != "deep_night":
             best_reply_candidate: Optional[ActionCandidate] = None
             best_like_candidate: Optional[ActionCandidate] = None
+            best_quote_candidate: Optional[ActionCandidate] = None
+            best_repost_candidate: Optional[ActionCandidate] = None
+
+            evaluated_count = 0
+            active_goals = goal_manager.get_active_goals()
+            goal_keywords = []
+            for g in active_goals:
+                goal_keywords.extend([w.lower() for w in re.findall(r"\w+", f"{g.title} {g.description}") if len(w) > 3])
 
             for item in feed_items:
+                if evaluated_count >= 10:
+                    break
+
                 post = item.get("post", item) if isinstance(item, dict) else {}
                 if not isinstance(post, dict):
                     continue
@@ -303,6 +320,7 @@ class DecisionEngine:
 
                 author = post.get("author", {})
                 author_handle = (author.get("handle") or "").lower().lstrip("@")
+                author_did = author.get("did", "")
                 my_handle = (config.bsky_handle or "").lower().lstrip("@")
                 if author_handle == my_handle:
                     continue
@@ -318,63 +336,83 @@ class DecisionEngine:
                 if not is_eligible:
                     continue
 
-                # 5a. Thoughtful Reply Candidate
+                evaluated_count += 1
+                text_lower = text.lower()
+
+                # User profile and memory context
+                author_profile = memory_store.get_user_profile(author_handle, did=author_did)
+                is_connected_user = author_profile.relationship in ("regular", "trusted_friend", "friendly_acquaintance")
+                open_loops = narrative_engine.get_open_loops_for_user(author_did, author_handle)
+                has_goal_overlap = any(kw in text_lower for kw in goal_keywords) if goal_keywords else False
+
+                # 5a. Thoughtful Reply Candidate Evaluation
                 if (
-                    best_reply_candidate is None
-                    and config.allow_replies
+                    config.allow_replies
                     and context.replies_today < config.max_replies_per_day
                     and not memory_store.has_replied_to_post(post_uri)
                 ):
-                    # Natural human pacing and circadian distribution:
-                    # When she has had 1.5h - 2h+ downtime during the day, organic commenting is highly natural
+                    # Base pacing by time of day & hours of downtime
                     if context.circadian_phase in ("morning", "afternoon", "evening"):
                         if context.hours_since_last_action >= 2.0:
-                            reply_score = 0.60
+                            reply_score = 0.58
                         elif context.hours_since_last_action >= 1.5:
-                            reply_score = 0.54
+                            reply_score = 0.52
                         elif context.hours_since_last_action >= 1.0:
-                            reply_score = 0.46
+                            reply_score = 0.44
                         else:
                             reply_score = 0.25
                     elif context.circadian_phase == "night" and context.hours_since_last_action >= 2.5:
-                        reply_score = 0.48
+                        reply_score = 0.46
                     else:
                         reply_score = 0.15
 
-                    # Relationship weighting: higher priority for established mutuals/regulars
-                    author_profile = memory_store.get_user_profile(author_handle)
-                    if author_profile.relationship in ("regular", "trusted_friend", "friendly_acquaintance"):
-                        reply_score = min(0.85, reply_score + 0.15)
+                    # Relevance bonuses
+                    if is_connected_user:
+                        reply_score += 0.15
+                    if open_loops:
+                        reply_score += 0.12
+                    if has_goal_overlap:
+                        reply_score += 0.10
+                    if len(text.strip()) >= 50:
+                        reply_score += 0.05
 
-                    best_reply_candidate = ActionCandidate(
+                    reply_score = min(0.88, round(reply_score, 3))
+
+                    cand = ActionCandidate(
                         action=ActionType.BROWSE_AND_REPLY,
                         score=reply_score,
-                        confidence=0.65,
-                        reason=f"Thoughtful reply to feed post by @{author.get('handle')}: \"{text[:40]}...\"",
+                        confidence=0.70,
+                        reason=f"Thoughtful reply to post by @{author.get('handle')}: \"{text[:40]}...\"",
                         target_data={"post": post},
                         intent="add_perspective",
                     )
+                    if best_reply_candidate is None or cand.score > best_reply_candidate.score:
+                        best_reply_candidate = cand
 
-                # 5b. Quiet Like Candidate
+                # 5b. Quiet Like Candidate Evaluation
                 if (
-                    best_like_candidate is None
-                    and config.allow_likes
+                    config.allow_likes
                     and getattr(context, "likes_today", 0) < config.max_likes_per_day
                 ):
                     like_score = 0.46 if context.hours_since_last_action >= 1.0 else 0.32
-                    author_profile = memory_store.get_user_profile(author_handle)
-                    if author_profile.relationship in ("regular", "trusted_friend", "friendly_acquaintance"):
-                        like_score = min(0.80, like_score + 0.12)
+                    if is_connected_user:
+                        like_score += 0.12
+                    if has_goal_overlap:
+                        like_score += 0.08
 
-                    best_like_candidate = ActionCandidate(
+                    like_score = min(0.80, round(like_score, 3))
+
+                    cand = ActionCandidate(
                         action=ActionType.BROWSE_AND_LIKE,
                         score=like_score,
                         confidence=0.65,
                         reason=f"Quietly like post by @{author.get('handle')} during feed browsing.",
                         target_data={"post": post},
                     )
+                    if best_like_candidate is None or cand.score > best_like_candidate.score:
+                        best_like_candidate = cand
 
-                # 5c. Quote Post Candidate
+                # 5c. Quote Post Candidate Evaluation
                 if (
                     config.allow_posts
                     and context.posts_today < config.max_posts_per_day
@@ -383,40 +421,44 @@ class DecisionEngine:
                     and len(text.strip()) >= 30
                 ):
                     quote_score = 0.48 if context.hours_since_last_action >= 1.5 else 0.30
-                    candidates.append(
-                        ActionCandidate(
-                            action=ActionType.QUOTE_POST,
-                            score=quote_score,
-                            confidence=0.65,
-                            reason=f"Quote-post thought by @{author.get('handle')}: \"{text[:40]}...\"",
-                            target_data={"post": post},
-                            intent="quote_with_perspective",
-                        )
-                    )
+                    if has_goal_overlap:
+                        quote_score += 0.10
 
-                # 5d. Repost Candidate (for evocative community posts)
+                    cand = ActionCandidate(
+                        action=ActionType.QUOTE_POST,
+                        score=min(0.80, round(quote_score, 3)),
+                        confidence=0.65,
+                        reason=f"Quote-post thought by @{author.get('handle')}: \"{text[:40]}...\"",
+                        target_data={"post": post},
+                        intent="quote_with_perspective",
+                    )
+                    if best_quote_candidate is None or cand.score > best_quote_candidate.score:
+                        best_quote_candidate = cand
+
+                # 5d. Repost Candidate (for evocative community imagery)
                 if (
                     "embed" in post
                     and post.get("embed", {}).get("$type") == "app.bsky.embed.images#view"
                     and context.hours_since_last_action >= 2.0
                 ):
-                    candidates.append(
-                        ActionCandidate(
-                            action=ActionType.REPOST,
-                            score=0.40,
-                            confidence=0.60,
-                            reason=f"Quietly repost visual snapshot by @{author.get('handle')}.",
-                            target_data={"post": post},
-                        )
+                    cand = ActionCandidate(
+                        action=ActionType.REPOST,
+                        score=0.40,
+                        confidence=0.60,
+                        reason=f"Quietly repost visual snapshot by @{author.get('handle')}.",
+                        target_data={"post": post},
                     )
-
-                if best_reply_candidate and best_like_candidate:
-                    break
+                    if best_repost_candidate is None:
+                        best_repost_candidate = cand
 
             if best_reply_candidate:
                 candidates.append(best_reply_candidate)
             if best_like_candidate:
                 candidates.append(best_like_candidate)
+            if best_quote_candidate:
+                candidates.append(best_quote_candidate)
+            if best_repost_candidate:
+                candidates.append(best_repost_candidate)
 
         # -------------------------------------------------------------
         # Modulate scores with cognitive state & social battery

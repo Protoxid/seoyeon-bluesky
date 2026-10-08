@@ -37,7 +37,9 @@ from .bsky_client import bsky_client
 from .budget_manager import budget_manager
 from .decision_engine import ActionType, decision_engine
 from .generator import generator
+from .goal_manager import goal_manager
 from .image_engine import image_engine
+from .narrative_engine import narrative_engine
 from .notifier import notifier
 from .validator import validator
 
@@ -191,6 +193,7 @@ def run_tick(
             if not is_dry:
                 memory_store.record_recent_post(post_text, topic="general_thought", post_id=res.get("uri", ""))
                 memory_store.log_episode("post", "Published spontaneous thought", {"text": post_text, "uri": res.get("uri")})
+                goal_manager.detect_and_record_goal_activity(post_text, post_uri=res.get("uri"))
             executed = True
             result_details = {"uri": res.get("uri"), "text": post_text, "model": model_used}
 
@@ -203,26 +206,49 @@ def run_tick(
         print(f"  Scene Description: \"{scene_desc}\"")
 
         can_img, img_reason = budget_manager.can_generate_image()
-        img_res_id = budget_manager.reserve(0.045, action_type="image_generation") if can_img else None
+        img_res_id = budget_manager.reserve(0.045, action_type="image_generation", provider="kie.ai") if can_img else None
 
         img_bytes, prompt_used, err = None, "", img_reason
         if img_res_id:
             img_bytes, prompt_used, err = image_engine.generate_image(scene_desc, dry_run=is_dry)
 
         if img_bytes:
-            res = bsky_client.publish_image_post(post_text, img_bytes, alt_text="Han Seo-yeon candid moment")
+            # 1. Image generation was completed and billed independently of publishing success
+            if not is_dry and img_res_id:
+                budget_manager.reconcile(
+                    img_res_id,
+                    actual_cost_usd=0.045,
+                    action_type="image_generation",
+                    details=prompt_used[:40],
+                )
+                img_res_id = None
+
+            # 2. Derive specific contextual alt text from the synthesized scene
+            alt_text = generator.derive_image_alt_text(scene_desc)
+
+            # 3. Publish to Bluesky
+            try:
+                res = bsky_client.publish_image_post(post_text, img_bytes, alt_text=alt_text)
+            except Exception as e:
+                print(f"  [WARNING] Exception publishing image post: {e}")
+                res = {}
+
             if res.get("uri"):
                 print(f"  [SUCCESS] Published Image Post: {res.get('uri')}")
                 if not is_dry:
                     memory_store.record_recent_post(post_text, topic="image_post", post_id=res.get("uri", ""), has_image=True)
-                    budget_manager.reconcile(img_res_id, actual_cost_usd=0.045, action_type="image_generation", details=prompt_used[:40])
-                    img_res_id = None
+                    goal_manager.detect_and_record_goal_activity(post_text, post_uri=res.get("uri"))
                 executed = True
-                result_details = {"uri": res.get("uri"), "text": post_text, "image_prompt": prompt_used}
+                result_details = {"uri": res.get("uri"), "text": post_text, "image_prompt": prompt_used, "alt_text": alt_text}
             else:
-                if img_res_id:
-                    budget_manager.release(img_res_id)
-                    img_res_id = None
+                print(f"  [WARNING] Image generated but Bluesky publishing failed. Preserving text fallback.")
+                try:
+                    res = bsky_client.publish_text_post(post_text)
+                except Exception as e:
+                    print(f"  [WARNING] Exception fallback publishing text post: {e}")
+                    res = {}
+                executed = True
+                result_details = {"uri": res.get("uri"), "text": post_text, "image_generated": True, "publish_failed": True}
         else:
             if img_res_id:
                 budget_manager.release(img_res_id)
@@ -338,6 +364,7 @@ def run_tick(
                     root_uri=root_uri,
                     notification_uri=notif.get("uri", "")
                 )
+                goal_manager.detect_and_record_goal_activity(reply_text, post_uri=res.get("uri"))
             executed = True
             result_details = {"reply_uri": res.get("uri"), "reply_text": reply_text}
 
@@ -560,6 +587,7 @@ def run_tick(
                     root_uri=root_uri,
                     notification_uri=target_uri
                 )
+                goal_manager.detect_and_record_goal_activity(reply_text, post_uri=res.get("uri"))
             executed = True
             result_details = {"reply_uri": res.get("uri"), "reply_text": reply_text}
 
@@ -706,6 +734,23 @@ def show_status() -> int:
     print(f"  Identity:       {ident['name_en']} ({ident['name_ko']}), age {ident['age_stated']}")
     print(f"  Opinions:       {len(opinions)} established topic stances")
     print(f"  Recent Posts:   {len(recent.get('posts', []))} tracked for repetition defense")
+
+    print("\n[Active Goals & Pursuits]")
+    active_goals = goal_manager.get_active_goals()
+    if active_goals:
+        for g in active_goals:
+            metrics_str = f" ({g.metrics})" if g.metrics else ""
+            print(f"  - [{g.category}] {g.title} [{g.status}]{metrics_str}")
+    else:
+        print("  No active goals.")
+
+    print("\n[Narrative Continuity & Arcs]")
+    arcs = narrative_engine.get_active_narrative_arcs()
+    if arcs:
+        for a in arcs:
+            print(f"  - {a.title}: {a.summary[:65]}...")
+    else:
+        print("  No active narrative arcs.")
 
     print("\n[Credentials & Connectivity]")
     print(f"  Bluesky Handle:    {config.bsky_handle}")

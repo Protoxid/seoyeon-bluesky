@@ -106,7 +106,15 @@ Seo-yeon's visual world avoids repetitive glamour renders or glossy AI concept a
    - Zero-leak private storage for internal late-night reflections (`private_journal.jsonl`) and unredacted DM transcripts (`private_dms.jsonl`).
    - Strong Fernet cryptography (AES-128-CBC + HMAC-SHA256). In production, strictly requires a dedicated secret (`DATA_ENCRYPTION_KEY`). Deterministic dev fallback keys are strictly prohibited in production.
    - **Data Loss Prevention & Safe Halting**: If `vault.enc` exists but cannot be decrypted, execution safely halts to prevent data loss or state corruption. Ciphertext updates automatically create `vault.enc.bak` backups and utilize atomic temporary file replacement (`os.replace`).
-9. **Creator Bond & Telegram Bridge**: Resilient daily evening check-ins to her master with catch-up resilience, and real-time execution of authorized directives coherent with current space and time.
+10. **Autonomous Goal Lifecycle (`agent/goal_manager.py` & `data/memory/active_goals.json`)**:
+    - Persistent tracking across lifecycle states (`PROPOSED`, `ACTIVE`, `IN_PROGRESS`, `COMPLETED`, `PAUSED`, `ABANDONED`).
+    - Grounded in canon interests (essay writing, Hangul typography, vintage film, neighborhood walking). Strict anti-cliché quotas (≤10% pilates/tea).
+    - Automatic progress tracking advances completion percentages as goal activities are mentioned in outgoing posts and replies.
+11. **Narrative Continuity Engine (`agent/narrative_engine.py` & `data/memory/narrative_state.json`)**:
+    - **Open Conversational Loops**: Remembers conversation threads, book recommendations, and mutual commitments across sessions without amnesia (`open_loop`, `resolve_loop`).
+    - **Multi-Day Narrative Arcs**: Tracks multi-day processes (drying autumn persimmons, reading lengthy literature, seasoning ceramics) through progressive development stages.
+    - **Temporal Coherence Validator**: Rejects chronological paradoxes in generated content (e.g., claiming to eat dinner at 09:00 KST, or claiming deep-night rest at noon).
+12. **Creator Bond & Telegram Bridge**: Resilient daily evening check-ins to her master with catch-up resilience, and real-time execution of authorized directives coherent with current space and time.
 
 ---
 
@@ -118,12 +126,24 @@ Seo-yeon's visual world avoids repetitive glamour renders or glossy AI concept a
   - **Reasoning Token Budgeting**: Enforces mandatory reasoning token headroom (`effective_tokens = max(max_tokens, 700)`, `timeout=35s`) so internal reasoning never exhausts the completion budget.
   - **Fallback Model**: `deepseek-v4.1-flash` — High-speed secondary model for uninterrupted resilience.
   - **Natural Restraint Over Canned Fallbacks**: Completely free of canned bot platitudes. If generation is unavailable or rejected by the validator, Seo-yeon cleanly stays offline (`NO_ACTION`).
+- **Multi-Candidate Feed Evaluation (`agent/decision_engine.py`)**:
+  - Dynamically evaluates and ranks up to 10 candidates from timeline and discovery feeds based on relationship tier, open conversational loops with the author, active goal keywords, recency, and language quality.
 - **Image Generation (Kie.ai)**:
-  - **Model**: `gpt-image-2-5-sunburst-image-to-image` conditioned on canonical identity masters (`a1_front.png` + `c5_relax_front.png`).
+  - **Model**: `gpt-image-2-5-sunburst-image-to-image` conditioned on canonical identity masters (`a1_front.png` + `c5_relax_front.png`). Contextual alt text automatically derived from scene prompts.
 - **Cost & Budget Guardrails (`agent/budget_manager.py`)**:
-  - **Atomic Budget Reservations**: Every generation pre-allocates estimated spend (`reserve()`), reconciles exact token costs upon completion (`reconcile()`), and frees reserved holds on failure or restraint (`release()`).
-  - **Single-Entry Accounting**: Fixed charges and token billing are consolidated—zero double-accounting across generator and runner.
+  - **Durable Budget Reservations**: Pre-flight reservations stored in `data["active_reservations"]` survive runner reboots with automatic 15-minute expiration of stale holds.
+  - **Decoupled Image Billing**: Kie.ai $0.045 image cost is reconciled immediately upon image byte receipt, remaining accurate even if Bluesky publishing fails.
   - Hard daily ($2.00) and monthly ($30.00) spending caps with automatic graceful shutdown and ledger auditing.
+
+---
+
+## 📊 30-Day Deterministic Simulation & Validation (`docs/v25_simulation_report.md`)
+
+The V2.5 architecture has been verified via a deterministic 30-day simulation harness (`scripts/simulate_30_days.py`, seed=42, 1,440 ticks):
+- **Organic Restraint**: 77.1% `NO_ACTION` rate (1,110 ticks offline) reflecting realistic human presence.
+- **Balanced Social Output**: ~11 actions/day (149 replies, 53 original text posts, 30 DMs, 27 quote posts, 26 image posts).
+- **Cost Efficiency**: $0.688 total 30-day spend ($0.025 max daily spend vs. $2.00 cap, 0 cap breaches).
+- **Narrative & Temporal Coherence**: 0 temporal paradoxes, 3 long-term goals completed, 100% test pass rate.
 
 ---
 
@@ -147,7 +167,7 @@ The repository integrates the [Google Antigravity Agent Skills Standard](https:/
 ## 🚀 Daily CLI Cheatsheet
 
 ```powershell
-# 1. View live agent dashboard (Seoul time, weather, memory, budget, energy)
+# 1. View live agent dashboard (Seoul time, weather, memory, goals, budget, energy)
 python agent_runner.py --status
 
 # 2. Run single autonomous tick in safe DRY-RUN mode (simulation)
@@ -177,7 +197,10 @@ python agent_runner.py --dry-run --force-action NO_ACTION
 python agent_runner.py --plan-week
 python agent_runner.py --force-plan
 
-# 9. Run full test suite (103 hermetic tests)
+# 9. Run 30-day deterministic simulation harness
+python scripts/simulate_30_days.py --days 30
+
+# 10. Run full test suite (124 hermetic tests)
 python -m unittest discover -s tests -p "test_*.py"
 ```
 
