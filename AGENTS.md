@@ -80,7 +80,12 @@ EVALUATE CANDIDATES
 ## 4. Text Generation (OpenRouter Exclusive) & Kie.ai Image Generation
 - **Text Generation**: Routed **EXCLUSIVELY** through OpenRouter API (`https://openrouter.ai/api/v1/chat/completions`).
   - Primary Model: `anthropic/claude-sonnet-5.5` (state-of-the-art intelligence, nuanced character adherence, natural dry tone without robotic exclamation marks).
+  - Reasoning Token Headroom: Enforces `effective_tokens = max(max_tokens, 700)` with `timeout=35s` so mandatory reasoning never starves completion text.
   - Fallback Model: `deepseek-v4.1-flash` (fast, highly intelligent secondary on OpenRouter).
+  - Natural Restraint Over Canned Fallbacks: Completely free of canned bot platitudes. If generation is unavailable or rejected by the validator, she cleanly stays offline (`NO_ACTION`).
+  - Direct Opinion Answering: When a post poses a question, dilemma, or choice, she answers directly from her personal life, routine, and tastes with dry humor, rather than non-committal evasion.
+- **Discovery Feed & Multi-Language Filters (`agent/validator.py`)**:
+  - Operates strictly in Korean and English. Rejects non-target scripts (Japanese Kana, Cyrillic, Arabic, CJK ideographs without Hangul, and non-target Romance text) and automatically drops commercial financial spam and bot advisors.
 - **Image Generation & Anonymous Settings Architecture**:
   - **The Consistency Solution**: Because generative image models cannot reproduce identical indoor room layouts (such as her private flat or gym studio) across weeks, daytime and evening photos prioritize **anonymous outdoor settings** (Seongsu red-brick sidewalks, crosswalks, fallen ginkgo leaves, Line 2 transit bridge) or **incidental POV macros** (a stray cat met on the way to the studio, hands holding a warm tea cup, book on an outdoor table with heavy background bokeh). Deep night is strictly tight in-bed selfies (under duvet, messy bedhead, dim night lamp).
   - **Identity Anchoring**: Selfies are conditioned on dual canonical face masters through **Kie.ai** API (`gpt-image-2-5-sunburst-image-to-image`) anchored to `personas/seoyeon/master/a/a1_front.png` and `personas/seoyeon/master/c/c5_relax_front.png`.
@@ -89,7 +94,18 @@ EVALUATE CANDIDATES
 
 ---
 
-## 5. Cloud Automation (Runs 24/7 with PC Off)
+## 5. Google Antigravity Agent Skills Standard (`.agents/skills/`)
+The workspace leverages the open [Google Antigravity Agent Skills](https://antigravity.google/docs/skills/) standard for progressive-disclosure workflows:
+1. **[`seoyeon-ops`](.agents/skills/seoyeon-ops/SKILL.md)**:
+   - Full operational runbook for all 11 CLI commands, testing procedures, master Telegram bidirectional communications, and diagnostic routines.
+2. **[`seoyeon-persona`](.agents/skills/seoyeon-persona/SKILL.md)**:
+   - Persona and linguistic invariants: zero exclamation marks (`!`), natural Korean banmal, dry lowercase English.
+   - Anti-cliché quota enforcement (≤10% pilates/coffee).
+   - Architectural rules for the "Consistency Solution" (anonymous outdoor settings, 35mm POV environmental macros, and in-bed deep-night shots).
+
+---
+
+## 6. Cloud Automation (Runs 24/7 with PC Off)
 The system is fully deployed on **GitHub Actions**:
 - Workflow: `.github/workflows/bluesky_scheduler.yml`.
 - Schedule: Runs every 30 minutes during Seoul waking hours (07:00–01:30 KST = 22:00–16:30 UTC).
@@ -102,10 +118,9 @@ The system is fully deployed on **GitHub Actions**:
   - `TELEGRAM_BOT_TOKEN`: Telegram bot token (for bidirectional communication with her master)
   - `TELEGRAM_CHAT_ID`: Telegram chat ID / recipient for master alerts
 
-
 ---
 
-## 6. Daily Command Cheatsheet
+## 7. Daily Command Cheatsheet
 From project root:
 ```powershell
 # 1. View live agent dashboard (Seoul time, weather, memory, budget, cognitive state)
@@ -130,6 +145,8 @@ python agent_runner.py --consolidate
 # 7. Force a specific action in dry-run mode (for verification)
 python agent_runner.py --dry-run --force-action PUBLISH_TEXT_POST
 python agent_runner.py --dry-run --force-action PUBLISH_IMAGE_POST
+python agent_runner.py --dry-run --force-action BROWSE_AND_REPLY
+python agent_runner.py --dry-run --force-action QUOTE_POST
 python agent_runner.py --dry-run --force-action NO_ACTION
 
 # 8. View / plan 7-day weekly life itinerary

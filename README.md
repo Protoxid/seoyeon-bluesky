@@ -5,6 +5,7 @@
 [![Bluesky](https://img.shields.io/badge/Bluesky-@syeonhn.bsky.social-0285FF?logo=bluesky&logoColor=white)](https://bsky.app/profile/did:plc:qmzkrqxywyhq4ar4k3nxdbvg)
 [![Status](https://img.shields.io/badge/Status-Fully%20Autonomous%20(24%2F7)-00B093)](#)
 [![Cognitive Architecture](https://img.shields.io/badge/Architecture-Cognitive%20Sensory%20Loop-7C3AED)](#)
+[![Antigravity Skills](https://img.shields.io/badge/Antigravity-Agent%20Skills%20Standard-4285F4?logo=google&logoColor=white)](#)
 [![Text Engine](https://img.shields.io/badge/LLM-OpenRouter%20(Claude%20Sonnet%205.5)-FF5A00)](https://openrouter.ai/)
 [![Visual Identity](https://img.shields.io/badge/Vision-Kie.ai%20GPT%20Image%202.5-0070F3)](#)
 [![Deployment](https://img.shields.io/badge/Cloud-GitHub%20Actions-2088FF?logo=github-actions&logoColor=white)](#)
@@ -110,11 +111,30 @@ Seo-yeon's visual world avoids repetitive glamour renders or glossy AI concept a
 
 - **Text Generation (OpenRouter Exclusive)**:
   - **Primary Frontier Model**: `anthropic/claude-sonnet-5.5` — Nuanced character adherence, dry understated observational style, and natural Korean/English balance without exclamation marks.
+  - **Reasoning Token Budgeting**: Enforces mandatory reasoning token headroom (`effective_tokens = max(max_tokens, 700)`, `timeout=35s`) so internal reasoning never exhausts the completion budget.
   - **Fallback Model**: `deepseek-v4.1-flash` — High-speed secondary model for uninterrupted resilience.
+  - **Natural Restraint Over Canned Fallbacks**: Completely free of canned bot platitudes. If generation is unavailable or rejected by the validator, Seo-yeon cleanly stays offline (`NO_ACTION`).
 - **Image Generation (Kie.ai)**:
   - **Model**: `gpt-image-2-5-sunburst-image-to-image` conditioned on canonical identity masters.
 - **Cost & Budget Guardrails (`agent/budget_manager.py`)**:
   - Hard daily ($2.00) and monthly ($30.00) spending caps with automatic graceful shutdown and ledger auditing.
+
+---
+
+## 🧩 Google Antigravity Agent Skills (`.agents/skills/`)
+
+The repository integrates the [Google Antigravity Agent Skills Standard](https://antigravity.google/docs/skills/) for progressive-disclosure procedural execution:
+
+1. **[`seoyeon-ops`](.agents/skills/seoyeon-ops/SKILL.md)**:
+   - Complete operational runbook for all 11 CLI commands.
+   - Pre-push verification sequences and hermetic unit testing checklists.
+   - Bidirectional Telegram routines with master (`--check-master`, `--daily-summary`, `--ask-master`).
+   - Diagnostic procedures for OpenRouter token sizing, Bluesky XRPC rate limits, and budget management.
+2. **[`seoyeon-persona`](.agents/skills/seoyeon-persona/SKILL.md)**:
+   - Invariant gatekeeper: zero exclamation marks (`!`), natural Korean banmal, dry lowercase English.
+   - Anti-cliché quota enforcement: ≤10% cap on pilates and coffee references.
+   - Direct opinion answering: provides concrete personal stances on community questions, polls, and dilemmas.
+   - Photographic Scene Direction: strict architectural rules for the "Consistency Solution" (anonymous outdoor streets, 35mm POV environmental macros, and in-bed deep-night shots).
 
 ---
 
@@ -143,6 +163,7 @@ python agent_runner.py --consolidate
 # 7. Force specific action in dry-run mode for testing
 python agent_runner.py --dry-run --force-action PUBLISH_TEXT_POST
 python agent_runner.py --dry-run --force-action PUBLISH_IMAGE_POST
+python agent_runner.py --dry-run --force-action BROWSE_AND_REPLY
 python agent_runner.py --dry-run --force-action QUOTE_POST
 python agent_runner.py --dry-run --force-action NO_ACTION
 
@@ -156,8 +177,10 @@ python -m unittest discover -s tests -p "test_*.py"
 
 ---
 
-## 🛡️ Safety, Transparency & Injection Defense
+## 🛡️ Safety, Transparency & Discovery Filtering
 
+- **Multi-Language Discovery Filter**: Rejects non-target scripts (Japanese Kana, Cyrillic, Arabic, CJK ideographs without Hangul, and Romance languages like Spanish/French/German) to ensure Seo-yeon only engages organically in Korean and English.
+- **Negative Author & Commercial Filters**: Automatically filters out financial spam, disclaimers, marketing advisors, and bot digests from the Discovery feed.
 - **Prompt Injection Sanitation**: All external Bluesky content (posts, mentions, DMs) is wrapped in untrusted boundary blocks and sanitized against jailbreaks, command injections, and identity hijacking.
 - **Sensitive Escalation**: Inquiries asking for real-life meetups, personal contact details, or sensitive decisions trigger instant Telegram alerts to her operator.
 - **Bluesky Compliance**: Operates in accordance with Bluesky developer guidelines and AT Protocol rate limits.
