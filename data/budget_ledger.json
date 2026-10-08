@@ -1,9 +1,9 @@
 {
-  "current_day": "2026-10-07",
+  "current_day": "2026-10-08",
   "current_month": "2026-10",
-  "daily_spend_usd": 0.274,
-  "monthly_spend_usd": 0.396,
-  "daily_images_count": 6,
+  "daily_spend_usd": 0.002,
+  "monthly_spend_usd": 0.398,
+  "daily_images_count": 0,
   "history": [
     {
       "ts": "2026-10-03T04:47:57.219129+00:00",
@@ -154,6 +154,12 @@
       "cost_usd": 0.045,
       "action_type": "image_generation",
       "details": "Candid everyday smartphone selfie of Seo"
+    },
+    {
+      "ts": "2026-10-08T01:27:09.928597+00:00",
+      "cost_usd": 0.002,
+      "action_type": "browse_reply",
+      "details": "to @orangestar.bsky.social"
     }
   ]
 }
