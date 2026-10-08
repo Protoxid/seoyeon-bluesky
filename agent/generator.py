@@ -46,14 +46,6 @@ OFFLINE_POST_FALLBACKS = [
     "the ginkgo trees along yeonmujang-gil dropped almost all their leaves in one afternoon. sidewalk is completely yellow.",
 ]
 
-OFFLINE_REPLY_FALLBACKS = [
-    "honestly that makes a lot of sense. glad you mentioned it.",
-    "i was thinking about that earlier today too.",
-    "timing on that is strangely accurate.",
-    "pretty much sums up my entire evening.",
-    "fair point. i had not looked at it from that angle.",
-]
-
 # Sensitive patterns that prompt Seo-yeon to ask her master for guidance
 SENSITIVE_PATTERNS = [
     r"\b(meet\s*up|in\s*person|coffee\s*together|see\s*you\s*irl|hang\s*out\s*irl)\b",
@@ -73,6 +65,11 @@ class ContentGenerator:
         if not self.openrouter_key:
             return None
 
+        # Reasoning models (e.g. claude-sonnet-5.5 on OpenRouter) enforce mandatory reasoning tokens
+        # which consume between 100-250 tokens before the visible content starts.
+        # Ensure max_tokens has at least 700 tokens so reasoning never exhausts the completion budget.
+        effective_tokens = max(max_tokens, 700)
+
         payload = {
             "model": model,
             "messages": [
@@ -80,7 +77,7 @@ class ContentGenerator:
                 {"role": "user", "content": user_prompt},
             ],
             "temperature": 0.72,
-            "max_tokens": max_tokens,
+            "max_tokens": effective_tokens,
         }
         endpoint = f"{config.openrouter_base_url.rstrip('/')}/chat/completions"
         req = urllib.request.Request(
@@ -95,7 +92,7 @@ class ContentGenerator:
             method="POST",
         )
         try:
-            with urllib.request.urlopen(req, timeout=22) as resp:
+            with urllib.request.urlopen(req, timeout=35) as resp:
                 res = json.loads(resp.read().decode("utf-8"))
                 choices = res.get("choices", [])
                 if choices:
@@ -127,7 +124,7 @@ class ContentGenerator:
             if text:
                 return text, fallback_model
 
-        return None, "fallback"
+        return None, "failed"
 
     def _build_system_prompt(self, context: EnvironmentContext) -> str:
         ident_prompt = memory_store.format_identity_prompt()
@@ -249,12 +246,15 @@ class ContentGenerator:
             f"{'Write in natural casual Korean (반말/부드러운 어조, 마침표만 사용, 느낌표 금지).' if is_korean else 'Write in natural English (all lowercase, no exclamation marks).'}"
         )
 
-        text, model = self._call_llm(sys_prompt, user_prompt, max_tokens=160)
+        text, model = self._call_llm(sys_prompt, user_prompt, max_tokens=250)
         if not text:
-            text = "found myself nodding to this. something quiet about how accurate it is."
+            return "", "failed"
 
-        ok, clean, _ = validator.validate_outgoing_text(text, content_type="post", check_repetition=False)
-        return clean or text, model
+        ok, clean, reason = validator.validate_outgoing_text(text, content_type="post", check_repetition=False)
+        if not ok or not clean:
+            print(f"[Generator] Quote post validation rejected ('{reason}'). Refusing canned fallback.")
+            return "", "failed"
+        return clean, model
 
     def generate_reply(
         self,
@@ -298,13 +298,14 @@ class ContentGenerator:
             f"{'Write in natural casual Korean (마침표만 사용, 느낌표 금지).' if is_korean else 'Write in natural English (all lowercase, no exclamation marks).'}"
         )
 
-        text, model = self._call_llm(sys_prompt, user_prompt, max_tokens=160)
+        text, model = self._call_llm(sys_prompt, user_prompt, max_tokens=250)
         if not text:
-            text = random.choice(OFFLINE_REPLY_FALLBACKS)
+            return "", "failed"
 
         ok, clean, reason = validator.validate_outgoing_text(text, content_type="reply", check_repetition=False)
-        if not ok:
-            clean = random.choice(OFFLINE_REPLY_FALLBACKS)
+        if not ok or not clean:
+            print(f"[Generator] Reply validation rejected ('{reason}'). Refusing canned fallback.")
+            return "", "failed"
         return clean, model
 
     def generate_dm_reply(
@@ -340,11 +341,14 @@ class ContentGenerator:
             f"{'Use natural Korean dialogue (마침표만 사용, 느낌표 금지).' if is_korean else 'Use natural English (all lowercase, no exclamation marks).'}"
         )
 
-        text, model = self._call_llm(sys_prompt, user_prompt, max_tokens=150)
+        text, model = self._call_llm(sys_prompt, user_prompt, max_tokens=250)
         if not text:
-            text = "sorry for the delay, was away from my phone. hope your day is going well."
+            return "", "failed"
 
-        ok, clean, _ = validator.validate_outgoing_text(text, content_type="dm", check_repetition=False)
+        ok, clean, reason = validator.validate_outgoing_text(text, content_type="dm", check_repetition=False)
+        if not ok or not clean:
+            print(f"[Generator] DM reply validation rejected ('{reason}'). Refusing canned fallback.")
+            return "", "failed"
         return clean, model
 
     def parse_master_directive(self, master_text: str) -> Dict[str, Any]:

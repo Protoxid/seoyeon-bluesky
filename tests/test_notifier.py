@@ -224,9 +224,10 @@ class TestTelegramNotifier(unittest.TestCase):
         """determine_image_scene should ground scene in wardrobe inventory."""
         from agent.context_engine import build_environment_context
         ctx = build_environment_context()
-        scene = generator.determine_image_scene("post text about morning", ctx)
-        self.assertTrue(len(scene) > 20)
-        self.assertIn("Seongsu", scene)
+        with patch.object(generator, "_call_llm", return_value=(None, "mock")):
+            scene = generator.determine_image_scene("post text about morning", ctx)
+            self.assertTrue(len(scene) > 20)
+            self.assertIn("Seongsu", scene)
 
     def test_parse_master_directive_types(self):
         """parse_master_directive must recognize photo, post, DM, comment, like, and consolidation directives."""

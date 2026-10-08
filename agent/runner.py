@@ -267,6 +267,26 @@ def run_tick(
         reply_text, model_used = generator.generate_reply(target_author, user_text, thread_ctx, profile, context)
         print(f"  Draft Reply ({model_used}): \"{reply_text}\"")
 
+        if not reply_text or model_used in ("failed", "fallback"):
+            print(f"  [RESTRAINT ABORT] Could not formulate authentic contextual reply. Remaining silent.")
+            memory_store.mark_notification_handled(notif.get("uri", ""), target_post_uri=target_uri)
+            if auth_ok:
+                bsky_client.update_seen()
+            executed = True
+            result_details = {"status": "aborted_generation_failed", "target_uri": target_uri}
+            now_iso = dt.datetime.now(dt.timezone.utc).isoformat()
+            log_tick({
+                "ts": now_iso,
+                "seoul_time": context.seoul_time_display,
+                "action": "NO_ACTION",
+                "reason": f"Restraint abort: could not formulate authentic contextual reply to {target_author}.",
+                "dry_run": is_dry,
+                "executed": True,
+                "details": result_details,
+                "budget": budget_manager.get_summary(),
+            })
+            return 0
+
         # Resolve root & parent
         record = notif.get("record", {})
         reply_meta = record.get("reply", {})
@@ -314,6 +334,23 @@ def run_tick(
 
         reply_text, model_used = generator.generate_dm_reply(dm_history, profile, context)
         print(f"  Draft DM ({model_used}): \"{reply_text}\"")
+
+        if not reply_text or model_used in ("failed", "fallback"):
+            print(f"  [RESTRAINT ABORT] Could not formulate authentic DM response. Remaining silent.")
+            executed = True
+            result_details = {"status": "aborted_generation_failed", "convo_id": convo_id}
+            now_iso = dt.datetime.now(dt.timezone.utc).isoformat()
+            log_tick({
+                "ts": now_iso,
+                "seoul_time": context.seoul_time_display,
+                "action": "NO_ACTION",
+                "reason": f"Restraint abort: could not formulate authentic DM response to @{handle}.",
+                "dry_run": is_dry,
+                "executed": True,
+                "details": result_details,
+                "budget": budget_manager.get_summary(),
+            })
+            return 0
 
         res = bsky_client.send_dm(convo_id, reply_text)
         if res:
@@ -391,6 +428,23 @@ def run_tick(
         reply_text, model_used = generator.generate_reply(target_author, user_text, thread_ctx, profile, context)
         print(f"  Draft Reply ({model_used}): \"{reply_text}\"")
 
+        if not reply_text or model_used in ("failed", "fallback"):
+            print(f"  [RESTRAINT ABORT] Could not formulate authentic contextual reply to feed. Remaining silent.")
+            executed = True
+            result_details = {"status": "aborted_generation_failed", "target_uri": target_uri}
+            now_iso = dt.datetime.now(dt.timezone.utc).isoformat()
+            log_tick({
+                "ts": now_iso,
+                "seoul_time": context.seoul_time_display,
+                "action": "NO_ACTION",
+                "reason": f"Restraint abort: could not formulate authentic contextual reply to @{target_author}'s post.",
+                "dry_run": is_dry,
+                "executed": True,
+                "details": result_details,
+                "budget": budget_manager.get_summary(),
+            })
+            return 0
+
         record = post.get("record", {})
         reply_meta = record.get("reply", {})
         root_uri = reply_meta.get("root", {}).get("uri", target_uri) if reply_meta else target_uri
@@ -425,6 +479,23 @@ def run_tick(
 
         quote_comment, model_used = generator.generate_quote_post(target_author, user_text, context)
         print(f"  Draft Quote ({model_used}): \"{quote_comment}\"")
+
+        if not quote_comment or model_used in ("failed", "fallback"):
+            print(f"  [RESTRAINT ABORT] Could not formulate authentic quote commentary. Remaining silent.")
+            executed = True
+            result_details = {"status": "aborted_generation_failed", "target_uri": target_uri}
+            now_iso = dt.datetime.now(dt.timezone.utc).isoformat()
+            log_tick({
+                "ts": now_iso,
+                "seoul_time": context.seoul_time_display,
+                "action": "NO_ACTION",
+                "reason": f"Restraint abort: could not formulate authentic quote commentary on @{target_author}.",
+                "dry_run": is_dry,
+                "executed": True,
+                "details": result_details,
+                "budget": budget_manager.get_summary(),
+            })
+            return 0
 
         res = bsky_client.quote_post(quote_comment, target_uri, target_cid)
         if res.get("uri"):

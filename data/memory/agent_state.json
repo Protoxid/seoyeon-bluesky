@@ -1,9 +1,9 @@
 {
   "social_battery": 1.0,
-  "physical_fatigue": 0.1,
+  "physical_fatigue": 0.15,
   "financial_awareness": 0.4,
-  "creative_drive": 0.55,
+  "creative_drive": 0.7,
   "mood_descriptor": "grounded after speaking with my master (Can you please publish a pictu)",
-  "last_updated": "2026-10-07T18:57:29.609395+00:00",
+  "last_updated": "2026-10-08T06:29:35.662771+00:00",
   "last_consolidation_date": "2026-10-08"
 }

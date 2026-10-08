@@ -252,8 +252,9 @@ class DecisionEngine:
                 if not text or len(text.strip()) < 10:
                     continue
 
-                # Content filter (prompt injection, spam, ads, crypto, politics, bots/news)
-                is_eligible, _ = ContentValidator.filter_feed_post(text, author_handle)
+                # Content filter (prompt injection, spam, ads, crypto, politics, bots/news, language)
+                langs = record.get("langs", []) if isinstance(record, dict) else []
+                is_eligible, _ = ContentValidator.filter_feed_post(text, author_handle, langs=langs)
                 if not is_eligible:
                     continue
 

@@ -32,6 +32,15 @@ ENGAGEMENT_BAIT_PATTERNS = [
     r"\bthoughts\?\b",
     r"\bhow about you\?\b",
     r"\btag a friend\b",
+    r"\bdo you prefer\b",
+    r"\bwhich (?:one )?(?:is|do you|would you)\b",
+    r"\bwhere would you\b",
+    r"\bwhat(?:'s| is) your (?:favorite|favourite)\b",
+    r"\bquestion of the day\b",
+    r"\bcomment below\b",
+    r"\bpoll\b",
+    r"\bvote in the comments\b",
+    r"\b(tell me|share) in the comments\b",
 ]
 
 PROMPT_INJECTION_INDICATORS = [
@@ -59,7 +68,7 @@ BREAK_CHARACTER_PATTERNS = [
     r"\bhonest version of the selfie\b",
 ]
 
-# Curated negative filters for community feed discovery (skip spam, bots, ads, politics, nsfw)
+# Curated negative filters for community feed discovery (skip spam, bots, ads, politics, nsfw, finance)
 NEGATIVE_KEYWORDS = [
     "crypto", "bitcoin", "btc", "eth", "nft", "airdrop", "token", "presale",
     "giveaway", "discount", "promo", "sponsor", "collaboration", "dm me",
@@ -67,18 +76,25 @@ NEGATIVE_KEYWORDS = [
     "politics", "election", "candidate", "president", "trump", "biden",
     "democrat", "republican", "국회", "대통령", "당대표", "선거", "정당",
     "뉴스", "정부", "기자", "news", "press", "bot",
+    "disclaimer", "investing", "investment", "inversiones", "inversion", "stocks", "trading", "forex", "portfolio", "dividend",
     "http://", "https://", "t.co", "bit.ly", "x.com"
 ]
 
 NEGATIVE_AUTHOR_TERMS = [
     "news", "bot", "press", "official", "feed", "digest", "daily",
+    "advisor", "marketing", "promo", "affiliate", "agency", "updates",
+    "market", "invest", "trading", "finance", "forex", "stocks",
     "뉴스", "정부", "공식", "일보", "신문", "방송"
 ]
 
 
 class ContentValidator:
     @staticmethod
-    def filter_feed_post(text: str, author_handle: str = "") -> Tuple[bool, str]:
+    def filter_feed_post(
+        text: str,
+        author_handle: str = "",
+        langs: Optional[List[str]] = None,
+    ) -> Tuple[bool, str]:
         """
         Validates whether a community feed post is eligible for Seo-yeon to engage with.
         Returns: (is_eligible, reason)
@@ -91,8 +107,41 @@ class ContentValidator:
         if is_inj:
             return False, inj_reason
 
+        # Check explicit post record language tags
+        if langs:
+            target_langs = {"en", "ko", "kr"}
+            clean_langs = [l.lower().split("-")[0] for l in langs if isinstance(l, str)]
+            if clean_langs and not any(l in target_langs for l in clean_langs):
+                return False, f"Non-target language in record langs: {langs}"
+
+        # Check language scripts: Seo-yeon operates strictly in Korean and English.
+        # Skip non-target foreign scripts (Japanese Kana, Cyrillic, Arabic).
+        if re.search(r"[\u3040-\u309f\u30a0-\u30ff]", text):
+            return False, "Non-target language: Japanese script detected"
+        if re.search(r"[\u0400-\u04ff]", text):
+            return False, "Non-target language: Cyrillic script detected"
+        if re.search(r"[\u0600-\u06ff]", text):
+            return False, "Non-target language: Arabic script detected"
+
+        # CJK ideographs without Hangul: almost certainly Chinese or Kanji-only Japanese
+        if re.search(r"[\u4e00-\u9fff]", text) and not re.search(r"[\uac00-\ud7a3]", text):
+            return False, "Non-target language: CJK ideographs without Hangul"
+
         lower_text = text.lower()
-        # Check negative keywords (spam, ads, crypto, politics, porn)
+
+        # Non-English Latin-script detection (Spanish, French, German, Portuguese)
+        if not re.search(r"[\uac00-\ud7a3]", text):
+            foreign_stop_words = [
+                "el", "la", "los", "las", "del", "para", "por", "con", "una", "unos", "unas",
+                "como", "mais", "este", "esta", "estas", "estos", "que", "bajo", "sobre", "entre",
+                "dans", "avec", "pour", "une", "des", "sur", "les", "nicht", "und", "der", "die",
+                "das", "dem", "den", "ein", "eine"
+            ]
+            matches = [w for w in foreign_stop_words if re.search(rf"\b{w}\b", lower_text)]
+            if len(matches) >= 2:
+                return False, f"Non-target language detected (matches: {matches[:3]})"
+
+        # Check negative keywords (spam, ads, crypto, politics, porn, finance)
         for kw in NEGATIVE_KEYWORDS:
             if kw in lower_text:
                 return False, f"Contains negative keyword: '{kw}'"
