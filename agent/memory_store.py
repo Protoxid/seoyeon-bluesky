@@ -433,6 +433,23 @@ class MemoryStore:
         ctx["replied_post_uris"] = list(post_set)[-300:]
         self.recent_context_file.write_text(json.dumps(ctx, indent=2, ensure_ascii=False), encoding="utf-8")
 
+    def has_replied_to_dm(self, message_id: str) -> bool:
+        """Checks if a direct message ID has already been answered."""
+        if not message_id:
+            return False
+        ctx = self.get_recent_context()
+        return message_id in ctx.get("replied_dm_message_ids", [])
+
+    def mark_dm_handled(self, message_id: str) -> None:
+        """Records a direct message ID as handled to prevent duplicate replies."""
+        if not message_id:
+            return
+        ctx = self.get_recent_context()
+        dm_set = set(ctx.get("replied_dm_message_ids", []))
+        dm_set.add(message_id)
+        ctx["replied_dm_message_ids"] = list(dm_set)[-300:]
+        self.recent_context_file.write_text(json.dumps(ctx, indent=2, ensure_ascii=False), encoding="utf-8")
+
     def record_recent_post(self, text: str, topic: str, post_id: str = "", has_image: bool = False) -> None:
         ctx = self.get_recent_context()
         posts = ctx.get("posts", [])
@@ -487,6 +504,19 @@ class MemoryStore:
 
         self.recent_context_file.write_text(json.dumps(ctx, indent=2, ensure_ascii=False), encoding="utf-8")
 
+    def record_recent_like(self, post_uri: str, target_handle: str = "") -> None:
+        """Records a post like in recent context for cadence and quota tracking."""
+        ctx = self.get_recent_context()
+        likes = ctx.get("likes", [])
+        now_iso = dt.datetime.now(dt.timezone.utc).isoformat()
+        likes.insert(0, {
+            "post_uri": post_uri,
+            "target_handle": target_handle,
+            "created_at": now_iso,
+        })
+        ctx["likes"] = likes[:50]
+        self.recent_context_file.write_text(json.dumps(ctx, indent=2, ensure_ascii=False), encoding="utf-8")
+
     def get_hours_since_last_post(self) -> float:
         ctx = self.get_recent_context()
         posts = ctx.get("posts", [])
@@ -502,7 +532,7 @@ class MemoryStore:
     def get_hours_since_last_action(self) -> float:
         ctx = self.get_recent_context()
         all_times: List[dt.datetime] = []
-        for cat in ("posts", "replies", "dms"):
+        for cat in ("posts", "replies", "dms", "likes"):
             for item in ctx.get(cat, []):
                 ts_str = item.get("created_at")
                 if ts_str:
@@ -516,10 +546,11 @@ class MemoryStore:
         latest = max(all_times)
         return max(0.0, (now_utc - latest).total_seconds() / 3600.0)
 
-    def get_activity_counts_today(self) -> Tuple[int, int, int]:
-        """Returns (posts_today, replies_today, dms_today)."""
+    def get_activity_counts_today(self) -> Tuple[int, int, int, int]:
+        """Returns (posts_today, replies_today, dms_today, likes_today) grounded in Seoul date (KST)."""
         ctx = self.get_recent_context()
-        today = dt.datetime.now(dt.timezone.utc).date()
+        kst_tz = dt.timezone(dt.timedelta(hours=9))
+        today_kst = dt.datetime.now(dt.timezone.utc).astimezone(kst_tz).date()
 
         def count_today(items: List[Dict[str, Any]]) -> int:
             cnt = 0
@@ -527,7 +558,10 @@ class MemoryStore:
                 ts = it.get("created_at")
                 if ts:
                     try:
-                        if dt.datetime.fromisoformat(ts).date() == today:
+                        p_dt = dt.datetime.fromisoformat(ts)
+                        if p_dt.tzinfo is None:
+                            p_dt = p_dt.replace(tzinfo=dt.timezone.utc)
+                        if p_dt.astimezone(kst_tz).date() == today_kst:
                             cnt += 1
                     except Exception:
                         pass
@@ -537,6 +571,7 @@ class MemoryStore:
             count_today(ctx.get("posts", [])),
             count_today(ctx.get("replies", [])),
             count_today(ctx.get("dms", [])),
+            count_today(ctx.get("likes", [])),
         )
 
     def get_last_daily_report_date(self) -> str:

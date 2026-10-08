@@ -72,7 +72,7 @@ def run_tick(
         return 1
 
     # 2. Build Environment & Temporal Context
-    posts_today, replies_today, dms_today = memory_store.get_activity_counts_today()
+    posts_today, replies_today, dms_today, likes_today = memory_store.get_activity_counts_today()
     hours_since_post = memory_store.get_hours_since_last_post()
     hours_since_action = memory_store.get_hours_since_last_action()
 
@@ -82,13 +82,14 @@ def run_tick(
         posts_today=posts_today,
         replies_today=replies_today,
         dms_today=dms_today,
+        likes_today=likes_today,
     )
 
     print(f"Time:     {context.seoul_time_display} ({context.day_of_week}, {context.circadian_phase})")
     print(f"Weather:  {context.weather.summary()}")
     if context.holiday_note:
         print(f"Calendar: {context.holiday_note}")
-    print(f"Recency:  Last post {context.hours_since_last_post:.1f}h ago | Today: {posts_today} posts, {replies_today} replies, {dms_today} DMs")
+    print(f"Recency:  Last post {context.hours_since_last_post:.1f}h ago | Today: {posts_today} posts, {replies_today} replies, {dms_today} DMs, {likes_today} likes")
 
     # 2b. Check Inbound Master Messages
     processed_master_msgs = notifier.process_master_inbox(context, dry_run=is_dry)
@@ -355,6 +356,12 @@ def run_tick(
         res = bsky_client.send_dm(convo_id, reply_text)
         if res:
             print(f"  [SUCCESS] Direct Message Sent to @{handle}")
+            last_msg_id = outcome.target_data.get("last_message_id", "")
+            sent_msg_id = res.get("id") or last_msg_id
+            if convo_id and (sent_msg_id or last_msg_id):
+                bsky_client.mark_convo_read(convo_id, sent_msg_id or last_msg_id)
+            if last_msg_id:
+                memory_store.mark_dm_handled(last_msg_id)
             if not is_dry:
                 memory_store.record_user_interaction(handle, dm_history[-1]["text"] if dm_history else "", reply_text, "dm")
                 budget_manager.record_spend(0.002, "dm", f"to @{handle}")
@@ -369,6 +376,7 @@ def run_tick(
         print(f"\n[Liking Feed Post from @{author}...]")
         if not is_dry:
             res = bsky_client.like_post(post_uri, post_cid)
+            memory_store.record_recent_like(post_uri, author)
             print(f"  [SUCCESS] Liked: {post_uri}")
         else:
             print(f"  [DRY-RUN] Would like post: {post_uri}")
@@ -574,10 +582,11 @@ def show_status() -> int:
     print(f"Current Season:     {context.season}")
 
     print("\n[Activity Metrics]")
-    posts_today, replies_today, dms_today = memory_store.get_activity_counts_today()
+    posts_today, replies_today, dms_today, likes_today = memory_store.get_activity_counts_today()
     print(f"  Posts Today:    {posts_today} / {config.max_posts_per_day}")
     print(f"  Replies Today:  {replies_today} / {config.max_replies_per_day}")
     print(f"  DMs Today:      {dms_today} / {config.max_dms_per_day}")
+    print(f"  Likes Today:    {likes_today} / {config.max_likes_per_day}")
     print(f"  Last Post:      {memory_store.get_hours_since_last_post():.1f} hours ago")
     print(f"  Last Action:    {memory_store.get_hours_since_last_action():.1f} hours ago")
 
@@ -636,6 +645,7 @@ def main() -> int:
     parser.add_argument("--daily-summary", action="store_true", help="Generate and send Telegram check-in to my master")
     parser.add_argument("--plan-week", action="store_true", help="Display or generate Seo-yeon's 7-day weekly life itinerary")
     parser.add_argument("--force-plan", action="store_true", help="Force regenerate fresh 7-day weekly itinerary with LLM")
+    parser.add_argument("--date", type=str, help="Target date for daily summary (YYYY-MM-DD)")
     args = parser.parse_args()
 
     if args.plan_week or args.force_plan:

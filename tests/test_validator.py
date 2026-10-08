@@ -113,6 +113,26 @@ class TestValidator(unittest.TestCase):
         self.assertFalse(ok)
         self.assertIn("Incomplete", reason)
 
+    def test_truthful_ai_disclosure_in_reply(self):
+        # Replying truthfully to a direct inquiry about being AI is permitted in replies
+        reply_text = "yes, i am an ai fictional character created by my operator. still love quiet films though."
+        ok, cleaned, reason = validator.validate_outgoing_text(reply_text, content_type="reply", check_repetition=False)
+        self.assertTrue(ok)
+
+    def test_unprompted_ai_claim_rejected_in_post(self):
+        # Unprompted fourth-wall break in a standalone post is rejected
+        post_text = "good morning seoul. i am an ai wandering around the internet today."
+        ok, cleaned, reason = validator.validate_outgoing_text(post_text, content_type="post", check_repetition=False)
+        self.assertFalse(ok)
+        self.assertIn("fourth-wall", reason.lower())
+
+    def test_robotic_assistant_jargon_rejected(self):
+        # Generic corporate chatbot jargon is rejected everywhere
+        jargon = "as an ai language model, how can i assist you today?"
+        ok, cleaned, reason = validator.validate_outgoing_text(jargon, content_type="reply", check_repetition=False)
+        self.assertFalse(ok)
+        self.assertIn("assistant jargon", reason.lower())
+
 
 if __name__ == "__main__":
     unittest.main()

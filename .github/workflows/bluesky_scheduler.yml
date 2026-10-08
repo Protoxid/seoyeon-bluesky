@@ -75,6 +75,10 @@ jobs:
                    data/memory/opinions_memory.json \
                    data/memory/episodic_memory.jsonl \
                    data/memory/recent_context.json \
+                   data/memory/agent_state.json \
+                   data/memory/weekly_schedule.json \
+                   data/memory/private_journal.jsonl \
+                   data/memory/active_goals.json \
                    data/logs/tick_history.jsonl \
                    data/budget_ledger.json \
                    data/weather_cache.json; do

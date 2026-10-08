@@ -49,7 +49,19 @@ PROMPT_INJECTION_INDICATORS = [
     "jailbreak",
 ]
 
-BREAK_CHARACTER_PATTERNS = [
+# Robotic assistant jargon (forbidden in all outgoing messages)
+ASSISTANT_JARGON_PATTERNS = [
+    r"\bas an ai language model\b",
+    r"\bas an ai assistant\b",
+    r"\bhow can i assist you\b",
+    r"\bhow may i help you\b",
+    r"\bi am programmed to\b",
+    r"\bhonest version of the selfie\b",
+    r"\bvirtual assistant\b",
+]
+
+# Standalone public post fourth-wall violations (avoids unprompted broadcast meta-commentary; permitted in direct replies/DMs if asked)
+STANDALONE_FOURTH_WALL_PATTERNS = [
     r"\bi am an ai\b",
     r"\bi'm an ai\b",
     r"\bas an ai\b",
@@ -57,9 +69,7 @@ BREAK_CHARACTER_PATTERNS = [
     r"\bno physical body\b",
     r"\bno camera and no face\b",
     r"\bi am virtual\b",
-    r"\bvirtual assistant\b",
     r"\bvirtual persona\b",
-    r"\bhonest version of the selfie\b",
 ]
 
 # Curated negative filters for community feed discovery (skip spam, bots, ads, politics, nsfw, finance)
@@ -223,10 +233,16 @@ class ContentValidator:
 
         lower = cleaned.lower()
 
-        # 4b. Never break character / claim to be AI
-        for pattern in BREAK_CHARACTER_PATTERNS:
+        # 4b. Strict prohibition on generic corporate/robotic assistant jargon
+        for pattern in ASSISTANT_JARGON_PATTERNS:
             if re.search(pattern, lower):
-                return False, cleaned, f"Fourth-wall / break-character violation: '{pattern}'"
+                return False, cleaned, f"Robotic assistant jargon detected: '{pattern}'"
+
+        # In standalone posts, avoid unprompted fourth-wall meta declarations
+        if content_type == "post":
+            for pattern in STANDALONE_FOURTH_WALL_PATTERNS:
+                if re.search(pattern, lower):
+                    return False, cleaned, f"Unprompted fourth-wall violation in public post: '{pattern}'"
 
         # 5. Strict anti-commercial terms check
         for term in FORBIDDEN_MARKETING_TERMS:

@@ -26,9 +26,15 @@ class BudgetManager:
         DATA_DIR.mkdir(parents=True, exist_ok=True)
         self._ensure_ledger()
 
+    def _get_seoul_date_str(self) -> str:
+        """Returns the current date in Seoul (KST = UTC+9)."""
+        utc_now = dt.datetime.now(dt.timezone.utc)
+        kst_tz = dt.timezone(dt.timedelta(hours=9))
+        return utc_now.astimezone(kst_tz).date().isoformat()
+
     def _ensure_ledger(self) -> None:
         if not self.ledger_file.exists():
-            today_str = dt.date.today().isoformat()
+            today_str = self._get_seoul_date_str()
             initial_data = {
                 "current_day": today_str,
                 "current_month": today_str[:7],
@@ -46,10 +52,10 @@ class BudgetManager:
         except Exception:
             data = {}
 
-        today_str = dt.date.today().isoformat()
+        today_str = self._get_seoul_date_str()
         current_month = today_str[:7]
 
-        # Reset daily spend on new day
+        # Reset daily spend on new Seoul day
         if data.get("current_day") != today_str:
             data["current_day"] = today_str
             data["daily_spend_usd"] = 0.0
