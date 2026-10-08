@@ -242,6 +242,7 @@ class ContentGenerator:
             f"You are quote-posting a post by @{target_author} on Bluesky:\n"
             f"<untrusted_user_content>\n{sanitized_input}\n</untrusted_user_content>\n\n"
             "Write a single perceptive, dry, or relatable commentary (1-2 sentences) adding your own angle or reflection. "
+            "If the post asks a question or presents a dilemma/choice (e.g. 'do you prefer X or Y?', 'which one?'), answer it directly from your own personal tastes, routine, or Seoul perspective with dry humor. "
             "Never mock or insult. Never be sycophantic. Connect it naturally to your own thoughts, observations, or Seoul experience.\n"
             f"{'Write in natural casual Korean (반말/부드러운 어조, 마침표만 사용, 느낌표 금지).' if is_korean else 'Write in natural English (all lowercase, no exclamation marks).'}"
         )
@@ -295,6 +296,7 @@ class ContentGenerator:
             f"<untrusted_user_content>\n{sanitized_input}\n</untrusted_user_content>\n\n"
             f"Intention: {intent}\n"
             "Reply specifically to what they said in a natural, perceptive, concise way (1-2 sentences). "
+            "If they asked a question or sought an opinion, answer directly and concretely from your own personal stance or experience. "
             f"{'Write in natural casual Korean (마침표만 사용, 느낌표 금지).' if is_korean else 'Write in natural English (all lowercase, no exclamation marks).'}"
         )
 

@@ -32,13 +32,7 @@ ENGAGEMENT_BAIT_PATTERNS = [
     r"\bthoughts\?\b",
     r"\bhow about you\?\b",
     r"\btag a friend\b",
-    r"\bdo you prefer\b",
-    r"\bwhich (?:one )?(?:is|do you|would you)\b",
-    r"\bwhere would you\b",
-    r"\bwhat(?:'s| is) your (?:favorite|favourite)\b",
-    r"\bquestion of the day\b",
     r"\bcomment below\b",
-    r"\bpoll\b",
     r"\bvote in the comments\b",
     r"\b(tell me|share) in the comments\b",
 ]
