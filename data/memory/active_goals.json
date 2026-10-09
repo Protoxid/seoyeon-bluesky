@@ -6,7 +6,7 @@
       "description": "Reading the Korean paperback edition in quiet evening hours; reflecting on memory and quiet prose.",
       "category": "cultural",
       "priority": "high",
-      "status": "ACTIVE",
+      "status": "IN_PROGRESS",
       "created_at": "2026-10-01T00:00:00+00:00",
       "target_date": "2026-10-25",
       "progress_events": [
@@ -19,12 +19,23 @@
             "current_page": 65,
             "total_pages": 310
           }
+        },
+        {
+          "timestamp": "2026-10-09T18:27:59.872998+00:00",
+          "event_type": "progress",
+          "note": "Read quiet pages before sleep (85/310 pages, 27.4%).",
+          "post_uri": null,
+          "metrics_delta": {
+            "current_page": 85,
+            "total_pages": 310,
+            "percent": 27.4
+          }
         }
       ],
       "metrics": {
-        "current_page": 65,
+        "current_page": 85,
         "total_pages": 310,
-        "percent": 21.0
+        "percent": 27.4
       }
     },
     {
@@ -33,7 +44,7 @@
       "description": "Rooting two small English ivy stems in small clear glass jars on the sunlit kitchen windowsill.",
       "category": "domestic",
       "priority": "medium",
-      "status": "ACTIVE",
+      "status": "IN_PROGRESS",
       "created_at": "2026-10-04T08:00:00+00:00",
       "target_date": "2026-10-31",
       "progress_events": [
@@ -46,11 +57,21 @@
             "stage": "placed in water",
             "roots_visible": false
           }
+        },
+        {
+          "timestamp": "2026-10-09T18:27:59.873477+00:00",
+          "event_type": "progress",
+          "note": "Changed filtered water on the sunny windowsill (day 5).",
+          "post_uri": null,
+          "metrics_delta": {
+            "stage": "waiting for root nodes",
+            "days_in_water": 5
+          }
         }
       ],
       "metrics": {
         "stage": "waiting for root nodes",
-        "days_in_water": 4
+        "days_in_water": 5
       }
     },
     {
@@ -59,15 +80,26 @@
       "description": "Walking Seongsu and Euljiro backstreets noticing geometric metal and painted letterforms from the 1980s.",
       "category": "personal_craft",
       "priority": "medium",
-      "status": "ACTIVE",
+      "status": "IN_PROGRESS",
       "created_at": "2026-10-05T11:00:00+00:00",
       "target_date": "2026-11-15",
-      "progress_events": [],
+      "progress_events": [
+        {
+          "timestamp": "2026-10-09T18:27:59.873892+00:00",
+          "event_type": "progress",
+          "note": "Cataloged painted enamel signboard in alley (4/10).",
+          "post_uri": null,
+          "metrics_delta": {
+            "signs_documented": 4,
+            "target_signs": 10
+          }
+        }
+      ],
       "metrics": {
-        "signs_documented": 3,
+        "signs_documented": 4,
         "target_signs": 10
       }
     }
   ],
-  "updated_at": "2026-10-08T21:22:43.886778+00:00"
+  "updated_at": "2026-10-09T18:27:59.873904+00:00"
 }

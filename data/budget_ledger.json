@@ -1,8 +1,8 @@
 {
-  "current_day": "2026-10-09",
+  "current_day": "2026-10-10",
   "current_month": "2026-10",
-  "daily_spend_usd": 0.0369,
-  "monthly_spend_usd": 0.4409,
+  "daily_spend_usd": 0.011,
+  "monthly_spend_usd": 0.4519,
   "daily_images_count": 0,
   "history": [
     {
@@ -208,9 +208,19 @@
       "completion_tokens": 540,
       "total_tokens": 2748,
       "details": "tokens: 2208+540"
+    },
+    {
+      "ts": "2026-10-09T18:27:59.869541+00:00",
+      "cost_usd": 0.010965,
+      "action_type": "llm_generation",
+      "model": "anthropic/claude-sonnet-5.5",
+      "prompt_tokens": 2080,
+      "completion_tokens": 315,
+      "total_tokens": 2395,
+      "details": "tokens: 2080+315"
     }
   ],
-  "daily_tokens": 6565,
+  "daily_tokens": 2395,
   "active_reservations": {},
-  "monthly_tokens": 6565
+  "monthly_tokens": 8960
 }

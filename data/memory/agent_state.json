@@ -1,9 +1,9 @@
 {
-  "social_battery": 0.91,
+  "social_battery": 0.9,
   "physical_fatigue": 0.15,
   "financial_awareness": 0.4,
   "creative_drive": 0.55,
-  "mood_descriptor": "quiet flat, boiling water, city winding down",
-  "last_updated": "2026-10-09T12:02:14.287960+00:00",
-  "last_consolidation_date": "2026-10-08"
+  "mood_descriptor": "quietly rested, calm autumn morning ahead",
+  "last_updated": "2026-10-09T18:28:12.347088+00:00",
+  "last_consolidation_date": "2026-10-10"
 }
