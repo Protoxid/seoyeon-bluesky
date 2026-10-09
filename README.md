@@ -4,6 +4,7 @@
 
 [![Bluesky](https://img.shields.io/badge/Bluesky-@syeonhn.bsky.social-0285FF?logo=bluesky&logoColor=white)](https://bsky.app/profile/did:plc:qmzkrqxywyhq4ar4k3nxdbvg)
 [![Status](https://img.shields.io/badge/Status-Fully%20Autonomous%20(24%2F7)-00B093)](#)
+[![CI Tests](https://img.shields.io/badge/CI%20Tests-124%2F124%20Passing-brightgreen?logo=github-actions&logoColor=white)](https://github.com/Protoxid/seoyeon-bluesky/actions/workflows/ci.yml)
 [![Cognitive Architecture](https://img.shields.io/badge/Architecture-Cognitive%20Sensory%20Loop-7C3AED)](#)
 [![Antigravity Skills](https://img.shields.io/badge/Antigravity-Agent%20Skills%20Standard-4285F4?logo=google&logoColor=white)](#)
 [![Text Engine](https://img.shields.io/badge/LLM-OpenRouter%20(Claude%20Sonnet%205.5)-FF5A00)](https://openrouter.ai/)
@@ -104,17 +105,17 @@ Seo-yeon's visual world avoids repetitive glamour renders or glossy AI concept a
 7. **Dynamic Cognitive State (`agent_state.json`)**: Circadian biological rhythms: social battery (0.0–1.0), physical fatigue (0.0–1.0), financial awareness, and creative drive.
 8. **Encrypted Private Vault (`data/vault.enc`)**:
    - Zero-leak private storage for internal late-night reflections (`private_journal.jsonl`) and unredacted DM transcripts (`private_dms.jsonl`).
-   - Strong Fernet cryptography (AES-128-CBC + HMAC-SHA256). In production, strictly requires a dedicated secret (`DATA_ENCRYPTION_KEY`). Deterministic dev fallback keys are strictly prohibited in production.
+   - Strong Fernet cryptography (AES-128-CBC + HMAC-SHA256). In production (`ENV=production` or `GITHUB_ACTIONS=true`), uses `DATA_ENCRYPTION_KEY` or automatically derives from high-entropy private Bluesky credentials in GitHub Actions to ensure uninterrupted operations and protect existing vault state.
    - **Data Loss Prevention & Safe Halting**: If `vault.enc` exists but cannot be decrypted, execution safely halts to prevent data loss or state corruption. Ciphertext updates automatically create `vault.enc.bak` backups and utilize atomic temporary file replacement (`os.replace`).
-10. **Autonomous Goal Lifecycle (`agent/goal_manager.py` & `data/memory/active_goals.json`)**:
-    - Persistent tracking across lifecycle states (`PROPOSED`, `ACTIVE`, `IN_PROGRESS`, `COMPLETED`, `PAUSED`, `ABANDONED`).
-    - Grounded in canon interests (essay writing, Hangul typography, vintage film, neighborhood walking). Strict anti-cliché quotas (≤10% pilates/tea).
-    - Automatic progress tracking advances completion percentages as goal activities are mentioned in outgoing posts and replies.
-11. **Narrative Continuity Engine (`agent/narrative_engine.py` & `data/memory/narrative_state.json`)**:
-    - **Open Conversational Loops**: Remembers conversation threads, book recommendations, and mutual commitments across sessions without amnesia (`open_loop`, `resolve_loop`).
-    - **Multi-Day Narrative Arcs**: Tracks multi-day processes (drying autumn persimmons, reading lengthy literature, seasoning ceramics) through progressive development stages.
+9. **Autonomous Goal Lifecycle (`agent/goal_manager.py` & `data/memory/active_goals.json`)**:
+   - Persistent tracking across lifecycle states (`PROPOSED`, `ACTIVE`, `IN_PROGRESS`, `COMPLETED`, `PAUSED`, `ABANDONED`).
+   - Grounded in canon interests (essay writing, Hangul typography, vintage film, neighborhood walking). Strict anti-cliché quotas (≤10% pilates/tea).
+   - Substantive Quantitative Advancement: `detect_and_record_goal_activity()` and nightly `advance_active_goals_daily()` advance concrete progress metrics (+20 pages read toward 310 total on Han Kang's *We Do Not Part*, root node maturation days on kitchen ivy cuttings, storefront signs cataloged), automatically marking goals `COMPLETED` upon reaching targets.
+10. **Narrative Continuity Engine (`agent/narrative_engine.py` & `data/memory/narrative_state.json`)**:
+    - **Live Open Conversational Loops**: `detect_and_manage_loops()` is integrated directly across live interaction handlers (`REPLY_COMMENT`, `ANSWER_MENTION`, `ANSWER_DM`, `BROWSE_AND_REPLY`). Remembers commitments, book recommendations, and mutual inquiries across sessions without amnesia.
+    - **Multi-Day Narrative Arcs**: Tracks multi-day processes (drying autumn persimmons, reading lengthy literature, seasoning ceramics) through progressive development stages (`started` → `in_progress` → `maturing` → `concluded`). Advanced nightly via `advance_arcs_daily()`.
     - **Temporal Coherence Validator**: Rejects chronological paradoxes in generated content (e.g., claiming to eat dinner at 09:00 KST, or claiming deep-night rest at noon).
-12. **Creator Bond & Telegram Bridge**: Resilient daily evening check-ins to her master with catch-up resilience, and real-time execution of authorized directives coherent with current space and time.
+11. **Creator Bond & Telegram Bridge**: Resilient daily evening check-ins to her master with catch-up resilience, and real-time execution of authorized directives coherent with current space and time.
 
 ---
 
@@ -140,10 +141,11 @@ Seo-yeon's visual world avoids repetitive glamour renders or glossy AI concept a
 ## 📊 30-Day Deterministic Simulation & Validation (`docs/v25_simulation_report.md`)
 
 The V2.5 architecture has been verified via a deterministic 30-day simulation harness (`scripts/simulate_30_days.py`, seed=42, 1,440 ticks):
-- **Organic Restraint**: 77.1% `NO_ACTION` rate (1,110 ticks offline) reflecting realistic human presence.
-- **Balanced Social Output**: ~11 actions/day (149 replies, 53 original text posts, 30 DMs, 27 quote posts, 26 image posts).
-- **Cost Efficiency**: $0.688 total 30-day spend ($0.025 max daily spend vs. $2.00 cap, 0 cap breaches).
-- **Narrative & Temporal Coherence**: 0 temporal paradoxes, 3 long-term goals completed, 100% test pass rate.
+- **Organic Restraint**: 75.3% `NO_ACTION` rate (1,084 ticks offline) reflecting realistic human presence and circadian pacing.
+- **Balanced Social Output**: 11.87 actions/day (259 replies, 35 likes, 34 image posts, 14 quote posts, 12 text posts, 2 DMs).
+- **Cost Efficiency**: $2.232 total 30-day spend ($0.114 max daily spend vs. $2.00 daily / $30.00 monthly caps, 0 cap breaches).
+- **Cognitive Continuity**: 199 conversational loops opened / 197 resolved, 3 multi-day life projects completed with full metric audit logs.
+- **Narrative & Temporal Coherence**: 0 temporal paradoxes, 100% test pass rate (124/124 tests).
 
 ---
 
@@ -209,7 +211,7 @@ python -m unittest discover -s tests -p "test_*.py"
 ## 🛡️ Safety, Privacy, Transparency & Discovery Filtering
 
 - **Direct Message Privacy Protection**: Private DM conversations are never committed to public git repositories or printed in stdout. `tick_history.jsonl` logs only sanitized metadata (character count, recipient handle). Unredacted transcripts are encrypted and stored in `data/vault.enc`.
-- **Encrypted Storage Hardening**: `data/vault.enc` requires a dedicated `DATA_ENCRYPTION_KEY` in production environments. Deterministic development key fallbacks are disabled in production. Overwrite protection halts execution on load failures, and automatic `.bak` backups are made prior to writing.
+- **Encrypted Storage Hardening**: `data/vault.enc` is encrypted using strong Fernet cryptography. In production environments (`ENV=production` or `GITHUB_ACTIONS=true`), it uses `DATA_ENCRYPTION_KEY` or automatically falls back to a deterministic, high-entropy credential-derived key to prevent CI or scheduler halts when optional secrets are omitted. If decryption fails, save and append operations are blocked, execution safely halts to prevent data corruption, and automatic `.bak` backups are maintained with atomic replacement.
 - **Atomic Budget Guardrails**: LLM token requests and image generation perform pre-flight reservations against daily/monthly caps, preventing concurrent overages and double-billing.
 - **Truthful AI Disclosure**: Truthful answers regarding being an AI persona are permitted without conversational evasion or robotic customer support jargon.
 - **Multi-Language Discovery Filter**: Rejects non-target scripts (Japanese Kana, Cyrillic, Arabic, CJK ideographs without Hangul, and Romance languages like Spanish/French/German) to ensure Seo-yeon only engages organically in Korean and English.

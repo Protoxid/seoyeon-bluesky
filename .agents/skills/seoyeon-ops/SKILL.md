@@ -57,6 +57,10 @@ Before committing or pushing any architectural or agent code changes, follow thi
    - Check that the draft output contains **zero exclamation marks (`!`)**.
    - Check that draft text is not generic bot fluff or canned phrases.
 
+5. **Continuous Integration (CI) Verification**:
+   - The repository executes `.github/workflows/ci.yml` on every push and PR to `main` and `feature/*`.
+   - CI executes all 124 hermetic tests and asserts a clean git working tree.
+
 ---
 
 ## 3. Master Relationship & Telegram Workflow
@@ -85,8 +89,9 @@ Seo-yeon maintains a resilient, private Telegram bond with her human creator and
 ## 5. Encrypted Vault & Budget Hardening Operations
 
 - **Private Vault (`agent/vault.py`)**:
-  - `data/vault.enc` securely stores `private_journal.jsonl` and `private_dms.jsonl`.
-  - Requires `DATA_ENCRYPTION_KEY` in production environments (`ENV=production` or `GITHUB_ACTIONS=true`).
+  - `data/vault.enc` securely stores `private_journal.jsonl` and `private_dms.jsonl` using Fernet symmetric encryption.
+  - In production (`ENV=production` or `GITHUB_ACTIONS=true`), requires `DATA_ENCRYPTION_KEY` or automatically falls back to the deterministic credential-derived key configured in GitHub Actions (`format('{0}:{1}:seoyeon_vault_v2', secrets.BSKY_APP_PASSWORD, secrets.BSKY_HANDLE)`).
+  - Multi-Key Decryption Fallback: `load_vault()` catches `InvalidToken` errors and attempts credential derivation to avoid lockouts if keys are rotated.
   - **Safe Failure Mode**: Decryption failure prevents overwrites and safely halts execution (`runner.py` exits with code 1).
   - Every ciphertext modification creates an automatic backup (`vault.enc.bak`) and uses atomic temporary file replacement (`os.replace`).
 - **Atomic Budget Guardrails (`agent/budget_manager.py`)**:
@@ -98,14 +103,22 @@ Seo-yeon maintains a resilient, private Telegram bond with her human creator and
 
 ## 6. GitHub Actions Cloud Automation Workflow
 
-- **Scheduler Workflow**: `.github/workflows/bluesky_scheduler.yml`
-- **Schedule**: Every 30 minutes during Seoul waking hours (07:00–01:30 KST = 22:00–16:30 UTC).
-- **Auto-Commit**: Automatically commits updated `data/memory/`, `data/vault.enc`, `data/budget_ledger.json`, and `data/logs/` back to `main` with `[skip ci]`.
-- **Required Secrets**:
-  - `BSKY_HANDLE`
-  - `BSKY_APP_PASSWORD`
-  - `KIE_API_KEY`
-  - `OPENROUTER_API_KEY`
-  - `TELEGRAM_BOT_TOKEN`
-  - `TELEGRAM_CHAT_ID`
-  - `DATA_ENCRYPTION_KEY`
+The repository is automated via two complementary workflows:
+
+1. **Scheduler Workflow (`.github/workflows/bluesky_scheduler.yml`)**:
+   - **Schedule**: Every 30 minutes during Seoul waking hours (07:00–01:30 KST = 22:00–16:30 UTC).
+   - **Auto-Commit**: Automatically commits updated `data/memory/`, `data/vault.enc`, `data/budget_ledger.json`, and `data/logs/` back to `main` with `[skip ci]`.
+   - **Encryption Key Fallback**: If the optional `DATA_ENCRYPTION_KEY` repository secret is unset, dynamically seeds derivation via `${{ secrets.DATA_ENCRYPTION_KEY || format('{0}:{1}:seoyeon_vault_v2', secrets.BSKY_APP_PASSWORD, secrets.BSKY_HANDLE) }}`.
+
+2. **Continuous Integration Workflow (`.github/workflows/ci.yml`)**:
+   - **Triggers**: Executed on every push and pull request to `main` and `feature/*`.
+   - **Validation**: Executes all 124 unit tests hermetically and ensures no uncommitted file modifications remain in the working tree.
+
+### Repository Secrets:
+- `BSKY_HANDLE`: Bluesky handle (`syeonhn.bsky.social`)
+- `BSKY_APP_PASSWORD`: Bluesky app password
+- `KIE_API_KEY`: Kie.ai API key
+- `OPENROUTER_API_KEY`: OpenRouter API key
+- `TELEGRAM_BOT_TOKEN`: Telegram bot token
+- `TELEGRAM_CHAT_ID`: Telegram chat ID
+- `DATA_ENCRYPTION_KEY`: Optional; dedicated encryption key for `data/vault.enc` (automatically falls back to credential seed if not set)

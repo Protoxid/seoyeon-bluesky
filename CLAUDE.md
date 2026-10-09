@@ -19,14 +19,14 @@ Bluesky is her exclusive window to the social world.
 - `agent/config.py`: Central settings, environment flags (`AUTONOMOUS_MODE`, `DRY_RUN`, `ALLOW_POSTS`, `DAILY_AI_BUDGET`).
 - `agent/context_engine.py`: Real-world Seoul context (time in KST, live weather via Open-Meteo with cache, Korean holidays, activity recency).
 - `agent/memory_store.py`: Persistent multi-tiered memory (`identity_memory.json`, `user_memory.json`, `opinions_memory.json`, `recent_context.json`, `episodic_memory.jsonl`).
-- `agent/vault.py`: Encrypted private vault (`data/vault.enc`) securing `private_journal.jsonl` and `private_dms.jsonl` with overwrite protection and atomic backups.
-- `agent/decision_engine.py`: Cognitive action evaluation (scoring `NO_ACTION`, text post, image post, reply, quote-post, repost, follow, DM response, feed like).
+- `agent/vault.py`: Encrypted private vault (`data/vault.enc`) securing `private_journal.jsonl` and `private_dms.jsonl` via Fernet cryptography, with automatic credential derivation fallback in GitHub Actions and atomic `.bak` backups.
+- `agent/decision_engine.py`: Cognitive action evaluation with multi-candidate feed ranking (evaluates up to 10 candidates; scores `NO_ACTION`, text post, image post, reply, quote-post, repost, follow, DM response, feed like).
 - `agent/generator.py`: OpenRouter LLM generation (`anthropic/claude-sonnet-5.5` primary, `deepseek-v4.1-flash` fallback) with prompt injection protection and consistent truthful AI disclosure.
 - `agent/image_engine.py`: Kie.ai (`gpt-image-2-5-sunburst-image-to-image`) conditioned on dual master face references (`a1_front.png` + `c5_relax_front.png`) for authentic candid realism without AI gloss.
 - `agent/visual_identity.py`: Punchy, photorealistic prompt generator emphasizing real-world imperfections, flexible hairstyles, and 35mm street photography.
 - `agent/validator.py`: The Critic (verifies zero exclamation marks, anti-repetition Jaccard overlap, cliché frequency quotas, no marketing terms, prompt injection defense, temporal coherence verification, truthful AI disclosure pass-through).
-- `agent/goal_manager.py`: Autonomous goal lifecycle (`PROPOSED`, `ACTIVE`, `IN_PROGRESS`, `COMPLETED`, `PAUSED`, `ABANDONED`) with anti-cliché quotas (≤10% pilates/tea) and automatic keyword activity detection.
-- `agent/narrative_engine.py`: Narrative continuity engine managing open conversational loops, multi-day arcs, and temporal coherence validation.
+- `agent/goal_manager.py`: Autonomous goal lifecycle (`PROPOSED`, `ACTIVE`, `IN_PROGRESS`, `COMPLETED`, `PAUSED`, `ABANDONED`) with anti-cliché quotas (≤10% pilates/tea) and substantive quantitative metric progress (`advance_active_goals_daily`).
+- `agent/narrative_engine.py`: Narrative continuity engine managing live open conversational loops (`detect_and_manage_loops`), multi-day arcs (`advance_arcs_daily`), and temporal coherence validation.
 - `agent/budget_manager.py`: Atomic budget reservations (`reserve()`, `reconcile()`, `release()`) preventing concurrent overages and double-billing. Hard daily ($2.00) / monthly ($30.00) spending caps.
 - `agent/bsky_client.py`: Full AT Protocol XRPC client for posts, images, replies, quote-posts (`embed.record`), reposts, follows, facets (`#link`, `#tag`), profile updates, and direct messages (`chat.bsky.convo.*`).
 - `agent/notifier.py`: Bidirectional Telegram bridge to her human creator, receiving directives and delivering daily evening check-ins.
@@ -35,17 +35,24 @@ Bluesky is her exclusive window to the social world.
 ---
 
 ## 3. GitHub Actions Cloud Automation
-- Workflow: `.github/workflows/bluesky_scheduler.yml`.
-- Schedule: Runs every 30 minutes during Seoul waking hours (07:00–01:30 KST = 22:00–16:30 UTC).
-- State Persistence: Commits updated memory files in `data/memory/`, `data/vault.enc`, and `data/logs/` automatically.
-- Required GitHub Secrets:
-  - `BSKY_HANDLE`
-  - `BSKY_APP_PASSWORD`
-  - `KIE_API_KEY`
-  - `OPENROUTER_API_KEY`
-  - `TELEGRAM_BOT_TOKEN`
-  - `TELEGRAM_CHAT_ID`
-  - `DATA_ENCRYPTION_KEY`
+The repository runs 24/7 in the cloud via two coordinated GitHub Actions workflows:
+
+1. **Autonomous Scheduler (`.github/workflows/bluesky_scheduler.yml`)**:
+   - Schedule: Runs every 30 minutes during Seoul waking hours (07:00–01:30 KST = 22:00–16:30 UTC).
+   - State Persistence: Commits updated memory files in `data/memory/`, `data/vault.enc`, and `data/logs/` automatically back to the repository with `[skip ci]`.
+   - Resilience: Derives a fallback encryption key from private credentials if `DATA_ENCRYPTION_KEY` is omitted from secrets.
+2. **Continuous Integration Pipeline (`.github/workflows/ci.yml`)**:
+   - Triggers on push and pull requests to `main` and `feature/*`.
+   - Runs full hermetic unit test suite (124 tests) and verifies clean git working tree.
+
+### Repository Secrets:
+- `BSKY_HANDLE`: Bluesky handle (`syeonhn.bsky.social`)
+- `BSKY_APP_PASSWORD`: Bluesky app password (with chat permissions enabled)
+- `KIE_API_KEY`: Kie.ai API key (for GPT Image 2.5 identity photography)
+- `OPENROUTER_API_KEY`: OpenRouter API key (Claude Sonnet 5.5 / DeepSeek text generation)
+- `TELEGRAM_BOT_TOKEN`: Telegram bot token (creator notifications and directives)
+- `TELEGRAM_CHAT_ID`: Telegram chat ID for her human master
+- `DATA_ENCRYPTION_KEY`: Optional; dedicated Fernet key for `data/vault.enc` (automatically falls back to credential-derived seed if unset)
 
 ---
 
@@ -77,9 +84,13 @@ python agent_runner.py --dry-run --force-action PUBLISH_IMAGE_POST
 python agent_runner.py --dry-run --force-action QUOTE_POST
 python agent_runner.py --dry-run --force-action NO_ACTION
 
-# 8. Run 30-day deterministic simulation harness
+# 8. View / plan 7-day weekly life itinerary
+python agent_runner.py --plan-week
+python agent_runner.py --force-plan
+
+# 9. Run 30-day deterministic simulation harness
 python scripts/simulate_30_days.py --days 30
 
-# 9. Run automated test suite (124 hermetic tests)
+# 10. Run automated test suite (124 hermetic tests)
 python -m unittest discover -s tests -p "test_*.py"
 ```

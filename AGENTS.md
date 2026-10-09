@@ -69,8 +69,8 @@ EVALUATE CANDIDATES
    - **Resilient Daily Evening Check-in & Catch-up**: Delivered late evening (≥ 21:00 KST). If any day is missed due to scheduler queues, she automatically catches up on the very next tick.
 7. **Encrypted Private Vault (`data/vault.enc`)**:
    - Encrypted bundle storing her internal late-night reflections (`private_journal.jsonl`) and unredacted DM transcripts (`private_dms.jsonl`).
-   - Strong Fernet cryptography (AES-128-CBC + HMAC-SHA256). In production (`ENV=production` or `GITHUB_ACTIONS=true`), strictly requires `DATA_ENCRYPTION_KEY` or `VAULT_KEY`. Deterministic dev fallbacks are forbidden.
-   - **Data Loss Prevention**: If decryption fails on load, saving and appending are blocked to prevent data corruption. Creates `vault.enc.bak` backups and uses atomic replacement (`os.replace`).
+   - Strong Fernet cryptography (AES-128-CBC + HMAC-SHA256). In production (`ENV=production` or `GITHUB_ACTIONS=true`), requires dedicated secret (`DATA_ENCRYPTION_KEY` or `VAULT_KEY`). If `DATA_ENCRYPTION_KEY` is not explicitly declared in GitHub Secrets, the production scheduler workflow (`bluesky_scheduler.yml`) automatically derives a high-entropy key from private Bluesky credentials, and `PrivateVault.load_vault()` supports seamless credential-key fallback to prevent data loss.
+   - **Data Loss Prevention**: If decryption fails on load, saving and appending are strictly blocked to prevent data corruption. Creates `vault.enc.bak` backups and uses atomic temporary file replacement (`os.replace`).
 8. **Dynamic Cognitive State (`agent_state.json`)**:
    - Biological circadian rhythms: social battery (0.0–1.0), physical fatigue (0.0–1.0), financial awareness, and creative drive.
 9. **Visual Consistency Inventory (`wardrobe_inventory.json`)**:
@@ -78,13 +78,13 @@ EVALUATE CANDIDATES
 10. **Weekly Living Itinerary (`weekly_schedule.json`)**:
    - 7-day schedule synthesized every Sunday evening across 4 daily slots (`morning`, `afternoon`, `evening`, `deep_night`). Grounds her thoughts, errands, transit, and photos in realistic space and time without rigid cron timing.
 11. **Autonomous Goal Lifecycle (`agent/goal_manager.py` & `data/memory/active_goals.json`)**:
-   - Tracks ongoing personal goals across standard lifecycle states (`PROPOSED`, `ACTIVE`, `IN_PROGRESS`, `COMPLETED`, `PAUSED`, `ABANDONED`).
-   - Grounded in canon interests (cinema, essay writing, pottery, Hangul typography, vintage film development, neighborhood walking).
+   - Tracks ongoing personal pursuits across lifecycle states (`PROPOSED`, `ACTIVE`, `IN_PROGRESS`, `COMPLETED`, `PAUSED`, `ABANDONED`).
+   - Grounded in canon interests (cinema, essay writing, plant propagation, Hangul typography, vintage film, neighborhood walking).
    - Strict Anti-Cliché Quota: Pilates and coffee/tea goals are capped at ≤ 10% of total active goals.
-   - Automatic Progress Tracking: Scans outgoing posts and replies for goal keywords, recording progress events and advancing completion percentage automatically.
+   - Substantive Quantitative Advancement: `detect_and_record_goal_activity()` and nightly `advance_active_goals_daily()` advance concrete progress metrics (+20 pages read toward 310 total on Han Kang's *We Do Not Part*, root node maturation days on kitchen ivy cuttings, storefront signs cataloged), automatically marking goals `COMPLETED` when targets are reached.
 12. **Narrative Continuity Engine (`agent/narrative_engine.py` & `data/memory/narrative_state.json`)**:
-   - **Open Conversational Loops**: Remembers commitments, book recommendations, and conversational threads with mutuals across sessions without amnesia (`open_loop`, `resolve_loop`).
-   - **Multi-Day Narrative Arcs**: Tracks temporal unfolding of multi-day projects (drying autumn persimmons, reading lengthy literature, seasoning ceramic cookware) across stages (`started` → `in_progress` → `maturing` → `concluded`).
+   - **Live Open Conversational Loops**: `detect_and_manage_loops()` is integrated directly across live interaction handlers (`REPLY_COMMENT`, `ANSWER_MENTION`, `ANSWER_DM`, `BROWSE_AND_REPLY`). Tracks promises, book recommendations, and mutual questions across sessions without amnesia.
+   - **Multi-Day Narrative Arcs**: Tracks temporal unfolding of multi-day projects (drying autumn persimmons, reading lengthy literature, seasoning ceramic cookware) across progressive stages (`started` → `in_progress` → `maturing` → `concluded`). Advanced nightly via `advance_arcs_daily()`.
    - **Temporal Coherence Validator**: Detects and rejects chronological paradoxes in generated content (e.g. claiming to eat dinner at 09:00 KST, or claiming deep-night rest at midday).
 
 ---
@@ -125,19 +125,24 @@ The workspace leverages the open [Google Antigravity Agent Skills](https://antig
 
 ---
 
-## 6. Cloud Automation (Runs 24/7 with PC Off)
-The system is fully deployed on **GitHub Actions**:
-- Workflow: `.github/workflows/bluesky_scheduler.yml`.
-- Schedule: Runs every 30 minutes during Seoul waking hours (07:00–01:30 KST = 22:00–16:30 UTC).
-- Commits state: Automatically commits updated `data/memory/`, `data/logs/`, `data/vault.enc`, and `data/budget_ledger.json` back to the repository with `[skip ci]`.
-- Required GitHub Secrets:
+## 6. Cloud Automation & Continuous Integration
+The system is fully automated on **GitHub Actions** across two coordinated workflows:
+1. **Production Scheduler (`.github/workflows/bluesky_scheduler.yml`)**:
+   - Schedule: Runs every 30 minutes during Seoul waking hours (07:00–01:30 KST = 22:00–16:30 UTC).
+   - Commits state: Automatically commits updated `data/memory/`, `data/logs/`, `data/vault.enc`, and `data/budget_ledger.json` back to `main` with `[skip ci]`.
+   - Vault Resilience: Automatically supplies `DATA_ENCRYPTION_KEY` derived from `BSKY_APP_PASSWORD` and `BSKY_HANDLE` if a dedicated secret is not explicitly set in repository settings.
+2. **Hermetic CI Pipeline (`.github/workflows/ci.yml`)**:
+   - Runs on all pushes and pull requests to `main` and `feature/*` branches.
+   - Executes all 124 unit tests across 13 test suites with isolated environment configuration (`ENV=test`), guaranteeing production readiness.
+
+- **Required GitHub Secrets**:
   - `BSKY_HANDLE`: `syeonhn.bsky.social`
   - `BSKY_APP_PASSWORD`: Bluesky App Password (with DM access enabled)
   - `KIE_API_KEY`: Kie.ai API key (for GPT Image 2.5 image generation)
   - `OPENROUTER_API_KEY`: OpenRouter API key (sole text provider for Claude Sonnet 5.5 / DeepSeek)
   - `TELEGRAM_BOT_TOKEN`: Telegram bot token (for bidirectional communication with her master)
   - `TELEGRAM_CHAT_ID`: Telegram chat ID / recipient for master alerts
-  - `DATA_ENCRYPTION_KEY`: Dedicated AES-256 encryption key for `data/vault.enc`
+  - `DATA_ENCRYPTION_KEY`: (Optional) Dedicated AES-256 key for `data/vault.enc` (automatically falls back to private credential derivation if omitted)
 
 ---
 
