@@ -1,8 +1,8 @@
 {
-  "current_day": "2026-10-08",
+  "current_day": "2026-10-09",
   "current_month": "2026-10",
-  "daily_spend_usd": 0.008,
-  "monthly_spend_usd": 0.404,
+  "daily_spend_usd": 0.0369,
+  "monthly_spend_usd": 0.4409,
   "daily_images_count": 0,
   "history": [
     {
@@ -178,6 +178,39 @@
       "cost_usd": 0.002,
       "action_type": "text_post",
       "details": "the 90s film i'm watching hold"
+    },
+    {
+      "ts": "2026-10-09T12:02:08.209885+00:00",
+      "cost_usd": 0.013287,
+      "action_type": "llm_generation",
+      "model": "anthropic/claude-sonnet-5.5",
+      "prompt_tokens": 2344,
+      "completion_tokens": 417,
+      "total_tokens": 2761,
+      "details": "tokens: 2344+417"
+    },
+    {
+      "ts": "2026-10-09T12:02:13.661035+00:00",
+      "cost_usd": 0.008892,
+      "action_type": "llm_generation",
+      "model": "anthropic/claude-sonnet-5.5",
+      "prompt_tokens": 579,
+      "completion_tokens": 477,
+      "total_tokens": 1056,
+      "details": "tokens: 579+477"
+    },
+    {
+      "ts": "2026-10-09T12:02:20.883455+00:00",
+      "cost_usd": 0.014724,
+      "action_type": "llm_generation",
+      "model": "anthropic/claude-sonnet-5.5",
+      "prompt_tokens": 2208,
+      "completion_tokens": 540,
+      "total_tokens": 2748,
+      "details": "tokens: 2208+540"
     }
-  ]
+  ],
+  "daily_tokens": 6565,
+  "active_reservations": {},
+  "monthly_tokens": 6565
 }
