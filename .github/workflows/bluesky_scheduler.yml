@@ -51,7 +51,7 @@ jobs:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          DATA_ENCRYPTION_KEY: ${{ secrets.DATA_ENCRYPTION_KEY }}
+          DATA_ENCRYPTION_KEY: ${{ secrets.DATA_ENCRYPTION_KEY || format('{0}:{1}:seoyeon_vault_v2', secrets.BSKY_APP_PASSWORD, secrets.BSKY_HANDLE) }}
           INPUT_DRY_RUN: ${{ github.event.inputs.dry_run }}
           INPUT_FORCE_ACTION: ${{ github.event.inputs.force_action }}
 

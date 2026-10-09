@@ -121,11 +121,21 @@ class PrivateVault:
             return False
 
         try:
-            from cryptography.fernet import Fernet
+            from cryptography.fernet import Fernet, InvalidToken
             key = _get_encryption_key(key_override=key_override)
             fernet = Fernet(key)
             encrypted_data = self.enc_file.read_bytes()
-            decrypted_bytes = fernet.decrypt(encrypted_data)
+            try:
+                decrypted_bytes = fernet.decrypt(encrypted_data)
+            except InvalidToken:
+                # If explicit key was configured but existing vault was encrypted
+                # with credential derivation, seamlessly fallback to credential key
+                if config.bsky_app_password and config.bsky_handle:
+                    seed = f"{config.bsky_app_password}:{config.bsky_handle}:seoyeon_vault_v2"
+                    cred_key = base64.urlsafe_b64encode(hashlib.sha256(seed.encode("utf-8")).digest())
+                    decrypted_bytes = Fernet(cred_key).decrypt(encrypted_data)
+                else:
+                    raise
             bundle: Dict[str, str] = json.loads(decrypted_bytes.decode("utf-8"))
 
             self.vault_dir.mkdir(parents=True, exist_ok=True)
