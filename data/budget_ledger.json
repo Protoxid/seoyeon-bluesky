@@ -1,8 +1,8 @@
 {
   "current_day": "2026-10-10",
   "current_month": "2026-10",
-  "daily_spend_usd": 0.011,
-  "monthly_spend_usd": 0.4519,
+  "daily_spend_usd": 0.0222,
+  "monthly_spend_usd": 0.4631,
   "daily_images_count": 0,
   "history": [
     {
@@ -218,9 +218,29 @@
       "completion_tokens": 315,
       "total_tokens": 2395,
       "details": "tokens: 2080+315"
+    },
+    {
+      "ts": "2026-10-10T01:24:32.024718+00:00",
+      "cost_usd": 0.008154,
+      "action_type": "llm_generation",
+      "model": "anthropic/claude-sonnet-5.5",
+      "prompt_tokens": 2338,
+      "completion_tokens": 76,
+      "total_tokens": 2414,
+      "details": "tokens: 2338+76"
+    },
+    {
+      "ts": "2026-10-10T01:24:34.013989+00:00",
+      "cost_usd": 0.002955,
+      "action_type": "llm_generation",
+      "model": "anthropic/claude-sonnet-5.5",
+      "prompt_tokens": 595,
+      "completion_tokens": 78,
+      "total_tokens": 673,
+      "details": "tokens: 595+78"
     }
   ],
-  "daily_tokens": 2395,
+  "daily_tokens": 5482,
   "active_reservations": {},
-  "monthly_tokens": 8960
+  "monthly_tokens": 12047
 }
