@@ -143,7 +143,7 @@ class ImageEngine:
                 print(f"[DRY-RUN Kie ImageEngine] Master Ref: {MASTER_A1_PATH.name}")
             else:
                 print(f"[DRY-RUN Kie ImageEngine] POV Environmental Shot (No Person/Face)")
-            print(f"[DRY-RUN Kie ImageEngine] Prompt: \"{prompt[:130]}...\"")
+            print("[ImageEngine] Private generation prompt redacted.")
             buf = io.BytesIO()
             dummy_img = Image.new("RGB", (400, 533), color=(215, 210, 205))
             dummy_img.save(buf, format="JPEG")
@@ -178,7 +178,7 @@ class ImageEngine:
         else:
             print(f"[Kie ImageEngine] Model: {model} | Notice: Running {'text-to-image POV' if not is_selfie else 'text-to-image'}")
 
-        print(f"[Kie ImageEngine] Generating image with prompt: \"{prompt[:160]}...\"")
+        print("[ImageEngine] Generation prompt redacted.")
 
         payload = {
             "model": model,
@@ -251,7 +251,7 @@ class ImageEngine:
                             return None, prompt, "Kie reported success but returned no resultUrls."
 
                         img_url = urls[0]
-                        print(f"[Kie ImageEngine] Image ready at: {img_url}")
+                        print("[ImageEngine] Generated image retrieved; URL redacted.")
 
                         # 5. Download image binary
                         dl_req = urllib.request.Request(img_url, headers={"User-Agent": "SeoYeonAgent/1.0"})

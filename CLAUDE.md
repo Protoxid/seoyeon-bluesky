@@ -5,3 +5,5 @@ Read [AGENTS.md](AGENTS.md), [CANON.md](CANON.md), and [README.md](README.md). T
 Use the same isolated verification and privacy rules for all coding agents. The operator is "my master" or "my human". Do not run live autonomous ticks as a test. Do not invent completed experiences or add a predetermined daily personality routine.
 
 Grounded discussion uses `agent/discussion.py`; see `docs/DISCUSSION.md`. Preserve exact source provenance, the independent fail-closed review, private/offline fetch isolation, and correction quarantine. Do not turn focus areas into schedules, quotas, canned examples, or claimed credentials.
+
+Telegram behavior is documented in `docs/TELEGRAM.md`. Keep operator conversation scoped and encrypted; casual keywords must not authorize publication. Preserve frozen reply/command stages, receipt-based success, and explicit interrupted-command resolution. Personal check-in preferences must not disable operational alerts. No scripted devotion or automatic emotional recharge.

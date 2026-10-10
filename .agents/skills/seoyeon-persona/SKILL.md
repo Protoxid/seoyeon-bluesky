@@ -16,3 +16,5 @@ Scene direction follows caption and supplied continuity, with no compulsory nigh
 Add evidence/provenance tests and editorial scenarios. Do not add scripted lines to pass tests. Blinded human comparison remains necessary to evaluate naturalness.
 
 Read `docs/DISCUSSION.md` for focused knowledge contribution. Preserve source/quote validation and review before social publication; missing evidence permits only grounded interpretation, ordinary conversation or silence. No reply quotas, canned lessons, fabricated expertise or consequential personalized advice. Research must not send private messages to websites; model review is probabilistic and requires editorial evaluation.
+
+Telegram behavior is documented in `docs/TELEGRAM.md`. Keep operator conversation scoped and encrypted; casual keywords must not authorize publication. Preserve frozen reply/command stages, receipt-based success, and explicit interrupted-command resolution. Personal check-in preferences must not disable operational alerts. No scripted devotion or automatic emotional recharge.

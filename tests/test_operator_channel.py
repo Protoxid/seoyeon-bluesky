@@ -1,0 +1,120 @@
+import contextlib
+import datetime as dt
+import io
+import json
+from pathlib import Path
+import tempfile
+import unittest
+from unittest.mock import patch
+from agent.operator_channel import OperatorChannel
+from agent.notifier import MasterNotifier
+from agent.generator import generator
+from agent.context_engine import build_environment_context
+from agent.runtime import execution_mode
+from agent.config import config
+
+class TestOperatorChannel(unittest.TestCase):
+    def setUp(self):
+        self.temp=tempfile.TemporaryDirectory(); self.addCleanup(self.temp.cleanup)
+        self.channel=OperatorChannel(Path(self.temp.name)/"operator.json",persist=lambda:None)
+        self.patch=patch("agent.operator_channel.OperatorChannel",return_value=self.channel)
+        self.patch.start(); self.addCleanup(self.patch.stop)
+        self.notifier=MasterNotifier(); self.context=build_environment_context()
+    def test_casual_mentions_never_use_keyword_execution(self):
+        for message in ("i liked that selfie", "don't publish a post", "what if you wrote a post?", "someone said '/photo a portrait'"):
+            with patch.object(generator,"_call_llm",return_value=('{"mode":"chat"}',"mock")) as call:
+                self.assertFalse(generator.parse_master_directive(message)["is_order"])
+                call.assert_called_once()
+    def test_classifier_rejects_invalid_or_unsupported_authorization(self):
+        for raw in ("invalid",'{"mode":"execute","action_type":"DELETE_ACCOUNT","confidence":1,"authorization_quote":"publish this thought"}',
+                    '{"mode":"execute","action_type":"PUBLISH_TEXT_POST","confidence":0.8,"authorization_quote":"publish this thought"}',
+                    '{"mode":"execute","action_type":"PUBLISH_TEXT_POST","confidence":1,"authorization_quote":"fabricated request"}'):
+            with patch.object(generator,"_call_llm",return_value=(raw,"mock")):
+                result=generator.parse_master_directive("publish this thought")
+                self.assertFalse(result["is_order"]); self.assertTrue(result["needs_clarification"])
+    def test_natural_explicit_request_can_execute(self):
+        message="please publish this thought on bluesky"
+        answer={"mode":"execute","action_type":"PUBLISH_TEXT_POST","confidence":.99,"authorization_quote":message}
+        with patch.object(generator,"_call_llm",return_value=(json.dumps(answer),"mock")):
+            self.assertTrue(generator.parse_master_directive(message)["is_order"])
+    def test_checkin_preferences_are_explicit(self):
+        for mode in ("meaningful","daily","off"):
+            result=generator.parse_master_directive("/checkins "+mode)
+            self.assertEqual(result["topic_hint"],mode)
+        self.assertFalse(generator.parse_master_directive("/checkins nonsense")["is_order"])
+    def run_inbox(self, items, *, sent=True, result=None, actions=True):
+        with execution_mode("live"), patch.object(self.notifier,"get_master_messages",return_value=items), \
+             patch.object(generator,"generate_master_reply",return_value=("i can try, my master","mock")) as draft, \
+             patch.object(generator,"parse_master_directive",return_value={"is_order":True,"action_type":"PUBLISH_TEXT_POST","topic_hint":"an idea"}), \
+             patch.object(self.notifier,"send_telegram_message",return_value=sent) as send, \
+             patch.object(self.notifier,"execute_master_directive",return_value=result or {"success":True}) as execute, \
+             patch.object(self.notifier,"operational_alert") as alert, \
+             patch("agent.continuity.learn_interaction") as learn, patch("agent.delivery.checkpoint"):
+            count=self.notifier.process_master_inbox(self.context,actions_available=actions)
+        return count,draft,send,execute,learn,alert
+    def test_failed_ack_reuses_frozen_reply_and_does_not_execute(self):
+        item={"update_id":10,"text":"private request"}
+        first=self.run_inbox([item],sent=False)
+        self.assertEqual(first[0],0); first[3].assert_not_called()
+        second=self.run_inbox([item])
+        second[1].assert_not_called(); second[3].assert_called_once()
+        self.assertEqual(first[2].call_args.args[0],second[2].call_args.args[0])
+    def test_completed_command_not_reexecuted_after_restart(self):
+        item={"update_id":11,"text":"private request"}
+        self.run_inbox([item])
+        replay=self.run_inbox([item])
+        replay[1].assert_not_called(); replay[2].assert_not_called(); replay[3].assert_not_called()
+    def test_interrupted_command_is_held_and_can_be_resolved_without_retry(self):
+        self.channel.update("12",inbound="secret",reply="ack",ack_sent=True,stage="running",directive={"is_order":True})
+        result=self.run_inbox([{"update_id":12,"text":"secret"}])
+        result[3].assert_not_called(); result[5].assert_called_once()
+        self.channel.resolve("12","verified delivery receipt")
+        result=self.run_inbox([{"update_id":12,"text":"secret"}])
+        result[3].assert_not_called()
+    def test_failed_command_is_not_automatically_retried(self):
+        item={"update_id":13,"text":"private request"}
+        first=self.run_inbox([item],result={"success":False})
+        first[5].assert_called_once()
+        self.run_inbox([item])[3].assert_not_called()
+    def test_unavailable_bluesky_keeps_private_response_but_blocks_action(self):
+        result=self.run_inbox([{"update_id":14,"text":"private request"}],actions=False)
+        result[2].assert_called_once(); result[3].assert_not_called()
+        self.assertFalse(result[1].call_args.kwargs["directive"]["execution_available"])
+    def test_operator_learning_stays_in_operator_scope(self):
+        result=self.run_inbox([{"update_id":15,"text":"private preference"}])
+        self.assertEqual(result[4].call_args.kwargs["scope"],"operator")
+    def test_private_logs_do_not_print_messages_without_token(self):
+        output=io.StringIO()
+        with execution_mode("live"), patch.object(config,"telegram_bot_token",""), patch.object(self.notifier,"bot_token",""), patch.object(self.notifier,"_log_to_outbox"), contextlib.redirect_stdout(output):
+            self.notifier.send_telegram_message("unique private marker",dry_run=False)
+        self.assertNotIn("unique private marker",output.getvalue())
+    def test_master_reply_retrieves_private_history(self):
+        self.channel.update("1",inbound="private favorite film",reply="understood",ack_sent=True,stage="done")
+        with patch.object(generator,"_call_llm",return_value=("i remember","mock")) as call:
+            generator.generate_master_reply("remember?",self.context)
+        self.assertIn("private favorite film",call.call_args.args[1])
+        self.assertIn("able to disagree",call.call_args.args[0])
+    def test_silent_checkin_decision_is_not_regenerated_for_same_activity(self):
+        activity={"posts":[{"text":"a public post"}],"replies":[]}
+        with execution_mode("live"), patch("agent.memory_store.memory_store.get_daily_activity_summary",return_value=activity), patch.object(generator,"_call_llm",return_value=('{"share":false}',"mock")) as choose, patch.object(generator,"generate_daily_report") as report:
+            self.assertFalse(self.notifier.check_and_send_evening_summary(self.context))
+            self.assertFalse(self.notifier.check_and_send_evening_summary(self.context))
+            choose.assert_called_once(); report.assert_not_called()
+    def test_checkin_retry_keeps_identical_text(self):
+        activity={"posts":[{"text":"a public post"}],"replies":[]}
+        with execution_mode("live"), patch("agent.memory_store.memory_store.get_daily_activity_summary",return_value=activity), patch.object(generator,"_call_llm",return_value=('{"share":true}',"mock")), patch.object(generator,"generate_daily_report",return_value=("a private note","mock")) as draft, patch.object(self.notifier,"send_daily_summary",side_effect=[False,True]) as send:
+            self.notifier.check_and_send_evening_summary(self.context)
+            self.notifier.check_and_send_evening_summary(self.context)
+            draft.assert_called_once()
+            self.assertEqual(send.call_args_list[0].args[0],send.call_args_list[1].args[0])
+    def test_off_suppresses_personal_notes_but_not_operations(self):
+        self.channel.setting("off")
+        with patch.object(generator,"generate_daily_report") as report, patch.object(self.notifier,"send_telegram_message",return_value=True) as send:
+            self.assertFalse(self.notifier.check_and_send_evening_summary(self.context))
+            self.assertTrue(self.notifier.operational_alert("authentication_failed"))
+            report.assert_not_called(); send.assert_called_once()
+    def test_no_like_success_without_receipt(self):
+        from agent.bsky_client import bsky_client
+        with patch.object(bsky_client,"ensure_session"),patch.object(bsky_client,"get_discovery_feed",return_value=[{"post":{"uri":"at://test","cid":"cid"}}]),patch.object(bsky_client,"like_post",return_value={}),patch.object(self.notifier,"send_telegram_message") as send:
+            result=self.notifier.execute_master_directive({"action_type":"BROWSE_AND_LIKE"},self.context,dry_run=True)
+        self.assertFalse(result["success"]); send.assert_not_called()

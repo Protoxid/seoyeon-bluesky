@@ -25,3 +25,5 @@ Update README, CANON when identity changes, operations/evaluation docs and relev
 Read docs/OPERATIONS.md before changing workflows, encryption or recovery. State commits and source commits may race: refresh remote state before integration, preserve the latest encrypted vault, and never resolve a state conflict by blindly choosing the older file.
 
 Grounded discussion uses `agent/discussion.py`; see `docs/DISCUSSION.md`. Preserve exact source provenance, the independent fail-closed review, private/offline fetch isolation, and correction quarantine. Do not turn focus areas into schedules, quotas, canned examples, or claimed credentials.
+
+Telegram behavior is documented in `docs/TELEGRAM.md`. Keep operator conversation scoped and encrypted; casual keywords must not authorize publication. Preserve frozen reply/command stages, receipt-based success, and explicit interrupted-command resolution. Personal check-in preferences must not disable operational alerts. No scripted devotion or automatic emotional recharge.

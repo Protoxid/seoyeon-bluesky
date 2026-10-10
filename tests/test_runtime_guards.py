@@ -89,7 +89,7 @@ class TestRuntimeGuards(unittest.TestCase):
         generator = ContentGenerator()
         with patch.object(generator, "_call_llm", return_value=("i can try, my master", "mock")) as call:
             generator.generate_master_reply("post a photo", build_environment_context(), {"is_order": True, "action_type": "PUBLISH_IMAGE_POST"})
-        prompt = call.call_args.args[1]
+        prompt = call.call_args.args[0]
         self.assertIn("without claiming it has happened", prompt)
         self.assertNotIn("NEVER say you cannot", prompt)
 

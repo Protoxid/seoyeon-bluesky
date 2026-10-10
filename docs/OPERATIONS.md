@@ -50,7 +50,7 @@ Every OpenRouter attempt has its own reservation and reconciliation, including b
 
 ## Scheduling and health
 
-GitHub wakes the runtime periodically. A wakeup does not mean a social action is due. Daily operator summaries and optional reflection maintenance are operational work, not fabricated life events. Failures of authentication, image delivery, vault loading or state persistence return nonzero rather than masquerading as dry-run success. Inspect Actions logs and `pending` when a workflow fails.
+GitHub wakes the runtime periodically. A wakeup does not mean a social action is due. Personal Telegram check-ins default to meaningful confirmed activity; daily summaries are an explicit preference. Reflection maintenance is operational work, not a fabricated life event. Failures of authentication, image delivery, vault loading or state persistence return nonzero rather than masquerading as dry-run success. Inspect Actions logs and `pending` when a workflow fails.
 
 ## Historical exposure
 
@@ -59,3 +59,7 @@ Migration removes current plaintext journal excerpts only after encrypted archiv
 ## Discussion sources and review
 
 See [grounded discussion](DISCUSSION.md) for the reference library, source-host boundary, cache freshness, correction quarantine, and selection diagnostics. Drafting and semantic review each use normal OpenRouter reservations; research HTTP reads have no provider-generation fee. A failed review leaves the action unpublished. The library lives inside the existing encrypted vault, and current production scheduling and budget caps remain unchanged.
+
+## Telegram conversation and command recovery
+
+See [Telegram behavior](TELEGRAM.md) for encrypted operator history, intent classification, check-in preferences, independent operational alerts, and interrupted command recovery. `pending` includes interrupted operator update IDs. `resolve-operator UPDATE_ID --evidence REVIEW_REFERENCE` closes one after receipt review without re-execution.

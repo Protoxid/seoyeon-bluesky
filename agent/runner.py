@@ -104,14 +104,16 @@ def run_tick(
     bsky_client.dry_run = is_dry
     auth_ok = bsky_client.authenticate() if MODE.get() != "offline" else False
     if not auth_ok and not is_dry:
+        notifier.operational_alert("authentication_failed")
         print("[ERROR] Bluesky authentication failed; no simulated success.")
-        return 1
 
+    deliveries_ok = True
     if auth_ok and not is_dry:
         from .delivery import recover_delivery
-        if not recover_delivery():
+        deliveries_ok = recover_delivery()
+        if not deliveries_ok:
+            notifier.operational_alert("delivery_pending")
             print("[Delivery] An uncertain action requires reconciliation before new actions.")
-            return 1
 
     if not is_dry:
         from .state_manager import state_manager
@@ -139,9 +141,12 @@ def run_tick(
     print(f"Recency:  Last post {context.hours_since_last_post:.1f}h ago | Today: {posts_today} posts, {replies_today} replies, {dms_today} DMs, {likes_today} likes")
 
     # 2b. Check Inbound Master Messages
-    processed_master_msgs = notifier.process_master_inbox(context, dry_run=is_dry)
+    processed_master_msgs = notifier.process_master_inbox(context, dry_run=is_dry, actions_available=auth_ok and deliveries_ok)
     if processed_master_msgs > 0:
         print(f"  [Master Telegram Interaction] Processed {processed_master_msgs} message(s) from my master.")
+
+    if not is_dry and (not auth_ok or not deliveries_ok):
+        return 1
 
     # 2c. Deep Night Cognitive Sleep Pass (Consolidation)
     if context.circadian_phase == "deep_night":

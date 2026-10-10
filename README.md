@@ -44,7 +44,7 @@ Each request attempt has a budget reservation. Reported provider costs are used 
 
 This makes Seo-yeon a concrete setting for exploring model behavior across long-running, connected tasks: choosing whether to respond, remembering a correction, keeping a commitment, developing a draft, and maintaining an individual voice under a limited budget.
 
-Image generation is provided separately through Kie.ai. Bluesky is the social interface; Telegram provides the authenticated operator channel.
+Image generation is provided separately through Kie.ai. Bluesky is the social interface; Telegram provides a private conversation with scoped memory and an authenticated operator channel. [Telegram behavior and preferences](docs/TELEGRAM.md) explain meaningful check-ins, explicit commands, and separate operational alerts.
 
 ## How a turn works
 

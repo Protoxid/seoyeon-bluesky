@@ -26,6 +26,9 @@ def main():
     source_review = commands.add_parser("reopen-source", help="Permit fresh retrieval after operator source review")
     source_review.add_argument("url")
     source_review.add_argument("--evidence", required=True, help="Public review reference; no private text or secrets")
+    operator = commands.add_parser("resolve-operator", help="Close an interrupted operator command after receipt review; never rerun it")
+    operator.add_argument("update_id")
+    operator.add_argument("--evidence", required=True, help="Review reference; no secrets")
     args = parser.parse_args()
     from agent.config import DATA_DIR
     from agent.storage import file_lock, read_json
@@ -37,8 +40,15 @@ def main():
         from agent.budget_manager import budget_manager
         outbox = Outbox()
         if args.command == "pending":
+            from agent.operator_channel import OperatorChannel
             print(json.dumps({"deliveries": {key: {"endpoint": item["endpoint"], "status": item["status"]}
-                  for key, item in outbox.pending().items()}, "reservations": budget_manager.get_active_reservations()}, indent=2))
+                  for key, item in outbox.pending().items()}, "reservations": budget_manager.get_active_reservations(),
+                  "interrupted_operator_commands":[key for key,row in OperatorChannel().load()["turns"].items() if row.get("stage")=="running"]}, indent=2))
+        elif args.command == "resolve-operator":
+            from agent.operator_channel import OperatorChannel
+            try: OperatorChannel().resolve(args.update_id,args.evidence)
+            except ValueError as error: parser.error(str(error))
+            print("Interrupted command closed after review. It will not be repeated.")
         elif args.command in {"reference-status", "reopen-source"}:
             from agent.discussion import ReferenceLibrary
             library = ReferenceLibrary()

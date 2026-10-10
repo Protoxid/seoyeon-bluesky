@@ -109,7 +109,7 @@ class TestTelegramNotifier(unittest.TestCase):
             mock_send.assert_called_once()
             called_msg = mock_send.call_args[0][0]
             self.assertIn("my master", called_msg)
-            self.assertIn("Late Evening Check-in", called_msg)
+            self.assertEqual(called_msg, summary_text)
             self.assertIn("cold studio floor", called_msg)
 
     def test_generate_daily_report_fallback(self):
@@ -189,67 +189,24 @@ class TestTelegramNotifier(unittest.TestCase):
                     self.assertIn("my master", reply)
                     self.assertNotIn("!", reply)
 
-    def test_check_and_send_evening_summary_catchup(self):
-        """check_and_send_evening_summary must catch up yesterday if missing."""
+    def test_no_automatic_catchup_for_missed_date(self):
         from agent.context_engine import build_environment_context
-        ctx = build_environment_context()
-
-        # Set last report date far in the past to simulate missed day
         memory_store.set_last_daily_report_date("2026-10-01")
-
-        with patch.object(generator, "generate_daily_report", return_value=("my master, catching up on yesterday.", "mock")):
-            with patch.object(self.notifier, "send_daily_summary", return_value=True) as mock_send:
-                sent = self.notifier.check_and_send_evening_summary(ctx, dry_run=True)
-                self.assertTrue(sent)
-                mock_send.assert_called()
-                call_args = mock_send.call_args
-                summary_text = call_args[0][0]
-                self.assertIn("my master", summary_text)
+        with patch.object(memory_store,"get_daily_activity_summary",return_value={"posts":[],"replies":[]}), patch.object(generator,"generate_daily_report") as report:
+            self.assertFalse(self.notifier.check_and_send_evening_summary(build_environment_context(),dry_run=True))
+            report.assert_not_called()
 
     def test_determine_image_scene_wardrobe_inventory(self):
         from agent.context_engine import build_environment_context
         with patch.object(generator, "_call_llm", return_value=(None, "failed")):
             self.assertEqual(generator.determine_image_scene("selfie", build_environment_context()), "")
 
-    def test_parse_master_directive_types(self):
-        """parse_master_directive must recognize photo, post, DM, comment, like, and consolidation directives."""
-        # 1. Photo / Image orders
-        d1 = generator.parse_master_directive("Can you please publish a picture of yourself right now on bsky?")
-        self.assertTrue(d1["is_order"])
-        self.assertEqual(d1["action_type"], "PUBLISH_IMAGE_POST")
-
-        d1_kr = generator.parse_master_directive("지금 셀카 하나 찍어서 올려줘")
-        self.assertTrue(d1_kr["is_order"])
-        self.assertEqual(d1_kr["action_type"], "PUBLISH_IMAGE_POST")
-
-        # 2. Text Post orders
-        d2 = generator.parse_master_directive("publish a post about the cold autumn air on bsky")
-        self.assertTrue(d2["is_order"])
-        self.assertEqual(d2["action_type"], "PUBLISH_TEXT_POST")
-
-        # 3. DM orders
-        d3 = generator.parse_master_directive("please check and answer dms right now")
-        self.assertTrue(d3["is_order"])
-        self.assertEqual(d3["action_type"], "ANSWER_DM")
-
-        # 4. Comment / notification orders
-        d4 = generator.parse_master_directive("reply to comments and notifications on bluesky")
-        self.assertTrue(d4["is_order"])
-        self.assertEqual(d4["action_type"], "BROWSE_AND_REPLY")
-
-        # 5. Like orders
-        d5 = generator.parse_master_directive("browse feed and like some posts")
-        self.assertTrue(d5["is_order"])
-        self.assertEqual(d5["action_type"], "BROWSE_AND_LIKE")
-
-        # 6. Consolidation order
-        d6 = generator.parse_master_directive("write in your journal and consolidate memories")
-        self.assertTrue(d6["is_order"])
-        self.assertEqual(d6["action_type"], "CONSOLIDATE")
-
-        # 7. Non-order casual chat
-        d7 = generator.parse_master_directive("how was your day in seoul?")
-        self.assertFalse(d7["is_order"])
+    def test_explicit_command_protocol(self):
+        for command,action in [("/photo","PUBLISH_IMAGE_POST"),("/post a thought","PUBLISH_TEXT_POST"),
+                               ("/dms","ANSWER_DM"),("/reply","BROWSE_AND_REPLY"),("/like","BROWSE_AND_LIKE"),("/consolidate","CONSOLIDATE")]:
+            directive=generator.parse_master_directive(command)
+            self.assertTrue(directive["is_order"])
+            self.assertEqual(directive["action_type"],action)
 
     def test_execute_master_directive_photo(self):
         """execute_master_directive must generate image, publish, and notify master with the link."""
@@ -303,7 +260,7 @@ class TestTelegramNotifier(unittest.TestCase):
             "message_id": 12,
             "from": "test_master",
             "chat_id": "999999999",
-            "text": "Can you please publish a picture of yourself right now on bsky?",
+            "text": "/photo a portrait",
         }]
 
         with patch.object(generator, "_call_llm", return_value=("yes, my master. taking the photo in the flat right now and putting it up on bluesky.", "mock")):

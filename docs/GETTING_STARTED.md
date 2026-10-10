@@ -40,3 +40,5 @@ Spending defaults: $2/day and $30/month, one generated image/day. `MAX_POSTS_PER
 - CI runs on all branches. Production wakeups are infrastructure polling, not a daily life schedule. Live state is checkpointed before outbound effects when `SEOYEON_GIT_CHECKPOINT=1`.
 
 See [architecture and recovery](OPERATIONS.md), [behavior evaluation](BEHAVIOR_EVALUATION.md), [canon](../CANON.md), and [implementation record](2026-10-10-implementation.md).
+
+Telegram personal check-ins default to meaningful updates. Set `/checkins daily`, `/checkins meaningful`, or `/checkins off` in the private chat. See [Telegram behavior and recovery](TELEGRAM.md).
