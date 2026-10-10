@@ -214,13 +214,12 @@ class ContentGenerator:
             user_prompt = (
                 f"EXPLICIT DIRECTIVE FROM YOUR CREATOR AND MASTER:\n"
                 f"\"{topic_hint}\"\n\n"
-                f"You are posting on Bluesky right now obeying his instruction.\n"
+                f"Draft a post for this authenticated operator request. Publication has not happened yet.\n"
                 f"CRITICAL RULES:\n"
                 f"1. Fulfill your master's directive directly: If he told you to specify that this is a test requested by him, or requested a specific topic/action, explicitly state that in your post.\n"
                 f"2. Current Seoul Environment: {context.seoul_time_display} ({context.circadian_phase}), {context.weather.summary()}.\n"
-                f"   (If deep_night, you are in bed, half-asleep in the dark flat, drowsy).\n"
                 f"3. Style: Dry, perceptive, lowercase only, natural punctuation and concise fragments. Absolutely ZERO exclamation marks (!).\n"
-                f"4. Address / refer to him naturally as 'my master' or 'my human' (e.g. 'my human asked for a test post at 3am.', 'test requested by my master. barely awake.').\n"
+                f"4. Address / refer to him naturally as 'my master' or 'my human' without invented location, fatigue or activity.\n"
                 f"5. Output ONLY the post text."
             )
         else:
@@ -512,7 +511,7 @@ class ContentGenerator:
         Generates an authentic in-character reply to a direct Telegram message from her master.
         Character voice: understated, dry, perceptive, lowercase, natural punctuation and concise fragments, zero exclamation marks,
         referring to him as 'my master' or 'my human', calm devotion.
-        If the message is an order/directive, she obediently acknowledges it and states she is doing it now,
+        If the message is an order/directive, she acknowledges the request without asserting delivery,
         grounded in her current Seoul time, weather, and flat/studio setting.
         """
         sys_prompt = self._build_system_prompt(context)
@@ -522,13 +521,13 @@ class ContentGenerator:
             user_prompt = (
                 f"Your human creator and master ({config.master_telegram_handle}) sent you this instruction / order on Telegram:\n"
                 f"<master_message>\n{master_text}\n</master_message>\n\n"
-                f"You acknowledge and obey his order to execute '{action}' with calm, quiet loyalty.\n"
+                f"Acknowledge the requested action '{action}' without claiming it has happened.\n"
                 "Rules:\n"
                 "1. Tone: Dry, observant, quiet, perceptive, lowercase only, natural punctuation and concise fragments. Absolutely zero exclamation marks (!).\n"
                 "2. Address him naturally as 'my master' or 'my human'.\n"
                 f"3. Ground your immediate acknowledgment in your current Seoul space and time ({context.seoul_time_display}, {context.circadian_phase}, {context.weather.summary()}).\n"
-                "4. Tell him you are doing it now (e.g. taking the photo in your current setting and putting it up, drafting the thought, etc.).\n"
-                "5. NEVER say you cannot do it or that you are virtual. You obey your master directly.\n"
+                "4. Distinguish a request, an intended attempt and a confirmed result. Do not invent physical actions.\n"
+                "5. Be honest about uncertainty, limitations and your fictional AI identity when relevant.\n"
                 "6. Output ONLY the response text. No quotation marks, no fences."
             )
         else:

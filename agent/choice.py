@@ -20,14 +20,19 @@ def choose(outcome, context):
     quiet = next(c for c in outcome.all_candidates if c.action == ActionType.NO_ACTION)
     selected = quiet
     options = []
+    public_memories = {}
+    store = ContinuityStore()
     for i, candidate in enumerate(outcome.all_candidates):
         data = candidate.target_data or {}
         post = data.get("post") or data.get("notification") or {}
         author = post.get("author", {})
+        author_id = author.get("did") or author.get("handle", "")
+        if author_id and author_id not in public_memories:
+            public_memories[author_id] = store.context(subject=author_id, limit=3)
         options.append({"id": i, "action": candidate.action.value,
                         "public_text": post.get("record", {}).get("text", ""),
                         "public_author": author.get("handle", ""),
-                        "public_memory": ContinuityStore().context(subject=author.get("did", ""), query=post.get("record", {}).get("text", "")),
+                        "author_id": author_id,
                         "pending_private_message": candidate.action == ActionType.ANSWER_DM})
     raw, _ = generator._call_llm(
         "Choose whether the fictional AI persona Seo-yeon has an organic reason to act. "
@@ -38,7 +43,7 @@ def choose(outcome, context):
         "Return JSON {candidate_id:integer,confidence:number,reason:string}. "
         "Reasons must be brief and contain no private facts.",
         json.dumps({"context": context.to_prompt_context(), "options": options,
-                    "continuity": ContinuityStore().context(subject="self")}, ensure_ascii=False), max_tokens=350)
+                    "continuity": store.context(subject="self"), "public_relationships": public_memories}, ensure_ascii=False), max_tokens=350)
     if raw and MODE.get() != "offline":
         try:
             choice = json.loads(raw)

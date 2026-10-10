@@ -111,3 +111,19 @@ class TestEvidenceContinuity(unittest.TestCase):
         with self.assertRaises(json.JSONDecodeError):
             self.store.load()
         self.assertEqual(self.store.path.read_text(), "broken")
+
+    def test_malformed_model_collections_are_rejected(self):
+        source = self.evidence()
+        for proposal in ({"memories": "not a list"}, {"world": []}, {"memories": [None]}):
+            with self.assertRaises(ValueError):
+                self.store.apply("bad", proposal, [source])
+        self.assertEqual(self.store.load()["memories"], {})
+
+    def test_prompt_preview_preserves_full_artifact_on_disk(self):
+        source = self.evidence()
+        content = "original work " * 300
+        self.store.apply("one", {"artifact": {"id": "work", "title": "Study", "content": content, "source_ids": [source]}}, [source])
+        self.assertEqual(self.store.load()["artifacts"]["work"]["content"], content)
+        prompt = self.store.context()
+        self.assertIn("preview_truncated", prompt)
+        self.assertLess(len(prompt), len(content))

@@ -84,6 +84,15 @@ class TestRuntimeGuards(unittest.TestCase):
             self.assertTrue(ok, reason)
             self.assertEqual(text, clean)
 
+    def test_operator_acknowledgment_does_not_instruct_fictional_success(self):
+        from agent.context_engine import build_environment_context
+        generator = ContentGenerator()
+        with patch.object(generator, "_call_llm", return_value=("i can try, my master", "mock")) as call:
+            generator.generate_master_reply("post a photo", build_environment_context(), {"is_order": True, "action_type": "PUBLISH_IMAGE_POST"})
+        prompt = call.call_args.args[1]
+        self.assertIn("without claiming it has happened", prompt)
+        self.assertNotIn("NEVER say you cannot", prompt)
+
     def test_model_choice_cannot_bypass_daily_cap(self):
         from agent.choice import choose
         from agent.decision_engine import ActionCandidate, ActionType, DecisionOutcome

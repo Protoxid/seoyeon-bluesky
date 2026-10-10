@@ -29,6 +29,16 @@ def valid_scope(scope):
     return scope in {"public", "operator"} or (isinstance(scope, str) and scope.startswith("private:") and len(scope) > 8)
 
 
+def prompt_item(item):
+    """Keep full records on disk; bound retrieval and label content previews."""
+    result = {key:value for key,value in item.items() if key != "history"}
+    for key, value in list(result.items()):
+        if isinstance(value, str) and len(value) > 2000:
+            result[key] = value[:2000]
+            result["preview_truncated"] = True
+    return result
+
+
 class ContinuityStore:
     def __init__(self, path=None, checkpoint=None):
         if path is None:
@@ -86,10 +96,10 @@ class ContinuityStore:
                     continue
                 if collection == "memories" and item.get("subject") not in ("", "self", subject):
                     continue
-                text = json.dumps(item, ensure_ascii=False)
+                text = json.dumps(prompt_item(item), ensure_ascii=False)
                 overlap = len(words & set(re.findall(r"\w+", text.lower())))
                 priority = overlap + (3 if subject and item.get("subject") == subject else 0)
-                items.append((priority, item.get("updated_at", ""), {"collection": collection, "id": key, **item}))
+                items.append((priority, item.get("updated_at", ""), {"collection": collection, "id": key, **prompt_item(item)}))
         items.sort(key=lambda item: (item[0], item[1]), reverse=True)
         result = [i[2] for i in items[:limit]]
         world = data.get("world", {})
@@ -99,12 +109,15 @@ class ContinuityStore:
 
     def review_context(self, scope, subject):
         data = self.load()
-        return {"memories": {k: v for k, v in data["memories"].items()
+        result = {"memories": {k: v for k, v in data["memories"].items()
                              if self.visible(v, scope) and v.get("subject") in ("", "self", subject)},
                 "commitments": {k: v for k, v in data["commitments"].items()
                                 if self.visible(v, scope) and v.get("subject") == subject},
                 "pursuits": {k: v for k, v in data["pursuits"].items() if self.visible(v, scope)},
                 "artifacts": {k: v for k, v in data["artifacts"].items() if self.visible(v, scope)}}
+        return {name: {key:prompt_item(row) for key,row in sorted(rows.items(),
+                key=lambda pair: pair[1].get("updated_at", ""), reverse=True)[:12]}
+                for name,rows in result.items()}
 
     def apply(self, proposal_id, proposal, allowed_sources, *, scope="public", subject=""):
         """Validate all proposed changes before one atomic commit. No scope promotion."""
