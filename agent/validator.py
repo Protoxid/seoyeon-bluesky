@@ -60,36 +60,16 @@ ASSISTANT_JARGON_PATTERNS = [
     r"\bvirtual assistant\b",
 ]
 
-# Standalone public post fourth-wall violations (avoids unprompted broadcast meta-commentary; permitted in direct replies/DMs if asked)
-STANDALONE_FOURTH_WALL_PATTERNS = [
-    r"\bi am an ai\b",
-    r"\bi'm an ai\b",
-    r"\bas an ai\b",
-    r"\blanguage model\b",
-    r"\bno physical body\b",
-    r"\bno camera and no face\b",
-    r"\bi am virtual\b",
-    r"\bvirtual persona\b",
-]
-
 # Curated negative filters for community feed discovery (skip spam, bots, ads, politics, nsfw, finance)
 NEGATIVE_KEYWORDS = [
-    "crypto", "bitcoin", "btc", "eth", "nft", "airdrop", "token", "presale",
+    "crypto", "bitcoin", "btc", "eth", "nft", "airdrop", "presale",
     "giveaway", "discount", "promo", "sponsor", "collaboration", "dm me",
     "onlyfans", "fanvue", "patreon", "nsfw", "porn", "xxx", "18+",
     "politics", "election", "candidate", "president", "trump", "biden",
     "democrat", "republican", "국회", "대통령", "당대표", "선거", "정당",
-    "뉴스", "정부", "기자", "news", "press", "bot",
-    "disclaimer", "investing", "investment", "inversiones", "inversion", "stocks", "trading", "forex", "portfolio", "dividend",
+    "정부",
+    "disclaimer", "investing", "investment", "inversiones", "inversion", "stocks", "trading", "forex", "dividend",
 ]
-
-NEGATIVE_AUTHOR_TERMS = [
-    "news", "bot", "press", "official", "feed", "digest", "daily",
-    "advisor", "marketing", "promo", "affiliate", "agency", "updates",
-    "market", "invest", "trading", "finance", "forex", "stocks",
-    "뉴스", "정부", "공식", "일보", "신문", "방송"
-]
-
 
 class ContentValidator:
     @staticmethod
@@ -102,8 +82,8 @@ class ContentValidator:
         Validates whether a community feed post is eligible for Seo-yeon to engage with.
         Returns: (is_eligible, reason)
         """
-        if not text or len(text.strip()) < 10:
-            return False, "Post is too short (< 10 chars)"
+        if not text or not text.strip():
+            return False, "Empty post"
 
         # Check prompt injection
         is_inj, inj_reason = ContentValidator.detect_prompt_injection(text)
@@ -133,7 +113,7 @@ class ContentValidator:
         lower_text = text.lower()
 
         # Non-English Latin-script detection (Spanish, French, German, Portuguese)
-        if not re.search(r"[\uac00-\ud7a3]", text):
+        if not langs and not re.search(r"[\uac00-\ud7a3]", text):
             foreign_stop_words = [
                 "el", "la", "los", "las", "del", "para", "por", "con", "una", "unos", "unas",
                 "como", "mais", "este", "esta", "estas", "estos", "que", "bajo", "sobre", "entre",
@@ -146,14 +126,8 @@ class ContentValidator:
 
         # Check negative keywords (spam, ads, crypto, politics, porn, finance)
         for kw in NEGATIVE_KEYWORDS:
-            if kw in lower_text:
+            if (re.search(r"(?<!\w)" + re.escape(kw) + r"(?!\w)", lower_text) if kw.isascii() else kw in lower_text):
                 return False, f"Contains negative keyword: '{kw}'"
-
-        # Check negative author markers
-        lower_author = (author_handle or "").lower()
-        for term in NEGATIVE_AUTHOR_TERMS:
-            if term in lower_author:
-                return False, f"Author contains negative marker: '{term}'"
 
         # Check engagement bait patterns (surveys, marketing questionnaires)
         for pat in ENGAGEMENT_BAIT_PATTERNS:
@@ -239,15 +213,9 @@ class ContentValidator:
             if re.search(pattern, lower):
                 return False, cleaned, f"Robotic assistant jargon detected: '{pattern}'"
 
-        # In standalone posts, avoid unprompted fourth-wall meta declarations
-        if content_type == "post":
-            for pattern in STANDALONE_FOURTH_WALL_PATTERNS:
-                if re.search(pattern, lower):
-                    return False, cleaned, f"Unprompted fourth-wall violation in public post: '{pattern}'"
-
         # 5. Strict anti-commercial terms check
         for term in FORBIDDEN_MARKETING_TERMS:
-            if re.search(r"\b" + re.escape(term) + r"\b", lower) or term in lower:
+            if re.search(r"(?<!\w)" + re.escape(term) + r"(?!\w)", lower):
                 return False, cleaned, f"Forbidden promotional term detected: '{term}'"
 
         # 6. Check for cheap engagement bait

@@ -54,6 +54,7 @@ TICK_LOG_FILE = LOGS_DIR / "tick_history.jsonl"
 
 
 def log_tick(entry: Dict[str, Any]) -> None:
+    entry.setdefault("discussion_status", getattr(generator, "last_discussion_status", "not_attempted"))
     LOGS_DIR.mkdir(parents=True, exist_ok=True)
     with open(TICK_LOG_FILE, "a", encoding="utf-8") as f:
         f.write(json.dumps(entry, ensure_ascii=False) + "\n")
@@ -197,9 +198,13 @@ def run_tick(
     else:
         outcome = decision_engine.evaluate(context, notifications, dms, feed_items, can_image=can_img)
 
+    generator.last_discussion_status = "not_attempted"
     if not force_action:
         from .choice import choose
         outcome = choose(outcome, context)
+    log_tick({"ts": dt.datetime.now(dt.timezone.utc).isoformat(), "event":"discussion_selection",
+              "dry_run":is_dry, "observed":{"notifications":len(notifications),"feed":len(feed_items)},
+              "diagnostics":getattr(outcome,"discussion_diagnostics",{}), "action":outcome.selected_action.value})
     target = outcome.target_data or {}
     post_target = target.get("post") or target.get("notification") or {}
     previous_posts = memory_store.get_recent_context().get("posts", [])
@@ -225,7 +230,7 @@ def run_tick(
 
     elif outcome.selected_action == ActionType.PUBLISH_TEXT_POST:
         print("\n[Generating Original Text Post...]")
-        post_text, model_used = generator.generate_post(outcome.intent, context)
+        post_text, model_used = generator.generate_post(outcome.intent, context, topic_hint=outcome.target_data.get("topic_hint"))
         print(f"  Draft ({model_used}): \"{post_text}\"")
 
         if not post_text:
@@ -243,7 +248,7 @@ def run_tick(
             result_details = {"uri": res.get("uri"), "text": post_text, "model": model_used}
 
     elif outcome.selected_action == ActionType.PUBLISH_IMAGE_POST:
-        post_text, model_used = generator.generate_post(outcome.intent, context, include_image=True)
+        post_text, model_used = generator.generate_post(outcome.intent, context, topic_hint=outcome.target_data.get("topic_hint"), include_image=True)
         scene_desc = generator.determine_image_scene(post_text, context)
         if not post_text or not scene_desc:
             return 0  # No justified draft/scene, no fabricated fallback.
@@ -628,7 +633,10 @@ def run_tick(
         print(f"\n[Quote-Posting Thought by @{target_author}...]")
         print(f"  Quoted Post: \"{user_text}\"")
 
-        quote_comment, model_used = generator.generate_quote_post(target_author, user_text, context)
+        linked_material = json.dumps({"links":[f.get("uri") for facet in post.get("record",{}).get("facets",[])
+            for f in facet.get("features",[]) if f.get("$type")=="app.bsky.richtext.facet#link"],
+            "media_present_not_inspected":bool(post.get("embed"))})
+        quote_comment, model_used = generator.generate_quote_post(target_author, user_text, context, source_context=linked_material)
         print(f"  Draft Quote ({model_used}): \"{quote_comment}\"")
 
         if not quote_comment or model_used in ("failed", "fallback"):
@@ -692,6 +700,7 @@ def run_tick(
         "dry_run": is_dry,
         "executed": executed,
         "details": result_details,
+        "discussion_status": getattr(generator,"last_discussion_status","not_attempted"),
         "budget": budget_manager.get_summary(),
     })
 

@@ -16,3 +16,5 @@ For uncertainty, inspect `python scripts/maintain.py pending`. Verify provider r
 Do not print private messages, decrypted files or tokens. Production checkpoint configuration requires explicit operational authorization. Preserve the latest remote state when integrating source changes.
 
 The operator is addressed as "my master" or "my human". This skill does not authorize messaging, publishing, spending or production changes outside the user's scope.
+
+Read `docs/DISCUSSION.md` for focused knowledge contribution. Preserve source/quote validation and review before social publication; missing evidence permits only grounded interpretation, ordinary conversation or silence. No reply quotas, canned lessons, fabricated expertise or consequential personalized advice. Research must not send private messages to websites; model review is probabilistic and requires editorial evaluation.

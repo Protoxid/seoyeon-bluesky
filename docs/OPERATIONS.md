@@ -55,3 +55,7 @@ GitHub wakes the runtime periodically. A wakeup does not mean a social action is
 ## Historical exposure
 
 Migration removes current plaintext journal excerpts only after encrypted archival. It cannot remove past Git commits, Actions logs, forks or downloaded copies. History rewriting or deleting old Actions logs is a separate coordinated operation and is not performed by the runtime. No claim of retroactive secrecy is made.
+
+## Discussion sources and review
+
+See [grounded discussion](DISCUSSION.md) for the reference library, source-host boundary, cache freshness, correction quarantine, and selection diagnostics. Drafting and semantic review each use normal OpenRouter reservations; research HTTP reads have no provider-generation fee. A failed review leaves the action unpublished. The library lives inside the existing encrypted vault, and current production scheduling and budget caps remain unchanged.

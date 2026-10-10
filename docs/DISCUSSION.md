@@ -1,0 +1,35 @@
+# Useful discussion without a scripted expert persona
+
+Seo-yeon's areas of possible depth are Korean-English language and translation, Hangul typography and visual design, close reading of film and literature, and AI and creative expression. These are interests, not credentials or compulsory topics. She can contribute a distinction, grounded interpretation, sourced explanation, question, disagreement, ordinary acknowledgment, or silence. There is no reply quota, daily lesson, required joke, or mandatory personal anecdote.
+
+## Selection and discovery
+
+The chooser inspects up to four unique parent threads before selecting among public candidates, with direct conversations considered first for this read budget. Existing scoped memories supply relevant particulars; historical relationship labels do not establish trust. An original post requires a specific proposed contribution, which is passed to writing rather than discarded after selection.
+
+Discovery can request up to two Bluesky search phrases based only on public continuity and unfinished work. An empty search plan is valid. Timeline and search observations are interleaved so timeline volume cannot exclude all discoveries from candidate evaluation. This balances access to observations, not the actions she must perform. Broad author-name exclusions were removed; Latin keyword checks use word boundaries, short messages remain eligible, and explicit English/Korean language tags avoid the old Latin stop-word guess.
+
+## Grounded writing
+
+`agent/discussion.py` provides the shared writing/review path for original posts, quote commentary, public replies, and DMs. The first model call returns text, a contribution category, and source claims. Each factual claim must cite a retrieved source ID and a verbatim passage. Unknown IDs, invented quotes, unprovided links, malformed output, and uncited knowledge drafts fail closed. Ordinary social responses and interpretations do not require citations, but still receive semantic review.
+
+The existing lexical/platform validator runs before a second model call reviews the actual final text. The reviewer checks support, missing claims, interpretation versus fact, conversational relevance, unsolicited advice, invented experiences, and natural proportion. A false/invalid/unavailable review blocks the draft. Both calls use the existing OpenRouter budget reservations and billing; there are no free or unaccounted review calls. The reviewer may share the writer's model, so correlated mistakes remain possible.
+
+The biography is authored fiction, not evidence of expertise. A headline, alt text or excerpt does not establish that she read the whole work or saw an image. This change does not add vision inspection of other users' images; such media are labeled uninspected. High-consequence personalized advice is outside the intended behavior.
+
+## Reference library
+
+Research is a bounded reader, not unrestricted web search. The initial catalogue contains the [Unicode Korean FAQ](https://www.unicode.org/faq/korean.html) and [W3C Hangul layout document](https://www.w3.org/TR/klreq/). The latter is a draft document, not an endorsed final standard. Explicit links in public conversation can also be read on the reviewed source hosts listed in `HOSTS` in the module, covering Korean-language institutions, film institutions, the Library of Congress, and Bluesky protocol documentation. Unsupported links remain unread. No search-engine service, new API key, or plugin is required.
+
+Each writing attempt allows at most two page fetches, each with bounded redirects, connection/read timeouts, a 400 KB response limit, and HTML/plain-text content only. HTTPS source hosts are checked again after every redirect; credentials, query strings and alternate ports are disallowed. Pages yield at most 18,000 stored characters, with truncation labeled. Retrieval passes at most two relevant 6,000-character excerpts, explicitly marked partial. Sources retain URL, retrieval time and a content-derived revision ID.
+
+The encrypted `data/.vault/references.json` retains up to 80 source revisions and 200 reviewed claim interpretations. Sources older than 30 days are excluded from retrieval; this is a cache cutoff, not a guarantee that a fact remains current. Cached passages must not be used to assert current schedules, prices or news. The library is not populated by counting repeated claims, and generated conversation alone cannot become a reference source.
+
+After a confirmed interaction, explicit corrections can identify an existing interpretation by ID and an exact inbound quote. The source is quarantined, including its URL, so refetching or repeating the claim cannot quietly restore it. This does not install the other person's assertion as truth. Use `python scripts/maintain.py reference-status` to list quarantined public URLs without conversation content. After manually reviewing a source, `python scripts/maintain.py reopen-source URL --evidence PUBLIC_REVIEW_REFERENCE` removes its cached pages and retires prior interpretations, permitting fresh retrieval and review. Persist the resulting encrypted state before the next cloud tick. There is no automatic reinstatement. Correction text from private conversations is not copied into the shared reference library.
+
+Private DMs and authenticated operator post requests may use already cached public sources but do not initiate web fetches. DM claim interpretations are not saved into the shared library. Offline commands make no network requests. Preview remains paid and isolated, including its temporary reference cache.
+
+## Diagnostics and evaluation
+
+`discussion_selection` log records contain observation counts, eligible action counts, parent-thread lookup counts, and aggregate feed filtering. Final/aborted ticks include a bounded discussion status such as `approved_social`, `approved_knowledge`, `chosen_silence`, `invalid_evidence` or `review_rejected`. These fields contain no private text or model explanation. Existing result fields retain their documented public/private handling.
+
+Automated tests verify provenance, strict reviewer decisions, correction quarantine, source freshness, private/offline isolation, URL/redirect/size boundaries, selection context, discovery fairness, and per-call billing. They cannot prove factual accuracy or human naturalness. Blinded Korean/English evaluation should assess relevance, factual support, concise explanations, appropriate uncertainty, and the ability to stop talking. See [behavior evaluation](BEHAVIOR_EVALUATION.md).

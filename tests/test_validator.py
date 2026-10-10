@@ -106,12 +106,11 @@ class TestValidator(unittest.TestCase):
         ok, cleaned, reason = validator.validate_outgoing_text(reply_text, content_type="reply", check_repetition=False)
         self.assertTrue(ok)
 
-    def test_unprompted_ai_claim_rejected_in_post(self):
-        # Unprompted fourth-wall break in a standalone post is rejected
+    def test_contextual_ai_discussion_allowed_in_post(self):
+        # AI and creative expression are allowed; semantic review checks context and claims.
         post_text = "good morning seoul. i am an ai wandering around the internet today."
         ok, cleaned, reason = validator.validate_outgoing_text(post_text, content_type="post", check_repetition=False)
-        self.assertFalse(ok)
-        self.assertIn("fourth-wall", reason.lower())
+        self.assertTrue(ok, reason)
 
     def test_robotic_assistant_jargon_rejected(self):
         # Generic corporate chatbot jargon is rejected everywhere

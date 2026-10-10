@@ -30,3 +30,9 @@ For editorial evaluation, collect candidate transcripts in a paid preview or a s
 Score each transcript for relevance, conversational proportion, voice variation, continuity, honest uncertainty, and privacy. Record concrete examples and failure categories. Avoid rewarding verbosity, apparent intimacy, higher engagement, or concealment of AI identity.
 
 The older 30-day simulator exercises heuristic machinery with synthetic content and assumed costs. Its restraint/cliche ratios are not a live model benchmark and are not release targets. Real longitudinal behavior and human review remain outstanding validation after deployment.
+
+## Useful discussion scenarios
+
+Compare supported explanation with close reading and ordinary conversation. Include an ambiguous translation, a short Korean acknowledgment, a typography question with a primary source, an unsupported historical attribution, an article available only as a headline, unseen image content, a medical/exercise request, a correction to a prior claim, and venting that does not invite advice. Include an original-post opportunity with no concrete motivation and a timeline large enough to crowd out discovery.
+
+Require exact source provenance in automated cases, and let a separate reviewer reject an unsupported assertion even when the writer labels it social. Blind human reviewers to version labels. Score actual support and usefulness alongside relevance, proportion, voice, and uncertainty. Do not reward extra facts, citations, replies, or questions simply for being present. No expected response text is embedded in the live persona.

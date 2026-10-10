@@ -261,7 +261,7 @@ class TestTelegramNotifier(unittest.TestCase):
             "topic_hint": "publish a picture of yourself right now on bsky",
         }
 
-        with patch.object(generator, "_call_llm", return_value=("ginkgo leaves on the street", "mock")), patch.object(generator, "determine_image_scene", return_value="A tree"), patch.object(generator, "review_image", return_value=(True, "Tree")), patch("agent.image_engine.image_engine.generate_image", return_value=(b"image", "scene", "")):
+        with patch.object(generator, "generate_post", return_value=("ginkgo leaves on the street", "mock")), patch.object(generator, "determine_image_scene", return_value="A tree"), patch.object(generator, "review_image", return_value=(True, "Tree")), patch("agent.image_engine.image_engine.generate_image", return_value=(b"image", "scene", "")):
             generator.last_scene = {"is_selfie": False}
             with patch.object(self.notifier, "send_telegram_message", return_value=True) as mock_tg:
                 res = self.notifier.execute_master_directive(directive, ctx, dry_run=True)
@@ -284,7 +284,7 @@ class TestTelegramNotifier(unittest.TestCase):
             "topic_hint": "publish a post about roasted barley tea",
         }
 
-        with patch.object(generator, "_call_llm", return_value=("autumn evening in seongsu flat", "mock")):
+        with patch.object(generator, "generate_post", return_value=("autumn evening in seongsu flat", "mock")):
             with patch.object(self.notifier, "send_telegram_message", return_value=True) as mock_tg:
                 res = self.notifier.execute_master_directive(directive, ctx, dry_run=True)
                 self.assertTrue(res.get("success"))

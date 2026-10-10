@@ -22,6 +22,10 @@ def main():
     resolve.add_argument("--receipt", help="Verified remote URI or message ID")
     resolve.add_argument("--abandon", action="store_true")
     resolve.add_argument("--evidence", required=True)
+    commands.add_parser("reference-status", help="List reference counts and quarantined public source URLs")
+    source_review = commands.add_parser("reopen-source", help="Permit fresh retrieval after operator source review")
+    source_review.add_argument("url")
+    source_review.add_argument("--evidence", required=True, help="Public review reference; no private text or secrets")
     args = parser.parse_args()
     from agent.config import DATA_DIR
     from agent.storage import file_lock, read_json
@@ -35,6 +39,17 @@ def main():
         if args.command == "pending":
             print(json.dumps({"deliveries": {key: {"endpoint": item["endpoint"], "status": item["status"]}
                   for key, item in outbox.pending().items()}, "reservations": budget_manager.get_active_reservations()}, indent=2))
+        elif args.command in {"reference-status", "reopen-source"}:
+            from agent.discussion import ReferenceLibrary
+            library = ReferenceLibrary()
+            if args.command == "reference-status":
+                data = library.load()
+                print(json.dumps({"sources":len(data["sources"]), "interpretations":len(data["claims"]),
+                                  "quarantined_urls":data.get("quarantined_urls",[])}, indent=2))
+            else:
+                try: library.reopen_source(args.url, args.evidence)
+                except ValueError as error: parser.error(str(error))
+                print("Source reopened for fresh retrieval. Prior interpretations retired.")
         elif args.command == "export-work":
             from agent.continuity import ContinuityStore
             args.directory.mkdir(parents=True, exist_ok=True)

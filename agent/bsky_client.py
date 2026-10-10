@@ -212,14 +212,9 @@ class BlueskyClient:
                 seen_uris.add(u)
                 items.append({"post": p, "source": "timeline"})
 
-        # 2. Dynamic curiosity topics
-        import random
-        topics_to_sample = topics or getattr(config, "canon_search_topics", [
-            "성수동", "전시", "독서", "한국영화", "인디음악", "서울", "건축", "사진",
-            "seoul architecture", "korean indie", "film photography", "seoul design",
-            "urban essay", "line 2 seoul", "yeonmujang", "seoul bookstore"
-        ])
-        chosen_topics = random.sample(topics_to_sample, min(3, len(topics_to_sample)))
+        # Optional curiosity derived only from public continuity, never a random topic rotation.
+        from .discussion import discovery_queries
+        chosen_topics = topics[:2] if topics is not None else discovery_queries()
         for topic in chosen_topics:
             search_res = self.search_posts(topic, limit=8)
             for p in search_res:
@@ -228,7 +223,12 @@ class BlueskyClient:
                     seen_uris.add(u)
                     items.append({"post": p, "source": f"search:{topic}"})
 
-        return items[:limit]
+        # Interleave observation sources so a full timeline cannot hide all discovery results.
+        from itertools import zip_longest
+        groups = {}
+        for item in items:
+            groups.setdefault(item["source"], []).append(item)
+        return [item for row in zip_longest(*groups.values()) for item in row if item is not None][:limit]
 
     def get_thread_context(self, uri: str, depth: int = 4) -> Dict[str, Any]:
         """
@@ -250,6 +250,9 @@ class BlueskyClient:
                     "author": p.get("author", {}).get("handle", ""),
                     "author_did": p.get("author", {}).get("did", ""),
                     "text": p.get("record", {}).get("text", ""),
+                    "links": [f.get("uri") for facet in p.get("record", {}).get("facets", [])
+                              for f in facet.get("features", []) if f.get("$type") == "app.bsky.richtext.facet#link"],
+                    "media_present_not_inspected": bool(p.get("embed")),
                 })
             parent_node = curr.get("parent")
             if parent_node and parent_node.get("$type") == "app.bsky.feed.defs#threadViewPost":

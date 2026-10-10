@@ -1,0 +1,160 @@
+import datetime as dt
+import json
+from pathlib import Path
+import tempfile
+import unittest
+from unittest.mock import Mock, patch
+from agent.discussion import ReferenceLibrary, grounded_draft, source_packet, fetch_page, safe_url, discovery_queries
+from agent.runtime import execution_mode
+from agent.generator import ContentGenerator
+from agent.validator import ContentValidator
+
+class TestDiscussion(unittest.TestCase):
+    def setUp(self):
+        self.temp=tempfile.TemporaryDirectory(); self.addCleanup(self.temp.cleanup)
+        self.lib=ReferenceLibrary(Path(self.temp.name)/"refs.json")
+        self.source={"id":"source1","url":"https://www.unicode.org/faq/korean.html",
+                     "text":"Hangul syllables consist of jamo letters.","partial":False,
+                     "retrieved_at":dt.datetime.now(dt.timezone.utc).isoformat()}
+    def draft(self, draft, review=None, sources=None, private=False):
+        gen=ContentGenerator()
+        values=[(json.dumps(draft),"mock"),(json.dumps(review or {"approved":True,"issue":"none"}),"mock")]
+        with patch("agent.discussion.source_packet",return_value=sources or []) as packet, \
+             patch("agent.discussion.ReferenceLibrary",return_value=self.lib), \
+             patch.object(gen,"_call_llm",side_effect=values) as call:
+            result=grounded_draft(gen,"system","conversation",content_type="reply",private=private)
+        return result,call,gen
+    def test_social_fragment_needs_no_citation(self):
+        result,call,_=self.draft({"text":"same","kind":"social","claims":[]})
+        self.assertEqual(result[0],"same"); self.assertEqual(call.call_count,2)
+    def test_supported_knowledge_stores_evidence(self):
+        claim={"claim":"Hangul uses jamo.","source_id":"source1","quote":self.source["text"]}
+        result,_,_=self.draft({"text":"hangul uses jamo.","kind":"knowledge","claims":[claim]},sources=[self.source])
+        self.assertTrue(result[0]); self.assertEqual(len(self.lib.load()["claims"]),1)
+    def test_unknown_source_or_fabricated_quote_never_reaches_review(self):
+        for source,quote in [("missing",self.source["text"]),("source1","this phrase is not in the source")]:
+            result,call,_=self.draft({"text":"hangul uses jamo.","kind":"knowledge","claims":[{"claim":"test", "source_id":source,"quote":quote}]},sources=[self.source])
+            self.assertEqual(result[0],""); self.assertEqual(call.call_count,1)
+    def test_uncited_knowledge_rejected(self):
+        result,call,_=self.draft({"text":"a factual claim","kind":"knowledge","claims":[]})
+        self.assertEqual(result[0],""); self.assertEqual(call.call_count,1)
+    def test_reviewer_can_reject_fact_disguised_as_social(self):
+        result,_,gen=self.draft({"text":"an unsupported claim","kind":"social","claims":[]},{"approved":False,"issue":"unsupported"})
+        self.assertEqual(result[0],""); self.assertEqual(gen.last_discussion_status,"review_rejected")
+    def test_review_unavailable_or_invalid_fails_closed(self):
+        for verdict in ({"approved":"true","issue":"none"},{"approved":True,"issue":"advice"},{}):
+            gen=ContentGenerator()
+            with patch("agent.discussion.source_packet",return_value=[]), patch.object(gen,"_call_llm",side_effect=[('{"text":"same","kind":"social","claims":[]}',"mock"),(json.dumps(verdict),"mock")]):
+                self.assertEqual(grounded_draft(gen,"sys","prompt",content_type="reply")[0],"")
+    def test_silence_is_not_rewritten(self):
+        result,call,gen=self.draft({"text":"","kind":"silence","claims":[]})
+        self.assertEqual(result[0],""); self.assertEqual(call.call_count,1)
+        self.assertEqual(gen.last_discussion_status,"chosen_silence")
+    def test_unprovided_link_rejected(self):
+        result,call,_=self.draft({"text":"see https://invented.example/fact","kind":"social","claims":[]})
+        self.assertEqual(result[0],""); self.assertEqual(call.call_count,1)
+    def test_private_reply_does_not_write_shared_claims(self):
+        claim={"claim":"Hangul uses jamo.","source_id":"source1","quote":self.source["text"]}
+        self.draft({"text":"hangul uses jamo.","kind":"knowledge","claims":[claim]},sources=[self.source],private=True)
+        self.assertFalse(self.lib.load()["claims"])
+    def test_offline_and_private_research_never_fetch(self):
+        with patch("agent.discussion.ReferenceLibrary",return_value=self.lib), patch("agent.discussion.fetch_page") as fetch:
+            with execution_mode("offline"): source_packet("hangul unicode")
+            with execution_mode("live"): source_packet("hangul unicode",private=True)
+            fetch.assert_not_called()
+    def test_stale_sources_excluded(self):
+        self.lib.save_source({**self.source,"retrieved_at":"2000-01-01T00:00:00+00:00"})
+        self.assertEqual(self.lib.relevant("Hangul"),[])
+    def test_correction_quarantines_source_and_refetch(self):
+        self.lib.save_source(self.source)
+        c={"claim":"Hangul uses jamo.","source_id":"source1","quote":self.source["text"]}
+        self.lib.remember([c],[self.source]); cid=next(iter(self.lib.load()["claims"]))
+        self.lib.dispute(cid,"correction"); self.lib.remember([c],[self.source])
+        self.assertEqual(self.lib.relevant("hangul"),[])
+        with execution_mode("live"), patch("agent.discussion.ReferenceLibrary",return_value=self.lib), patch("agent.discussion.fetch_page") as fetch:
+            self.assertEqual(source_packet(self.source["url"]),[]); fetch.assert_not_called()
+    def test_safe_fetch_boundary(self):
+        for url in ("http://www.unicode.org/", "https://127.0.0.1/", "https://www.unicode.org.evil.test/", "https://u:p@www.unicode.org/", "https://www.unicode.org/?token=secret", "https://www.unicode.org:444/"):
+            self.assertFalse(safe_url(url))
+        self.assertTrue(safe_url(self.source["url"]))
+        with execution_mode("offline"), patch("agent.discussion.requests.get") as request:
+            self.assertIsNone(fetch_page(self.source["url"])); request.assert_not_called()
+    def test_redirect_cannot_escape_source_hosts(self):
+        response=Mock(status_code=302,headers={"Location":"https://127.0.0.1/private"})
+        response.__enter__=Mock(return_value=response); response.__exit__=Mock(return_value=False)
+        with execution_mode("live"), patch("agent.discussion.requests.get",return_value=response) as request:
+            self.assertIsNone(fetch_page(self.source["url"])); self.assertEqual(request.call_count,1)
+    def test_large_page_and_nontext_rejected(self):
+        for headers,chunks in [({"Content-Type":"application/octet-stream"},[]),({"Content-Type":"text/html"},[b"x"*400001])]:
+            response=Mock(status_code=200,headers=headers); response.iter_content.return_value=chunks
+            response.__enter__=Mock(return_value=response); response.__exit__=Mock(return_value=False)
+            with execution_mode("live"), patch("agent.discussion.requests.get",return_value=response):
+                self.assertIsNone(fetch_page(self.source["url"]))
+    def test_discovery_may_choose_no_queries(self):
+        with execution_mode("live"), patch("agent.generator.generator._call_llm",return_value=('{"queries":[]}',"mock")):
+            self.assertEqual(discovery_queries(),[])
+    def test_filters_preserve_normal_words_and_short_conversations(self):
+        for text in ("why?", "whether botanical expression needs another font", "unicode token boundaries", "la la land and the ending"):
+            ok,reason=ContentValidator.filter_feed_post(text,"daily.design",langs=["en"])
+            self.assertTrue(ok,reason)
+    def test_public_reply_uses_evidence_gate(self):
+        from agent.context_engine import build_environment_context
+        from agent.memory_store import UserProfile
+        gen=ContentGenerator()
+        with patch("agent.discussion.grounded_draft",return_value=("same","mock")) as gate, patch.object(gen,"check_sensitive_escalation"):
+            gen.generate_reply("a","hello",{"chain":[{"author":"a","text":"hello","links":[self.source["url"]]}]},UserProfile(handle="a"),build_environment_context())
+            self.assertIn(self.source["url"],gate.call_args.kwargs["evidence_text"])
+    def test_selection_receives_parent_context_without_quota(self):
+        from agent.choice import choose
+        from agent.decision_engine import ActionCandidate, ActionType, DecisionOutcome
+        from agent.context_engine import build_environment_context
+        post={"uri":"at://test/post/1","author":{"handle":"a"},"record":{"text":"which reading?","reply":{"parent":{}}}}
+        reply=ActionCandidate(ActionType.BROWSE_AND_REPLY,.1,.5,"",{"post":post})
+        quiet=ActionCandidate(ActionType.NO_ACTION,.9,.9,"")
+        outcome=DecisionOutcome(quiet.action,"",{},"",{},[reply,quiet])
+        with execution_mode("live"), patch("agent.bsky_client.bsky_client.get_thread_context",return_value={"chain":[{"author":"a","text":"earlier context"}]}), patch("agent.generator.generator._call_llm",return_value=('{"candidate_id":0,"confidence":0.9}',"mock")) as call:
+            self.assertEqual(choose(outcome,build_environment_context()).selected_action,reply.action)
+            self.assertIn("earlier context",call.call_args.args[1])
+            self.assertNotIn("earlier context",json.dumps(outcome.discussion_diagnostics))
+
+    def test_discovery_observations_do_not_starve_behind_timeline(self):
+        from agent.bsky_client import BlueskyClient
+        client=BlueskyClient()
+        timeline=[{"post":{"uri":f"timeline:{i}"}} for i in range(15)]
+        with patch.object(client,"get_timeline",return_value=timeline), patch.object(client,"search_posts",return_value=[{"uri":"search:1"}]):
+            items=client.get_discovery_feed(topics=["a topic"])
+        self.assertEqual(items[1]["post"]["uri"],"search:1")
+    def test_original_post_requires_specific_motivation(self):
+        from agent.choice import choose
+        from agent.decision_engine import ActionCandidate,ActionType,DecisionOutcome
+        from agent.context_engine import build_environment_context
+        post=ActionCandidate(ActionType.PUBLISH_TEXT_POST,.9,.9,"")
+        quiet=ActionCandidate(ActionType.NO_ACTION,.1,.9,"")
+        for contribution,expected in [("",quiet.action),("a grounded reading of the supplied passage",post.action)]:
+            outcome=DecisionOutcome(post.action,"",{},"",{},[post,quiet])
+            with execution_mode("live"), patch("agent.generator.generator._call_llm",return_value=(json.dumps({"candidate_id":0,"confidence":.9,"contribution":contribution}),"mock")):
+                self.assertEqual(choose(outcome,build_environment_context()).selected_action,expected)
+
+    def test_operator_review_evicts_old_sources_and_retires_claims(self):
+        self.lib.save_source(self.source)
+        c={"claim":"Hangul uses jamo.","source_id":"source1","quote":self.source["text"]}
+        self.lib.remember([c],[self.source]); cid=next(iter(self.lib.load()["claims"]))
+        self.lib.dispute(cid,"correction")
+        self.lib.reopen_source(self.source["url"],"reviewed primary-source passage")
+        data=self.lib.load()
+        self.assertFalse(data["sources"]); self.assertFalse(data["quarantined_urls"])
+        self.assertEqual(data["claims"][cid]["status"],"retired")
+    def test_inbound_correction_is_scoped_and_never_becomes_new_fact(self):
+        from agent.continuity import ContinuityStore, learn_interaction
+        store=ContinuityStore(Path(self.temp.name)/"continuity.json")
+        self.lib.save_source(self.source)
+        self.lib.remember([{"claim":"Hangul uses jamo.","source_id":"source1","quote":self.source["text"]}],[self.source])
+        cid=next(iter(self.lib.load()["claims"]))
+        correction="Hangul: your earlier explanation was incorrect."
+        raw=json.dumps({"disputed_claims":[{"id":cid,"quote":correction}]})
+        with execution_mode("live"), patch("agent.continuity.ContinuityStore",return_value=store), patch("agent.discussion.ReferenceLibrary",return_value=self.lib), patch("agent.generator.generator._call_llm",return_value=(raw,"mock")):
+            learn_interaction("dm:1",correction,"i will check that","a",scope="private:a")
+        data=self.lib.load()
+        self.assertEqual(data["claims"][cid]["status"],"disputed")
+        self.assertNotIn(correction,json.dumps(data))
+        self.assertEqual(len(data["claims"]),1)

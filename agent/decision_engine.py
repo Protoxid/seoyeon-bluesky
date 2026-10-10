@@ -56,6 +56,7 @@ class DecisionOutcome:
     intent: str
     candidate_scores: Dict[str, float]
     all_candidates: List[ActionCandidate]
+    feed_diagnostics: Dict[str, int] = field(default_factory=dict)
 
 
 class DecisionEngine:
@@ -302,6 +303,7 @@ class DecisionEngine:
         # -------------------------------------------------------------
         # 5. Feed Browsing & Multi-Candidate Evaluation (Rank up to 10 items)
         # -------------------------------------------------------------
+        feed_diagnostics = {"observed": len(feed_items), "eligible": 0, "filtered": 0, "already_replied": 0}
         if feed_items:
             best_reply_candidate: Optional[ActionCandidate] = None
             best_like_candidate: Optional[ActionCandidate] = None
@@ -335,14 +337,17 @@ class DecisionEngine:
 
                 record = post.get("record", {})
                 text = record.get("text", "") if isinstance(record, dict) else ""
-                if not text or len(text.strip()) < 10:
+                if not text or not text.strip():
                     continue
 
                 # Content filter (prompt injection, spam, ads, crypto, politics, bots/news, language)
                 langs = record.get("langs", []) if isinstance(record, dict) else []
                 is_eligible, _ = ContentValidator.filter_feed_post(text, author_handle, langs=langs)
                 if not is_eligible:
+                    feed_diagnostics["filtered"] += 1
                     continue
+                feed_diagnostics["eligible"] += 1
+                if ms.has_replied_to_post(post_uri): feed_diagnostics["already_replied"] += 1
 
                 evaluated_count += 1
                 if author_did and not author.get("viewer", {}).get("following"):
@@ -502,6 +507,7 @@ class DecisionEngine:
             intent=winner.intent,
             candidate_scores=score_dict,
             all_candidates=candidates,
+            feed_diagnostics=feed_diagnostics,
         )
 
 

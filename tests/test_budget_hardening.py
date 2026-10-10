@@ -153,7 +153,7 @@ class TestBudgetHardening(unittest.TestCase):
             with patch("agent.generator.budget_manager", self.budget_mgr), \
                  patch.object(bsky_client, "authenticate", return_value=True), \
                  patch.object(bsky_client, "publish_text_post", return_value={"uri": "at://test/post/1"}), \
-                 patch("agent.generator.generator._query_openrouter", return_value="spontaneous evening thought in my flat."), \
+                 patch("agent.generator.generator._query_openrouter", side_effect=['{"text":"spontaneous evening thought in my flat.","kind":"interpretation","claims":[]}', '{"approved":true,"issue":"none"}']), \
                  patch("agent.generator.validator.validate_outgoing_text", return_value=(True, "spontaneous evening thought in my flat.", None)), \
                  patch("agent.weekly_planner.weekly_planner.get_current_activity", return_value={"activity": "reading", "area": "Seongsu", "vibe": "quiet", "phase": "deep_night", "day": "friday"}), \
                  patch("agent.runner.decision_engine.evaluate", return_value=fake_outcome), \
@@ -173,8 +173,9 @@ class TestBudgetHardening(unittest.TestCase):
                 data = self.budget_mgr._load_ledger()
                 history = data.get("history", [])
 
-                # There should be EXACTLY ONE cost entry from llm_generation (NO duplicate text_post entry)
-                self.assertEqual(len(history), 1, f"Expected 1 entry, got {len(history)}: {history}")
+                # Draft and review each have one cost entry; runner must not duplicate either charge.
+                self.assertEqual(len(history), 2, f"Draft and review each billed once: {history}")
+                self.assertTrue(all(h["action_type"] == "llm_generation" for h in history))
                 self.assertEqual(history[0]["action_type"], "llm_generation")
                 self.assertNotEqual(history[0]["action_type"], "text_post")
         finally:
@@ -266,7 +267,7 @@ class TestBudgetHardening(unittest.TestCase):
                  patch.object(bsky_client, "publish_image_post", return_value={}), \
                  patch("agent.runner.generator.determine_image_scene", return_value="A justified scene"), \
                  patch("agent.runner.generator.review_image", return_value=(True, "Visible scene")), \
-                 patch("agent.generator.generator._query_openrouter", return_value="autumn day in seongsu."), \
+                 patch("agent.generator.generator.generate_post", return_value=("autumn day in seongsu.", "mock")), \
                  patch("agent.generator.validator.validate_outgoing_text", return_value=(True, "autumn day in seongsu.", None)), \
                  patch("agent.weekly_planner.weekly_planner.get_current_activity", return_value={"activity": "walking", "area": "Seongsu", "vibe": "quiet", "phase": "afternoon", "day": "friday"}), \
                  patch("agent.runner.decision_engine.evaluate", return_value=fake_outcome), \

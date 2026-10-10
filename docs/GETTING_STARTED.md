@@ -20,6 +20,8 @@ Requires Python 3.11+ and `pip install -r requirements.txt`.
 
 Replay JSON has optional `notifications`, `dms`, and `feed` arrays in Bluesky response shape. Offline mode validates integration/restraint; it does not evaluate a live model's personality. Forced draft generation without a provider yields no draft.
 
+See [grounded discussion](DISCUSSION.md) for source review and `reference-status` / `reopen-source` maintenance commands.
+
 ## Credentials and models
 
 Use local `.env` or GitHub Secrets. Never commit keys. Required for live operation: `BSKY_HANDLE`, `BSKY_APP_PASSWORD`, `OPENROUTER_API_KEY`. Images additionally require `KIE_API_KEY`; Telegram requires `TELEGRAM_BOT_TOKEN` and a numeric private `TELEGRAM_CHAT_ID` matching the sender. Prefer a dedicated `DATA_ENCRYPTION_KEY` (or `VAULT_KEY`). The existing workflow retains credential-derived key compatibility; rotating credentials without preserving that key can lock out the vault.

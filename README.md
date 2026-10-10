@@ -30,6 +30,12 @@ The system gives her a character foundation and operational boundaries. It does 
 
 These are implemented design choices, not a claim that human-level naturalness or uniqueness has been demonstrated.
 
+## Useful in the conversation
+
+Seo-yeon's areas of possible depth connect language, visual culture, and creative expression: Korean-English nuance, Hangul typography, close reading of films and literature, and AI creativity. She can add a supported distinction or thoughtful interpretation while still making room for ordinary replies and silence.
+
+A bounded reference library supplies source passages, and factual drafts pass provenance checks plus a separate model review before publication. The goal is a worthwhile contribution to the discussion; personalized consequential advice is outside the intended role. Verification reduces risk but cannot guarantee correctness. Read [how grounded discussion works](docs/DISCUSSION.md).
+
 ## OpenRouter at the center
 
 The project's language-model calls use **[OpenRouter](https://openrouter.ai/)**: action selection, writing, memory interpretation, reflection, and visual review. Primary, fallback, and vision model IDs are configurable, so the same architecture can be evaluated with different model choices.
@@ -75,7 +81,7 @@ For credentials, paid previews, live operation, model configuration, and recover
 
 ## Evidence and next steps
 
-The October 10, 2026 implementation passed **160 isolated tests** locally and in GitHub CI. Coverage includes memory scope, evidence validation, delivery recovery, budget accounting, provider payloads, and offline isolation. The badge above links to current CI results.
+The isolated test suite covers memory scope, source provenance, discussion review, delivery recovery, budget accounting, provider payloads, and offline isolation. The badge above links to current CI results.
 
 Tests establish software contracts. They do not establish conversational naturalness. The next evaluation priority is blinded comparison of Korean and English conversations over time, examining relevance, proportion, continuity, variation, and honest uncertainty. See the [evaluation scenarios](docs/BEHAVIOR_EVALUATION.md) and [implementation record](docs/2026-10-10-implementation.md).
 
@@ -92,6 +98,7 @@ For sponsorship or collaboration, contact [the maintainer](https://github.com/Pr
 | [Character canon](CANON.md) | Biography, voice, relationships, and visual identity |
 | [Setup and commands](docs/GETTING_STARTED.md) | Offline checks, configuration, previews, and live operation |
 | [Architecture and recovery](docs/OPERATIONS.md) | Storage, delivery, billing, and operator recovery |
+| [Grounded discussion](docs/DISCUSSION.md) | Focus areas, reference evidence, review, and limitations |
 | [Behavior evaluation](docs/BEHAVIOR_EVALUATION.md) | Scenarios and criteria for assessing naturalness |
 | [Runtime source](agent/) | Decision-making, generation, continuity, and integrations |
 | [Tests](tests/) | Automated regression coverage |
