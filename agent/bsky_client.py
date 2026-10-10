@@ -98,14 +98,16 @@ class BlueskyClient:
         if self.dry_run or not may_publish():
             return {"simulated": True}
         if endpoint == "com.atproto.repo.createRecord":
-            from .delivery import Outbox, action_key
+            from .delivery import Outbox, action_key, new_record_key
             record = payload.get("record", {})
             subject = record.get("subject", {})
             identity = (getattr(self, "action_identity", "") or json.dumps(record, sort_keys=True))
             if payload.get("collection") in {"app.bsky.feed.like", "app.bsky.feed.repost", "app.bsky.graph.follow"}:
                 identity = json.dumps(subject, sort_keys=True)
             key = action_key(payload.get("collection", endpoint), identity)
-            payload = dict(payload, rkey=key)
+            # Internal deduplication hashes are not valid Bluesky TIDs. The
+            # outbox preserves the first timestamp key across retries/restarts.
+            payload = dict(payload, rkey=payload.get("rkey") or new_record_key())
             def lookup(saved):
                 found = self.xrpc_get("com.atproto.repo.getRecord", {k:saved[k] for k in ("repo", "collection", "rkey")})
                 return found if found.get("uri") else None

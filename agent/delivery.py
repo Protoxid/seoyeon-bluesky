@@ -4,7 +4,28 @@ import hashlib
 import json
 import os
 import subprocess
+import secrets
+import threading
+import time
 from .storage import read_json, write_json, file_lock
+
+
+_tid_lock = threading.Lock()
+_tid_last = 0
+_tid_clock = secrets.randbits(10)
+
+
+def new_record_key():
+    """AT Protocol TID; the outbox freezes this separately from its action hash."""
+    global _tid_last
+    with _tid_lock:
+        micros = max(time.time_ns() // 1000, _tid_last + 1)
+        if not 0 <= micros < 2**53:
+            raise ValueError("Record timestamp outside TID range")
+        _tid_last = micros
+        value = (micros << 10) | _tid_clock
+    alphabet = "234567abcdefghijklmnopqrstuvwxyz"
+    return "".join(alphabet[(value >> shift) & 31] for shift in range(60, -1, -5))
 
 
 def checkpoint():

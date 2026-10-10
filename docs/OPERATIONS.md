@@ -33,6 +33,8 @@ A checkpoint failure stops outbound work. The workflow must configure Git identi
 
 ## Operator recovery
 
+Bluesky posts, likes, reposts and follows use protocol-compliant timestamp IDs (TIDs), separate from internal action hashes. The first ID and payload are frozen in the encrypted outbox; retries reuse them. Old pending records are never silently assigned a new ID, because that could duplicate an action. If a legacy hash-key request was rejected, verify its exact record through `getRecord` and use the abandonment command below to close that attempt without replaying it.
+
 1. Run `python scripts/maintain.py pending`. This shows IDs and statuses, not private bodies.
 2. Verify the action or bill in the relevant service/dashboard. Never infer delivery merely because an exception was absent.
 3. For a verified send: `python scripts/maintain.py resolve-delivery ACTION_ID --receipt REMOTE_URI_OR_ID --evidence RECEIPT_REFERENCE`.

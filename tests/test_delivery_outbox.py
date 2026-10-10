@@ -1,8 +1,8 @@
 from pathlib import Path
 import tempfile
 import unittest
-from unittest.mock import Mock
-from agent.delivery import Outbox
+from unittest.mock import Mock, patch
+from agent.delivery import Outbox, new_record_key
 
 
 class TestDeliveryOutbox(unittest.TestCase):
@@ -50,3 +50,37 @@ class TestDeliveryOutbox(unittest.TestCase):
         with self.assertRaises(TimeoutError):
             self.outbox.send("one", "dm", {}, Mock(side_effect=TimeoutError))
         self.assertEqual(self.outbox.pending()["one"]["status"], "uncertain")
+
+    def test_record_key_matches_protocol_and_decodes_timestamp(self):
+        with patch("agent.delivery.time.time_ns", return_value=1720000000123456000), patch("agent.delivery._tid_last", 0):
+            key = new_record_key()
+        self.assertRegex(key, r"^[234567abcdefghij][234567abcdefghijklmnopqrstuvwxyz]{12}$")
+        value = 0
+        for char in key:
+            value = value * 32 + "234567abcdefghijklmnopqrstuvwxyz".index(char)
+        self.assertEqual(value >> 10, 1720000000123456)
+
+    def test_record_keys_increase_when_clock_stalls_or_moves_back(self):
+        with patch("agent.delivery.time.time_ns", side_effect=[2000000, 2000000, 1000000]), patch("agent.delivery._tid_last", 0):
+            keys = [new_record_key() for _ in range(3)]
+        self.assertEqual(keys, sorted(set(keys)))
+
+    def test_bluesky_collections_use_tid_and_keep_frozen_key_on_restart(self):
+        from agent.bsky_client import BlueskyClient
+        from agent.runtime import execution_mode
+        for collection in ("app.bsky.feed.post", "app.bsky.feed.like", "app.bsky.feed.repost", "app.bsky.graph.follow"):
+            with self.subTest(collection=collection):
+                payload = {"repo": "did:plc:test", "collection": collection,
+                           "record": {"subject": {"uri": "at://test/post", "cid": "test"}, "createdAt": "2026-10-10T20:00:00Z"}}
+                sent = []
+                def transport(endpoint, frozen):
+                    self.assertRegex(frozen["rkey"], r"^[234567abcdefghij][234567abcdefghijklmnopqrstuvwxyz]{12}$")
+                    sent.append(dict(frozen))
+                    return {} if len(sent) == 1 else {"uri": "at://test/" + frozen["rkey"]}
+                with execution_mode("live"), patch("agent.delivery.Outbox", side_effect=lambda: self.outbox):
+                    for _ in range(2):
+                        client = BlueskyClient(dry_run=False)
+                        with patch.object(client, "_xrpc_post_raw", side_effect=transport), patch.object(client, "xrpc_get", return_value={}):
+                            client.xrpc_post("com.atproto.repo.createRecord", payload)
+                self.assertEqual(len(sent), 2)
+                self.assertEqual(sent[0], sent[1])
