@@ -113,25 +113,11 @@ class TestTelegramNotifier(unittest.TestCase):
             self.assertIn("cold studio floor", called_msg)
 
     def test_generate_daily_report_fallback(self):
-        """generate_daily_report must return an in-character message adhering to persona rules."""
         from agent.context_engine import build_environment_context
-        ctx = build_environment_context()
-        summary_data = {
-            "date": "2026-10-06",
-            "posts_count": 1,
-            "posts": [{"text": "cold studio floor in the morning."}],
-            "replies_count": 1,
-            "replies": [{"reply_text": "fair point on that."}],
-            "likes_count": 2,
-            "dms_count": 0,
-        }
-        # Mock _call_llm to None to test the persona fallback
-        with patch.object(generator, "_call_llm", return_value=(None, "fallback")):
-            text, model = generator.generate_daily_report(summary_data, ctx)
-            self.assertEqual(model, "fallback")
-            self.assertIn("my master", text)
-            self.assertNotIn("!", text)  # Zero exclamation marks
-            self.assertIn("bluesky", text.lower())
+        with patch.object(generator, "_call_llm", return_value=(None, "failed")):
+            text, model = generator.generate_daily_report({}, build_environment_context())
+            self.assertEqual(text, "")
+            self.assertEqual(model, "failed")
 
     def test_get_daily_activity_summary(self):
         """get_daily_activity_summary must return structured dict with all activity keys."""
@@ -176,7 +162,7 @@ class TestTelegramNotifier(unittest.TestCase):
         with patch("urllib.request.urlopen", return_value=mock_resp):
             with patch.object(self.notifier, "bot_token", "fake_bot_token"):
                 with patch.object(config, "telegram_bot_token", "fake_bot_token"):
-                    with patch.object(self.notifier, "master_handle", "test_master"):
+                    with patch.object(self.notifier, "master_handle", "test_master"), patch.object(config, "telegram_chat_id", "999999999"):
                         messages = self.notifier.get_master_messages(dry_run=False)
                         self.assertEqual(len(messages), 1)
                         self.assertEqual(messages[0]["from"], "test_master")
@@ -221,13 +207,9 @@ class TestTelegramNotifier(unittest.TestCase):
                 self.assertIn("my master", summary_text)
 
     def test_determine_image_scene_wardrobe_inventory(self):
-        """determine_image_scene should ground scene in wardrobe inventory."""
         from agent.context_engine import build_environment_context
-        ctx = build_environment_context()
-        with patch.object(generator, "_call_llm", return_value=(None, "mock")):
-            scene = generator.determine_image_scene("post text about morning", ctx)
-            self.assertTrue(len(scene) > 20)
-            self.assertIn("Seongsu", scene)
+        with patch.object(generator, "_call_llm", return_value=(None, "failed")):
+            self.assertEqual(generator.determine_image_scene("selfie", build_environment_context()), "")
 
     def test_parse_master_directive_types(self):
         """parse_master_directive must recognize photo, post, DM, comment, like, and consolidation directives."""
@@ -279,7 +261,8 @@ class TestTelegramNotifier(unittest.TestCase):
             "topic_hint": "publish a picture of yourself right now on bsky",
         }
 
-        with patch.object(generator, "_call_llm", return_value=("ginkgo leaves on the street", "mock")):
+        with patch.object(generator, "_call_llm", return_value=("ginkgo leaves on the street", "mock")), patch.object(generator, "determine_image_scene", return_value="A tree"), patch.object(generator, "review_image", return_value=(True, "Tree")), patch("agent.image_engine.image_engine.generate_image", return_value=(b"image", "scene", "")):
+            generator.last_scene = {"is_selfie": False}
             with patch.object(self.notifier, "send_telegram_message", return_value=True) as mock_tg:
                 res = self.notifier.execute_master_directive(directive, ctx, dry_run=True)
                 self.assertTrue(res.get("success"))

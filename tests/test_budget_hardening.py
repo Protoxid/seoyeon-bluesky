@@ -158,7 +158,9 @@ class TestBudgetHardening(unittest.TestCase):
                  patch("agent.weekly_planner.weekly_planner.get_current_activity", return_value={"activity": "reading", "area": "Seongsu", "vibe": "quiet", "phase": "deep_night", "day": "friday"}), \
                  patch("agent.runner.decision_engine.evaluate", return_value=fake_outcome), \
                  patch("agent.runner.notifier.check_and_send_evening_summary"), \
-                 patch("agent.runner.notifier.process_master_inbox", return_value=0):
+                 patch("agent.runner.notifier.process_master_inbox", return_value=0), \
+                 patch("agent.continuity.learn_interaction"):
+
 
                 # Set fake usage
                 from agent.generator import generator as global_gen
@@ -261,13 +263,17 @@ class TestBudgetHardening(unittest.TestCase):
 
             with patch("agent.runner.image_engine.generate_image", return_value=(b"fake_image_bytes", "a prompt", "scene desc")), \
                  patch.object(bsky_client, "authenticate", return_value=True), \
-                 patch.object(bsky_client, "publish_image_post", side_effect=Exception("Bluesky network upload failed")), \
+                 patch.object(bsky_client, "publish_image_post", return_value={}), \
+                 patch("agent.runner.generator.determine_image_scene", return_value="A justified scene"), \
+                 patch("agent.runner.generator.review_image", return_value=(True, "Visible scene")), \
                  patch("agent.generator.generator._query_openrouter", return_value="autumn day in seongsu."), \
                  patch("agent.generator.validator.validate_outgoing_text", return_value=(True, "autumn day in seongsu.", None)), \
                  patch("agent.weekly_planner.weekly_planner.get_current_activity", return_value={"activity": "walking", "area": "Seongsu", "vibe": "quiet", "phase": "afternoon", "day": "friday"}), \
                  patch("agent.runner.decision_engine.evaluate", return_value=fake_outcome), \
                  patch("agent.runner.notifier.check_and_send_evening_summary"), \
-                 patch("agent.runner.notifier.process_master_inbox", return_value=0):
+                 patch("agent.runner.notifier.process_master_inbox", return_value=0), \
+                 patch("agent.continuity.learn_interaction"):
+
 
                 # Run live tick (dry_run=False)
                 runner_module.run_tick(dry_run=False)

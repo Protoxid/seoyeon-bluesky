@@ -94,6 +94,25 @@ class BlueskyClient:
             return {}
 
     def xrpc_post(self, endpoint: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+        from .runtime import may_publish
+        if self.dry_run or not may_publish():
+            return {"simulated": True}
+        if endpoint == "com.atproto.repo.createRecord":
+            from .delivery import Outbox, action_key
+            record = payload.get("record", {})
+            subject = record.get("subject", {})
+            identity = (getattr(self, "action_identity", "") or json.dumps(record, sort_keys=True))
+            if payload.get("collection") in {"app.bsky.feed.like", "app.bsky.feed.repost", "app.bsky.graph.follow"}:
+                identity = json.dumps(subject, sort_keys=True)
+            key = action_key(payload.get("collection", endpoint), identity)
+            payload = dict(payload, rkey=key)
+            def lookup(saved):
+                found = self.xrpc_get("com.atproto.repo.getRecord", {k:saved[k] for k in ("repo", "collection", "rkey")})
+                return found if found.get("uri") else None
+            return Outbox().send(key, endpoint, payload, self._xrpc_post_raw, lookup, idempotent=True)
+        return self._xrpc_post_raw(endpoint, payload)
+
+    def _xrpc_post_raw(self, endpoint: str, payload: Dict[str, Any]) -> Dict[str, Any]:
         if not self.ensure_session():
             return {}
         url = f"{config.bsky_xrpc_base}/{endpoint}"
@@ -121,6 +140,9 @@ class BlueskyClient:
         method: str = "GET",
     ) -> Dict[str, Any]:
         """Routes chat.bsky.convo.* requests with the required atproto-proxy header."""
+        from .runtime import may_publish
+        if method == "POST" and (self.dry_run or not may_publish()):
+            return {"simulated": True}
         if not self.dm_available:
             return {}
         if not self.ensure_session():
@@ -331,17 +353,33 @@ class BlueskyClient:
 
     def get_convo_messages(self, convo_id: str, limit: int = 15) -> List[Dict[str, Any]]:
         res = self.chat_xrpc("chat.bsky.convo.getMessages", params={"convoId": convo_id, "limit": limit})
-        return res.get("messages", [])
+        return sorted(res.get("messages", []), key=lambda m: (m.get("sentAt", ""), m.get("id", "")))
 
     def send_dm(self, convo_id: str, text: str) -> Dict[str, Any]:
-        if self.dry_run:
-            print(f"[DRY-RUN] Would send DM to {convo_id}: \"{text}\"")
-            return {"simulated": True, "convoId": convo_id, "text": text}
-        return self.chat_xrpc(
-            "chat.bsky.convo.sendMessage",
-            payload={"convoId": convo_id, "message": {"text": text}},
-            method="POST",
-        )
+        from .runtime import may_publish
+        if self.dry_run or not may_publish():
+            print("[PREVIEW] Private reply prepared; not sent.")
+            return {"simulated": True, "convoId": convo_id}
+        from .delivery import Outbox, action_key
+        endpoint = "chat.bsky.convo.sendMessage"
+        key = action_key(endpoint, convo_id + ":" + (getattr(self, "action_identity", "") or text))
+        def lookup(saved):
+            for msg in self.get_convo_messages(convo_id, limit=50):
+                if (msg.get("sender", {}).get("did") == self.did and msg.get("text") == saved["message"]["text"]
+                    and msg.get("sentAt", "") >= saved.get("_prepared_at", "")):
+                    return {"id": msg["id"]}
+            return None
+        payload = {"convoId": convo_id, "message": {"text": text}, "_prepared_at": dt.datetime.now(dt.timezone.utc).isoformat()}
+        def transport(ep, body):
+            return self.chat_xrpc(ep, payload={k:v for k,v in body.items() if not k.startswith("_")}, method="POST")
+        identity = getattr(self, "action_identity", "")
+        payload["_incoming_id"] = identity.split(":", 1)[1] if identity.startswith("ANSWER_DM:") else ""
+        receipt = Outbox().send(key, endpoint, payload, transport, lookup)
+        if receipt.get("id"):
+            from .memory_store import memory_store
+            memory_store.record_recent_dm(receipt["id"])
+            memory_store.mark_dm_handled(payload["_incoming_id"])
+        return receipt
 
     def mark_convo_read(self, convo_id: str, message_id: str) -> None:
         if self.dry_run:

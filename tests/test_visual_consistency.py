@@ -43,111 +43,27 @@ class TestVisualConsistency(unittest.TestCase):
     def tearDown(self):
         self.llm_patcher.stop()
 
-    def test_caption_correspondence_stray_cat_pov(self):
+    def test_no_scene_is_invented_on_provider_failure(self):
+        with patch.object(generator, "_call_llm", return_value=(None, "failed")):
+            for phase in ("morning", "afternoon", "deep_night"):
+                ctx = build_environment_context()
+                ctx.circadian_phase = phase
+                self.assertEqual(generator.determine_image_scene("a thought", ctx), "")
+
+    def test_scene_requires_structured_type(self):
         ctx = build_environment_context()
-        ctx.circadian_phase = "afternoon"
-        ctx.weather = self.weather_clear
-        ctx.scheduled_activity = "errand walk through Seongsu alleys"
-        ctx.scheduled_area = "Seongsu-dong"
+        for raw in ('plain scene text', '{"description":"scene","is_selfie":"false"}', '{}'):
+            with patch.object(generator, "_call_llm", return_value=(raw, "mock")):
+                self.assertEqual(generator.determine_image_scene("a thought", ctx), "")
 
-        post = "met a very calm calico cat sunbathing on a parked scooter."
-        scene = generator.determine_image_scene(post, ctx)
-        scene_lower = scene.lower()
-
-        self.assertTrue(any(w in scene_lower for w in ("cat", "kitten", "calico")))
-        self.assertTrue(any(w in scene_lower for w in ("scooter", "alleyway", "seongsu")))
-        self.assertTrue(any(w in scene_lower for w in ("pov", "point-of-view", "no people", "snapshot", "stray cat")))
-
-        # Verify ImageEngine detects it as POV (no face reference)
-        engine = ImageEngine(api_key="test_dummy_key")
-        _, prompt, _ = engine.generate_image(scene, dry_run=True)
-        self.assertIn("35mm film photograph", prompt)
-        self.assertNotIn("Candid everyday smartphone selfie", prompt)
-
-    def test_caption_correspondence_transit_line2(self):
-        ctx = build_environment_context()
-        ctx.circadian_phase = "evening"
-        ctx.weather = self.weather_clear
-        ctx.scheduled_activity = "subway commute back to Seongsu"
-        ctx.scheduled_area = "Line 2 Dangsan-Hapjeong Bridge"
-
-        post = "line 2 train crossing the bridge right when the sun drops behind the river."
-        scene = generator.determine_image_scene(post, ctx)
-        scene_lower = scene.lower()
-
-        self.assertTrue(any(w in scene_lower for w in ("line 2", "train", "window", "bridge", "river", "han river")))
-        self.assertTrue(any(w in scene_lower for w in ("pov", "point-of-view", "no people", "window", "snapshot")))
-
-        # Verify ImageEngine detects it as POV (no face reference)
-        engine = ImageEngine(api_key="test_dummy_key")
-        _, prompt, _ = engine.generate_image(scene, dry_run=True)
-        self.assertIn("35mm film photograph", prompt)
-        self.assertNotIn("Candid everyday smartphone selfie", prompt)
-
-    def test_caption_correspondence_reading_monograph_pov(self):
-        ctx = build_environment_context()
-        ctx.circadian_phase = "afternoon"
-        ctx.weather = self.weather_clear
-        ctx.scheduled_activity = "quiet reading and tea"
-        ctx.scheduled_area = "quiet cafe courtyard"
-
-        post = "reading a secondhand paperback on seoul typography. cold tea on the table."
-        scene = generator.determine_image_scene(post, ctx)
-        scene_lower = scene.lower()
-
-        self.assertTrue(any(w in scene_lower for w in ("book", "paperback", "cup", "table", "bokeh")))
-        self.assertTrue(any(w in scene_lower for w in ("pov", "point-of-view", "no people", "snapshot", "looking down")))
-
-        # Verify ImageEngine detects it as POV (no face reference)
-        engine = ImageEngine(api_key="test_dummy_key")
-        _, prompt, _ = engine.generate_image(scene, dry_run=True)
-        self.assertIn("35mm film photograph", prompt)
-        self.assertNotIn("Candid everyday smartphone selfie", prompt)
-
-    def test_weather_correspondence_rainy_day(self):
-        ctx = build_environment_context()
-        ctx.circadian_phase = "afternoon"
-        ctx.weather = self.weather_rain
-        ctx.scheduled_activity = "walking back from grocery store"
-        ctx.scheduled_area = "Seongsu-dong"
-
-        post = "rain is picking up around yeonmujang-gil crosswalk."
-        scene = generator.determine_image_scene(post, ctx)
-        scene_lower = scene.lower()
-
-        self.assertTrue(any(w in scene_lower for w in ("umbrella", "rain", "droplets", "overcast")))
-
-    def test_deep_night_in_bed_invariance(self):
-        ctx = build_environment_context()
-        ctx.circadian_phase = "deep_night"
-        ctx.weather = self.weather_clear
-        ctx.scheduled_activity = "sleeping in Seongsu flat"
-        ctx.scheduled_area = "Seongsu flat bedroom"
-
-        post = "3am and the ceiling is very quiet tonight."
-        scene = generator.determine_image_scene(post, ctx)
-        scene_lower = scene.lower()
-
-        self.assertTrue(any(w in scene_lower for w in ("bed", "duvet", "pillow", "messy bedhead")))
-        self.assertTrue(any(w in scene_lower for w in ("night lamp", "dark", "dim", "sleepy")))
-
-    def test_pilates_activity_enforces_outdoor_walk_and_forbids_wide_gym(self):
-        ctx = build_environment_context()
-        ctx.circadian_phase = "morning"
-        ctx.weather = self.weather_clear
-        ctx.scheduled_activity = "morning reformer class"
-        ctx.scheduled_area = "studio walk"
-
-        post = "on the way to morning reformer class, cold sidewalk."
-        scene = generator.determine_image_scene(post, ctx)
-        scene_lower = scene.lower()
-
-        # Must describe walking along sidewalk on the way to class
-        self.assertTrue(any(w in scene_lower for w in ("walking", "sidewalk", "outdoor", "on the way")))
-        # Strictly forbid wide identifiable indoor rooms
-        self.assertNotIn("wide gym interior", scene_lower)
-        self.assertNotIn("wide living room", scene_lower)
-        self.assertNotIn("full flat interior", scene_lower)
+    def test_pixel_review_blocks_unavailable_or_rejected_review(self):
+        generator.last_scene = {"is_selfie": False}
+        for raw in (None, '{"approved":false,"alt_text":"a chair"}', '{"approved":true,"alt_text":""}'):
+            with patch.object(generator, "_call_llm", return_value=(raw, "mock")):
+                self.assertFalse(generator.review_image(b"test pixels", "chair", "chair")[0])
+        with patch.object(generator, "_call_llm", return_value=('{"approved":true,"alt_text":"A wooden chair."}', "mock")) as call:
+            self.assertEqual(generator.review_image(b"test pixels", "chair", "chair"), (True, "A wooden chair."))
+            self.assertEqual(call.call_args.args[1][1]["type"], "image_url")
 
     def test_image_engine_pov_vs_selfie_auto_detection(self):
         engine = ImageEngine(api_key="test_dummy_key")
@@ -175,7 +91,7 @@ class TestVisualConsistency(unittest.TestCase):
         ctx.weather = self.weather_clear
         post = "looking down at an open book"
 
-        with patch.object(generator, "_call_llm", return_value=("candid 35mm point-of-view photograph of an open book on outdoor wooden table, no people", "claude-sonnet-5.5")):
+        with patch.object(generator, "_call_llm", return_value=('{"description":"open book on a table, no people","is_selfie":false}', "mock")):
             scene = generator.determine_image_scene(post, ctx)
             self.assertIn("open book", scene)
             self.assertIn("no people", scene)

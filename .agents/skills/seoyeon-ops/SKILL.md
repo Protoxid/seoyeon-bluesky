@@ -1,124 +1,18 @@
 ---
 name: seoyeon-ops
-description: >-
-  Operational runbook, CLI commands, testing, and debugging procedures for the Seo-yeon Han autonomous Bluesky agent repository. Use when running ticks, inspecting dashboard metrics, executing test suites, testing dry-runs, triggering master Telegram communication, running weekly life planning, or debugging agent workflows.
+description: Operate, test and diagnose the Seo-yeon Bluesky runtime, encrypted state, provider billing and delivery recovery.
 ---
 
-# Seo-yeon Han Autonomous Agent — Operations & Runtime Runbook
+# Seo-yeon operations
 
-This skill provides step-by-step procedures, runbooks, and diagnostic workflows for operating, testing, and maintaining the autonomous presence of **Han Seo-yeon (한서연)** (`@syeonhn.bsky.social`).
+Read README and docs/OPERATIONS.md for current commands. Use `python scripts/run_tests.py`: it creates a disposable checkout, removes credentials and blocks network access.
 
----
+Before pushing code, run the isolated suite, `python agent_runner.py --status`, and `python agent_runner.py --dry-run`. Offline status deliberately hides credentials and does not fetch live weather. Verify these commands leave production data unchanged. Do not require a particular action, draft or test count.
 
-## 1. Daily CLI Command Quick Reference
+`--auto`, `--check-master`, `--daily-summary`, `--ask-master`, `--force-plan` and `--consolidate` are live operational commands. Do not run them merely as tests. `--preview` can incur real provider charges despite blocking publication and isolating state; it does not debit the production ledger.
 
-Always execute from the project root (`c:\AI-Project`):
+For uncertainty, inspect `python scripts/maintain.py pending`. Verify provider receipts before reconciliation. Never automatically resend a timed-out DM or Telegram message. Never discard submitted cost reservations because time passed. Failed vault decryption blocks saving; preserve ciphertext and keys.
 
-| Goal | Command | Description |
-| :--- | :--- | :--- |
-| **Inspect Status** | `python agent_runner.py --status` | Live dashboard: Seoul time, weather, circadian phase, memory counts, budget ledger, credentials. |
-| **Safe Dry-Run** | `python agent_runner.py --dry-run` | Executes complete cognitive tick without making network mutations on Bluesky. |
-| **Live Tick** | `python agent_runner.py --auto` | Runs single autonomous cognitive loop and publishes actions to Bluesky if score threshold is met. |
-| **Force Action** | `python agent_runner.py --dry-run --force-action <ACTION>` | Simulates specific action: `PUBLISH_TEXT_POST`, `PUBLISH_IMAGE_POST`, `BROWSE_AND_REPLY`, `QUOTE_POST`, `BROWSE_AND_LIKE`, `NO_ACTION`. |
-| **Check Master** | `python agent_runner.py --check-master` | Checks incoming Telegram messages from her master and replies in character. |
-| **Daily Summary** | `python agent_runner.py --daily-summary` | Generates and sends evening check-in to her master on Telegram (auto catch-up if yesterday missed). |
-| **Ask Master** | `python agent_runner.py --ask-master "<question>"` | Sends direct inquiry/question to master's Telegram. |
-| **Weekly Plan** | `python agent_runner.py --plan-week` | Displays the synthesized 7-day weekly life itinerary across morning/afternoon/evening/night. |
-| **Regen Week** | `python agent_runner.py --force-plan` | Force-regenerates fresh 7-day schedule with OpenRouter LLM. |
-| **Consolidate** | `python agent_runner.py --consolidate` | Runs nightly memory consolidation pass and Seongsu flat private journal reflection. |
-| **Simulate** | `python scripts/simulate_30_days.py --days 30` | Runs 30-day (1,440-tick) deterministic simulation benchmark comparing V2 vs V2.5. |
-| **Run Tests** | `python -m unittest discover -s tests -p "test_*.py"` | Runs full hermetic unit test suite (124 tests). |
+Do not print private messages, decrypted files or tokens. Production checkpoint configuration requires explicit operational authorization. Preserve the latest remote state when integrating source changes.
 
----
-
-## 2. Standard Pre-Deployment & Verification Procedure
-
-Before committing or pushing any architectural or agent code changes, follow this exact sequence:
-
-1. **Verify Hermetic Tests**:
-   ```bash
-   python -m unittest discover -s tests -p "test_*.py"
-   ```
-   *Requirement*: All 124 tests across all modules must pass cleanly (`OK`).
-
-2. **Verify Agent Status**:
-   ```bash
-   python agent_runner.py --status
-   ```
-   *Check*: Ensure no credentials report `MISSING` and emergency stop is `OFF`.
-
-3. **Verify Safe Dry-Run**:
-   ```bash
-   python agent_runner.py --dry-run
-   ```
-   *Check*: Verify the chosen candidate, LLM model used (`anthropic/claude-sonnet-5.5`), and draft text formatting.
-
-4. **Verify Persona Restraint**:
-   - Check that the draft output contains **zero exclamation marks (`!`)**.
-   - Check that draft text is not generic bot fluff or canned phrases.
-
-5. **Continuous Integration (CI) Verification**:
-   - The repository executes `.github/workflows/ci.yml` on every push and PR to `main` and `feature/*`.
-   - CI executes all 124 hermetic tests and asserts a clean git working tree.
-
----
-
-## 3. Master Relationship & Telegram Workflow
-
-Seo-yeon maintains a resilient, private Telegram bond with her human creator and master (`@Protoxide`):
-
-1. **Inbound Master Messages (`agent/notifier.py`)**:
-   - Authorized sender check: Sender ID must strictly match `config.master_telegram_chat_id` or `config.master_telegram_handle`. All stranger messages are dropped.
-   - Master Directives: If master asks her to post a picture, write a post, or check DMs, `parse_master_directive()` extracts the order and immediately queues or executes it.
-   - Master Post Marking: If master tells her to note that a post was requested by him, she explicitly incorporates `"test requested by my master"` or `"my human asked..."`.
-
-2. **Daily Evening Check-in Resilience**:
-   - Triggered late evening (≥ 21:00 KST).
-   - If a scheduler skip causes yesterday's report to be missed, `check_and_send_evening_summary()` detects this on the very next tick and delivers a catch-up report.
-
----
-
-## 4. LLM & OpenRouter Best Practices
-
-- **Sole Text Provider**: Text generation is routed **exclusively** through OpenRouter (`anthropic/claude-sonnet-5.5`).
-- **Reasoning Token Budget**: Claude Sonnet 5.5 on OpenRouter enforces mandatory reasoning tokens. Always ensure `effective_tokens = max(max_tokens, 700)` in `_query_openrouter()` and `timeout=35` so reasoning never starves content output.
-- **Natural Restraint Principle**: If the LLM call fails or validator rejects output, she aborts with `NO_ACTION` and stays quietly offline. **Never** revert to canned platitudes ("fair point", "nodding to this").
-
----
-
-## 5. Encrypted Vault & Budget Hardening Operations
-
-- **Private Vault (`agent/vault.py`)**:
-  - `data/vault.enc` securely stores `private_journal.jsonl` and `private_dms.jsonl` using Fernet symmetric encryption.
-  - In production (`ENV=production` or `GITHUB_ACTIONS=true`), requires `DATA_ENCRYPTION_KEY` or automatically falls back to the deterministic credential-derived key configured in GitHub Actions (`format('{0}:{1}:seoyeon_vault_v2', secrets.BSKY_APP_PASSWORD, secrets.BSKY_HANDLE)`).
-  - Multi-Key Decryption Fallback: `load_vault()` catches `InvalidToken` errors and attempts credential derivation to avoid lockouts if keys are rotated.
-  - **Safe Failure Mode**: Decryption failure prevents overwrites and safely halts execution (`runner.py` exits with code 1).
-  - Every ciphertext modification creates an automatic backup (`vault.enc.bak`) and uses atomic temporary file replacement (`os.replace`).
-- **Atomic Budget Guardrails (`agent/budget_manager.py`)**:
-  - `reserve(amount_usd, action_type)`: Pre-flights compute spend. If active reservations + daily spend > cap ($2.00/day, $30.00/month), returns `None` and blocks call.
-  - `reconcile(reservation_id, actual_cost_usd)`: Replaces hold with exact token-based cost on successful response.
-  - `release(reservation_id)`: Frees hold without charging ledger on call failures or model restraint.
-
----
-
-## 6. GitHub Actions Cloud Automation Workflow
-
-The repository is automated via two complementary workflows:
-
-1. **Scheduler Workflow (`.github/workflows/bluesky_scheduler.yml`)**:
-   - **Schedule**: Every 30 minutes during Seoul waking hours (07:00–01:30 KST = 22:00–16:30 UTC).
-   - **Auto-Commit**: Automatically commits updated `data/memory/`, `data/vault.enc`, `data/budget_ledger.json`, and `data/logs/` back to `main` with `[skip ci]`.
-   - **Encryption Key Fallback**: If the optional `DATA_ENCRYPTION_KEY` repository secret is unset, dynamically seeds derivation via `${{ secrets.DATA_ENCRYPTION_KEY || format('{0}:{1}:seoyeon_vault_v2', secrets.BSKY_APP_PASSWORD, secrets.BSKY_HANDLE) }}`.
-
-2. **Continuous Integration Workflow (`.github/workflows/ci.yml`)**:
-   - **Triggers**: Executed on every push and pull request to `main` and `feature/*`.
-   - **Validation**: Executes all 124 unit tests hermetically and ensures no uncommitted file modifications remain in the working tree.
-
-### Repository Secrets:
-- `BSKY_HANDLE`: Bluesky handle (`syeonhn.bsky.social`)
-- `BSKY_APP_PASSWORD`: Bluesky app password
-- `KIE_API_KEY`: Kie.ai API key
-- `OPENROUTER_API_KEY`: OpenRouter API key
-- `TELEGRAM_BOT_TOKEN`: Telegram bot token
-- `TELEGRAM_CHAT_ID`: Telegram chat ID
-- `DATA_ENCRYPTION_KEY`: Optional; dedicated encryption key for `data/vault.enc` (automatically falls back to credential seed if not set)
+The operator is addressed as "my master" or "my human". This skill does not authorize messaging, publishing, spending or production changes outside the user's scope.

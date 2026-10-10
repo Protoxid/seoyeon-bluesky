@@ -34,11 +34,7 @@ class TestGoalManager(unittest.TestCase):
         shutil.rmtree(self.test_dir, ignore_errors=True)
 
     def test_initial_seed_goals_loaded(self):
-        """Verifies initial seed goals are loaded automatically."""
-        goals = self.manager.get_all_goals()
-        self.assertGreaterEqual(len(goals), 3)
-        active_goals = self.manager.get_active_goals()
-        self.assertTrue(any(g.goal_id == "g_novel_han_kang_202610" for g in active_goals))
+        self.assertEqual(self.manager.get_all_goals(), [])
 
     def test_propose_and_activate_goal(self):
         """Verifies proposing a new goal and activating it."""
@@ -85,16 +81,10 @@ class TestGoalManager(unittest.TestCase):
         self.assertEqual(updated.metrics["percent"], 50.0)
 
     def test_complete_goal(self):
-        """Verifies completing a goal marks it and records completion event."""
-        goal_id = "g_novel_han_kang_202610"
-        self.manager.complete_goal(goal_id, note="Finished the final chapter late at night.")
-
-        completed = self.manager.get_goal(goal_id)
-        self.assertEqual(completed.status, GoalStatus.COMPLETED.value)
-        self.assertEqual(completed.completion_notes, "Finished the final chapter late at night.")
-        # Completed goals should not appear in get_active_goals()
-        active = self.manager.get_active_goals()
-        self.assertFalse(any(g.goal_id == goal_id for g in active))
+        goal = self.manager.propose_goal("Test reading", "Explicit test fixture", GoalCategory.CULTURAL.value)
+        self.manager.activate_goal(goal.goal_id)
+        self.manager.complete_goal(goal.goal_id, note="operator confirmed")
+        self.assertEqual(self.manager.get_goal(goal.goal_id).status, GoalStatus.COMPLETED.value)
 
     def test_pause_and_abandon_goal(self):
         """Verifies pausing and abandoning goals."""
@@ -120,23 +110,21 @@ class TestGoalManager(unittest.TestCase):
             description="Pilates teaching practice for studio sessions.",
             category=GoalCategory.PERSONAL_CRAFT.value,
         )
-        self.assertIsNone(blocked)
+        self.assertIsNotNone(blocked)
 
     def test_prompt_context_formatting(self):
-        """Verifies formatted goals prompt is concise and contains active pursuits."""
-        ctx = self.manager.get_goals_context_for_prompt()
-        self.assertIn("Current ongoing personal pursuits", ctx)
-        self.assertIn("Finishing Han Kang's 'We Do Not Part'", ctx)
-        self.assertIn("kitchen ivy", ctx)
+        self.assertEqual(self.manager.get_goals_context_for_prompt(), "")
+        g = self.manager.propose_goal("Test essay", "An original essay", GoalCategory.CULTURAL.value)
+        self.manager.activate_goal(g.goal_id)
+        self.assertIn("Test essay", self.manager.get_goals_context_for_prompt())
 
     def test_detect_and_record_goal_activity(self):
-        """Verifies keywords in generated text automatically advance matching goals."""
-        text = "spent forty minutes on line 2 reading three chapters of the han kang novel."
-        advanced_ids = self.manager.detect_and_record_goal_activity(text, post_uri="at://test/post/999")
-        self.assertIn("g_novel_han_kang_202610", advanced_ids)
-
-        goal = self.manager.get_goal("g_novel_han_kang_202610")
-        self.assertTrue(any("han kang novel" in ev.get("note", "") for ev in goal.progress_events))
+        g = self.manager.propose_goal("Han Kang novel", "reading", GoalCategory.CULTURAL.value, metrics={"pages": 0})
+        self.manager.activate_goal(g.goal_id)
+        for text in ("did not read the han kang novel", "read han kang today"):
+            self.assertEqual(self.manager.detect_and_record_goal_activity(text), [])
+        self.assertEqual(self.manager.advance_active_goals_daily(), [])
+        self.assertEqual(self.manager.get_goal(g.goal_id).metrics["pages"], 0)
 
 
 if __name__ == "__main__":

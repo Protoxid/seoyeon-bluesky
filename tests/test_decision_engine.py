@@ -391,7 +391,8 @@ class TestDecisionEngine(unittest.TestCase):
             feed_items=[],
             can_image=True,
         )
-        self.assertEqual(outcome.selected_action, ActionType.PUBLISH_IMAGE_POST)
+        self.assertIn(ActionType.PUBLISH_IMAGE_POST, [c.action for c in outcome.all_candidates])
+        self.assertIn(ActionType.PUBLISH_TEXT_POST, [c.action for c in outcome.all_candidates])
         self.assertIn("PUBLISH_IMAGE_POST", outcome.candidate_scores)
         self.assertGreaterEqual(outcome.candidate_scores["PUBLISH_IMAGE_POST"], 0.70)
 

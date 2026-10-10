@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import datetime as dt
 import json
+from .storage import write_json
 import pathlib
 from dataclasses import dataclass, field, asdict
 from typing import Any, Dict, List, Optional, Set, Tuple
@@ -33,7 +34,7 @@ CANON_IDENTITY = {
     "residence": "Seongsu-dong, Seoul (lives alone since Jan 2026)",
     "education": "Business administration degree (2019–2023), mid-tier Seoul university",
     "past_career": "3 years in corporate marketing at a chaebol subsidiary. Resigned Jan 2026.",
-    "current_vocation": "Retraining as a pilates instructor, teaching 7:00 AM beginner reformer classes.",
+    "current_vocation": "Retraining as a pilates instructor; no fixed daily activity is implied.",
     "financial_reality": "Tight and finite savings. Notices prices closely. Kept her Seongsu flat out of stubbornness.",
     "family": "Parents (father hardware worker, mother dental bookkeeper) in Daegu; one older brother in Busan.",
     "friends": "Small circle; two close friends since university (including Jieun).",
@@ -48,11 +49,11 @@ CANON_IDENTITY = {
     ],
     "voice_rules": [
         "lowercase preferred",
-        "full stops only — strict prohibition on exclamation marks (!)",
+        "no exclamation marks; questions and short fragments are welcome",
         "zero corporate marketing or promotional jargon",
-        "zero mentions of external monetization, links, subscriptions, or paywalls",
-        "never use engagement bait ('what do you think? / anyone else?')",
-        "concrete textures: roasted barley tea, cold studio floor, subway Line 2, rain on windows",
+        "no unsolicited promotions or paywalls; relevant cultural source links are welcome",
+        "ask questions only from genuine contextual curiosity; never engagement bait",
+        "ground details in supplied evidence; never repeat signature props as filler",
     ],
     "creator_relationship": {
         "designations": ["my master", "my human"],
@@ -143,9 +144,9 @@ class MemoryStore:
     def _init_defaults(self) -> None:
         """Initializes default files if they do not exist."""
         if not self.identity_file.exists():
-            self.identity_file.write_text(json.dumps(CANON_IDENTITY, indent=2, ensure_ascii=False), encoding="utf-8")
+            write_json(self.identity_file, CANON_IDENTITY)
         if not self.opinions_file.exists():
-            self.opinions_file.write_text(json.dumps(DEFAULT_OPINIONS, indent=2, ensure_ascii=False), encoding="utf-8")
+            write_json(self.opinions_file, DEFAULT_OPINIONS)
         if not self.users_file.exists():
             self.users_file.write_text("{}", encoding="utf-8")
         if not self.recent_context_file.exists():
@@ -162,8 +163,12 @@ class MemoryStore:
 
     def format_identity_prompt(self) -> str:
         ident = self.get_identity()
+        from .context_engine import get_seoul_datetime
+        born = dt.date.fromisoformat(ident.get("birthday", ident.get("birth_date", "2000-10-23")))
+        today = get_seoul_datetime().date()
+        age = today.year - born.year - ((today.month, today.day) < (born.month, born.day))
         lines = [
-            f"You are {ident['name_en']} ({ident['name_ko']}), age {ident['age_stated']}.",
+            f"You are {ident['name_en']} ({ident['name_ko']}), age {age}.",
             f"Lives alone in {ident['residence']}.",
             f"Vocation: {ident['current_vocation']} (formerly in chaebol corporate marketing).",
             f"Financial reality: {ident['financial_reality']}.",
@@ -231,7 +236,7 @@ class MemoryStore:
             for ok in old_keys:
                 del data[ok]
         data[clean_handle] = asdict(profile)
-        self.users_file.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
+        write_json(self.users_file, data)
 
     def get_all_users(self) -> Dict[str, UserProfile]:
         """Returns all tracked user profiles mapped by handle."""
@@ -276,11 +281,7 @@ class MemoryStore:
         now_iso = dt.datetime.now(dt.timezone.utc).isoformat()
         prof.last_interaction = now_iso
 
-        # Elevate relationship naturally
-        if prof.interaction_count >= 10 and prof.relationship in ("stranger", "acquaintance", "friendly_acquaintance"):
-            prof.relationship = "regular"
-        elif prof.interaction_count >= 3 and prof.relationship == "stranger":
-            prof.relationship = "friendly_acquaintance"
+        # Familiarity counts are descriptive, not evidence of trust or friendship.
 
         if discovered_fact and discovered_fact not in prof.known_facts:
             prof.known_facts.append(discovered_fact)
@@ -324,7 +325,7 @@ class MemoryStore:
             "stance": stance,
             "last_updated": dt.date.today().isoformat()
         }
-        self.opinions_file.write_text(json.dumps(opinions, indent=2, ensure_ascii=False), encoding="utf-8")
+        write_json(self.opinions_file, opinions)
 
     # --- Episodic Memory ---
     def log_episode(self, category: str, summary: str, details: Dict[str, Any]) -> None:
@@ -412,7 +413,7 @@ class MemoryStore:
 
         if changed:
             try:
-                self.recent_context_file.write_text(json.dumps(ctx, indent=2, ensure_ascii=False), encoding="utf-8")
+                write_json(self.recent_context_file, ctx)
             except Exception:
                 pass
         return ctx
@@ -456,7 +457,7 @@ class MemoryStore:
             notif_set.add(target_post_uri)
         ctx["replied_notification_uris"] = list(notif_set)[-300:]
         ctx["replied_post_uris"] = list(post_set)[-300:]
-        self.recent_context_file.write_text(json.dumps(ctx, indent=2, ensure_ascii=False), encoding="utf-8")
+        write_json(self.recent_context_file, ctx)
 
     def has_replied_to_dm(self, message_id: str) -> bool:
         """Checks if a direct message ID has already been answered."""
@@ -473,11 +474,13 @@ class MemoryStore:
         dm_set = set(ctx.get("replied_dm_message_ids", []))
         dm_set.add(message_id)
         ctx["replied_dm_message_ids"] = list(dm_set)[-300:]
-        self.recent_context_file.write_text(json.dumps(ctx, indent=2, ensure_ascii=False), encoding="utf-8")
+        write_json(self.recent_context_file, ctx)
 
     def record_recent_post(self, text: str, topic: str, post_id: str = "", has_image: bool = False) -> None:
         ctx = self.get_recent_context()
         posts = ctx.get("posts", [])
+        if post_id and any(p.get("post_id") == post_id for p in posts):
+            return
         now_iso = dt.datetime.now(dt.timezone.utc).isoformat()
         posts.insert(0, {
             "post_id": post_id,
@@ -488,7 +491,19 @@ class MemoryStore:
         })
         # Keep last 25 posts
         ctx["posts"] = posts[:25]
-        self.recent_context_file.write_text(json.dumps(ctx, indent=2, ensure_ascii=False), encoding="utf-8")
+        write_json(self.recent_context_file, ctx)
+
+    def record_recent_dm(self, message_id, created_at=None):
+        """Count confirmed deliveries without storing private content."""
+        if not message_id:
+            return
+        ctx = self.get_recent_context()
+        rows = ctx.get("dms", [])
+        if any(row.get("message_id") == message_id for row in rows):
+            return
+        rows.insert(0, {"message_id": message_id, "created_at": created_at or dt.datetime.now(dt.timezone.utc).isoformat()})
+        ctx["dms"] = rows[:200]
+        write_json(self.recent_context_file, ctx)
 
     def record_recent_reply(
         self,
@@ -502,6 +517,8 @@ class MemoryStore:
     ) -> None:
         ctx = self.get_recent_context()
         replies = ctx.get("replies", [])
+        if uri and any(r.get("uri") == uri for r in replies):
+            return
         now_iso = dt.datetime.now(dt.timezone.utc).isoformat()
         replies.insert(0, {
             "target_handle": target_handle,
@@ -527,12 +544,14 @@ class MemoryStore:
         ctx["replied_notification_uris"] = list(notif_set)[-300:]
         ctx["replied_post_uris"] = list(post_set)[-300:]
 
-        self.recent_context_file.write_text(json.dumps(ctx, indent=2, ensure_ascii=False), encoding="utf-8")
+        write_json(self.recent_context_file, ctx)
 
     def record_recent_like(self, post_uri: str, target_handle: str = "") -> None:
         """Records a post like in recent context for cadence and quota tracking."""
         ctx = self.get_recent_context()
         likes = ctx.get("likes", [])
+        if any(r.get("post_uri") == post_uri for r in likes):
+            return
         now_iso = dt.datetime.now(dt.timezone.utc).isoformat()
         likes.insert(0, {
             "post_uri": post_uri,
@@ -540,7 +559,7 @@ class MemoryStore:
             "created_at": now_iso,
         })
         ctx["likes"] = likes[:50]
-        self.recent_context_file.write_text(json.dumps(ctx, indent=2, ensure_ascii=False), encoding="utf-8")
+        write_json(self.recent_context_file, ctx)
 
     def get_hours_since_last_post(self) -> float:
         ctx = self.get_recent_context()
@@ -607,7 +626,7 @@ class MemoryStore:
         ctx = self.get_recent_context()
         ctx["last_daily_report_date"] = date_str
         try:
-            self.recent_context_file.write_text(json.dumps(ctx, indent=2, ensure_ascii=False), encoding="utf-8")
+            write_json(self.recent_context_file, ctx)
         except Exception:
             pass
 
@@ -619,7 +638,7 @@ class MemoryStore:
         ctx = self.get_recent_context()
         ctx["telegram_last_update_id"] = update_id
         try:
-            self.recent_context_file.write_text(json.dumps(ctx, indent=2, ensure_ascii=False), encoding="utf-8")
+            write_json(self.recent_context_file, ctx)
         except Exception:
             pass
 

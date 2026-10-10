@@ -81,7 +81,6 @@ NEGATIVE_KEYWORDS = [
     "democrat", "republican", "국회", "대통령", "당대표", "선거", "정당",
     "뉴스", "정부", "기자", "news", "press", "bot",
     "disclaimer", "investing", "investment", "inversiones", "inversion", "stocks", "trading", "forex", "portfolio", "dividend",
-    "http://", "https://", "t.co", "bit.ly", "x.com"
 ]
 
 NEGATIVE_AUTHOR_TERMS = [
@@ -209,14 +208,16 @@ class ContentValidator:
         # 2. Strip conversational meta-commentary preamble lines (e.g. "Wait – I should output only the post...", "Here's the post:")
         lines = [line.strip() for line in cleaned.split("\n") if line.strip()]
         content_lines = []
-        meta_starters = (
-            "wait", "here is", "here's", "let me", "post:", "draft:", "thought:", "reply:",
-            "sure,", "sure!", "sure.", "certainly", "as seo-yeon", "i will", "i'll"
-        )
+        meta_starters = ("here is the post:", "here's the post:", "post:", "draft:", "reply:")
         for line in lines:
             lower_l = line.lower()
-            if not content_lines and any(lower_l.startswith(prefix) for prefix in meta_starters):
-                continue
+            if not content_lines:
+                for prefix in meta_starters:
+                    if lower_l.startswith(prefix):
+                        line = line[len(prefix):].strip()
+                        break
+                if not line:
+                    continue
             content_lines.append(line)
         cleaned = "\n\n".join(content_lines).strip()
 
@@ -228,8 +229,8 @@ class ContentValidator:
             return False, "", "Empty content after sanitization."
 
         # 4. Seo-yeon NEVER uses exclamation marks
-        if "!" in cleaned:
-            cleaned = cleaned.replace("!", ".")
+        if "!" in cleaned or "！" in cleaned:
+            cleaned = cleaned.replace("!", ".").replace("！", ".")
 
         lower = cleaned.lower()
 
@@ -259,17 +260,8 @@ class ContentValidator:
         if len(cleaned) > max_len:
             return False, cleaned, f"Content exceeds {max_len}-char limit ({len(cleaned)} chars)"
 
-        # 8. Check for incomplete trailing sentence / token budget cutoff
-        terminal_punct = (".", "?", "~", "…", '"', "'", "”", "’")
-        if not cleaned.endswith(terminal_punct):
-            last_punct_idx = max(cleaned.rfind("."), cleaned.rfind("?"))
-            if last_punct_idx >= 15:
-                cleaned = cleaned[:last_punct_idx + 1].strip()
-            else:
-                return False, cleaned, "Incomplete trailing sentence or truncated output."
-
-        if len(cleaned) < 5:
-            return False, cleaned, "Content is too short."
+        # Short acknowledgments and unpunctuated conversational turns are valid.
+        # Provider finish_reason, not punctuation, detects truncated completions.
 
         # 9. Repetition check against recent posts/replies
         if check_repetition and content_type == "post":
@@ -311,21 +303,6 @@ class ContentValidator:
         cand_words = cls._tokenize_words(candidate_text)
         if not cand_words:
             return True, "Short content."
-
-        # Strict Cliché Throttle: "pilates", "barley tea", "foam roller", "reformer"
-        cliche_patterns = [
-            r"\b(barley\s*tea|lukewarm\s*tea|kettle\s*is)\b",
-            r"(보리차|주전자|둥굴레차)",
-            r"\b(pilates|reformer|foam\s*roller|mat\s*class|7am\s*class)\b",
-            r"(필라테스|리포머|폼롤러|매트\s*수업|7시\s*수업)",
-        ]
-        lower_cand = candidate_text.lower()
-        cand_has_cliche = any(re.search(pat, lower_cand) for pat in cliche_patterns)
-        if cand_has_cliche:
-            for past in recent_posts[:6]:
-                past_l = past.get("text", "").lower()
-                if any(re.search(pat, past_l) for pat in cliche_patterns):
-                    return False, "Cliché throttle: pilates or barley tea mentioned too recently; too repetitive and similar to recent themes. Must explore cinema, literature, design, architecture, food, or Seoul life."
 
         for past in recent_posts[:10]:
             past_text = past.get("text", "")

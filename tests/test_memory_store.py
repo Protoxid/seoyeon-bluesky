@@ -47,7 +47,7 @@ class TestMemoryStore(unittest.TestCase):
 
         updated_prof = self.store.get_user_profile(handle)
         self.assertEqual(updated_prof.interaction_count, 3)
-        self.assertEqual(updated_prof.relationship, "friendly_acquaintance")
+        self.assertEqual(updated_prof.relationship, "stranger")
         self.assertIn("reads Korean literature", updated_prof.known_facts)
 
     def test_opinion_consistency(self):

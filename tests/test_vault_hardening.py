@@ -131,7 +131,7 @@ class TestVaultHardening(unittest.TestCase):
             self.enc_file.write_bytes(b"corrupted_garbage_data")
 
             # Running tick must exit safely with code 1
-            exit_code = run_tick(dry_run=True)
+            exit_code = run_tick(dry_run=False)
             self.assertEqual(exit_code, 1)
         finally:
             vault_module.vault = orig_vault

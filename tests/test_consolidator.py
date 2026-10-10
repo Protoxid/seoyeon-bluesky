@@ -74,6 +74,10 @@ class TestConsolidator(unittest.TestCase):
         )
         memory_store.save_user_profile(prof)
 
+        # Preserve attention state across consolidation
+        before = state_manager.get_state()
+        battery, fatigue = before.social_battery, before.physical_fatigue
+
         # Run consolidation with dry_run=False and mocked LLM
         with patch("agent.generator.generator._call_llm", return_value=("quiet evening in seongsu flat.", "mock")):
             res = self.consolidator.consolidate(dry_run=False, force=True)
@@ -81,12 +85,12 @@ class TestConsolidator(unittest.TestCase):
 
         # Verify relationship evolved to regular
         updated_prof = memory_store.get_user_profile(test_handle)
-        self.assertEqual(updated_prof.relationship, "regular")
+        self.assertEqual(updated_prof.relationship, "stranger")
 
         # Verify social battery was restored
         st = state_manager.get_state()
-        self.assertEqual(st.social_battery, 0.90)
-        self.assertEqual(st.physical_fatigue, 0.15)
+        self.assertEqual(st.social_battery, battery)
+        self.assertEqual(st.physical_fatigue, fatigue)
 
         # Verify journal entry was written
         entries = self.consolidator.read_recent_journal_entries()

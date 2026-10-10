@@ -31,7 +31,7 @@ class AgentState:
     physical_fatigue: float = 0.20    # 0.0 (rested) to 1.0 (exhausted)
     financial_awareness: float = 0.40 # 0.0 (relaxed) to 1.0 (frugal/budget-conscious)
     creative_drive: float = 0.65      # 0.0 (passive) to 1.0 (observant/expressive)
-    mood_descriptor: str = "quiet, observant, lukewarm barley tea"
+    mood_descriptor: str = ""
     last_updated: str = ""
     last_consolidation_date: str = ""
 
@@ -69,61 +69,30 @@ class StateManager:
         self.save_state(state)
         return state
 
-    def save_state(self, state: Optional[AgentState] = None) -> None:
+    def save_state(self, state: Optional[AgentState] = None, now=None) -> None:
         if state is not None:
             self._state = state
         cur = self._state or AgentState()
-        cur.last_updated = dt.datetime.now(dt.timezone.utc).isoformat()
+        cur.last_updated = (now or dt.datetime.now(dt.timezone.utc)).isoformat()
         self.state_file.parent.mkdir(parents=True, exist_ok=True)
-        self.state_file.write_text(json.dumps(cur.to_dict(), indent=2, ensure_ascii=False), encoding="utf-8")
+        from .storage import write_json
+        write_json(self.state_file, cur.to_dict())
 
-    def update_circadian_dynamics(self, hour: int, day_of_month: int, is_raining: bool = False) -> AgentState:
-        """
-        Dynamically adjusts cognitive state according to the hour in Seoul (KST).
-        """
+    def update_circadian_dynamics(self, hour, day_of_month, is_raining=False, now=None):
+        """Elapsed-time recovery, without inventing work, meals, or whereabouts."""
+        import math
         st = self.get_state()
-
-        # 1. Physical fatigue & circadian rhythm
-        if 5 <= hour < 7:
-            # Waking up for 7am reformer class
-            st.physical_fatigue = min(1.0, max(0.1, st.physical_fatigue + 0.15))
-            st.mood_descriptor = "early studio morning, cold floorboards"
-        elif 7 <= hour < 9:
-            # Teaching reformer class at studio
-            st.physical_fatigue = min(1.0, max(0.3, st.physical_fatigue + 0.35))
-            st.social_battery = max(0.2, st.social_battery - 0.15)
-            st.mood_descriptor = "post-reformer stretch, studio floor, sore lumbar"
-        elif 9 <= hour < 13:
-            # Morning cooldown, tea, quiet recovery
-            st.physical_fatigue = max(0.15, st.physical_fatigue - 0.2)
-            st.social_battery = min(0.9, st.social_battery + 0.1)
-            st.mood_descriptor = "lukewarm barley tea, quiet morning window"
-        elif 13 <= hour < 18:
-            # Afternoon
-            st.creative_drive = 0.70 if not is_raining else 0.85
-            st.mood_descriptor = "afternoon Seongsu walk, slate light" if not is_raining else "rain on tile, film on laptop"
-        elif 18 <= hour < 22:
-            # Evening
-            st.social_battery = max(0.15, st.social_battery - 0.05)
-            st.mood_descriptor = "quiet flat, boiling water, city winding down"
-        elif 22 <= hour or hour < 2:
-            # Late night / bedtime
-            st.physical_fatigue = min(0.9, st.physical_fatigue + 0.25)
-            st.social_battery = max(0.1, st.social_battery - 0.15)
-            st.mood_descriptor = "low lamp light, tired feet, quiet night"
-        else:
-            # Deep night (02:00–05:00 KST): sleep cycle recharges
-            st.physical_fatigue = 0.10
-            st.social_battery = 0.90
-            st.mood_descriptor = "asleep in Seongsu"
-
-        # 2. Financial awareness (rises near 25th of the month due to flat rent & studio fees)
-        if 20 <= day_of_month <= 27:
-            st.financial_awareness = 0.75
-        else:
-            st.financial_awareness = 0.40
-
-        self.save_state(st)
+        now = now or dt.datetime.now(dt.timezone.utc)
+        previous = dt.datetime.fromisoformat(st.last_updated) if st.last_updated else now
+        if previous.tzinfo is None:
+            previous = previous.replace(tzinfo=dt.timezone.utc)
+        elapsed = max(0.0, (now - previous).total_seconds() / 3600)
+        if elapsed == 0:
+            return st
+        recovery = 1 - math.exp(-elapsed / 8.0)
+        st.social_battery += (0.85 - st.social_battery) * recovery
+        st.physical_fatigue += (0.20 - st.physical_fatigue) * recovery
+        self.save_state(st, now=now)
         return st
 
     def consume_interaction(self, action_type: str) -> None:
@@ -140,12 +109,9 @@ class StateManager:
             st.social_battery = max(0.05, round(st.social_battery - 0.01, 2))
         self.save_state(st)
 
-    def on_master_contact(self, note: str = "") -> None:
-        """Interaction with her master gives her quiet reassurance and recharge."""
-        st = self.get_state()
-        st.social_battery = min(1.0, round(st.social_battery + 0.25, 2))
-        st.mood_descriptor = f"grounded after speaking with my master{' (' + note + ')' if note else ''}"
-        self.save_state(st)
+    def on_master_contact(self, note=""):
+        """Contact is an observation, not a predetermined emotional response."""
+        return None
 
     def modulate_candidate_scores(self, scores: Dict[str, float]) -> Dict[str, float]:
         """

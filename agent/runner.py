@@ -22,7 +22,13 @@ import datetime as dt
 import json
 import pathlib
 import sys
+import os
 from typing import Any, Dict, List, Optional
+
+# Module execution must establish isolation before persistent singletons are imported.
+if __name__ == "__main__":
+    from .cli import main as isolated_main
+    sys.exit(isolated_main())
 
 # Ensure UTF-8 output on Windows consoles
 if hasattr(sys.stdout, "reconfigure"):
@@ -63,7 +69,14 @@ def run_tick(
     dry_run: Optional[bool] = None,
     force_action: Optional[str] = None,
 ) -> int:
-    is_dry = dry_run if dry_run is not None else config.dry_run
+    from .runtime import MODE
+    is_dry = (dry_run if dry_run is not None else config.dry_run) or MODE.get() != "live"
+    if is_dry and MODE.get() == "live":
+        import subprocess
+        command = [sys.executable, str(pathlib.Path(__file__).resolve().parent.parent / "agent_runner.py"), "--dry-run"]
+        if force_action:
+            command.extend(["--force-action", force_action])
+        return subprocess.call(command)
 
     from .vault import vault
     if vault.enc_file.exists():
@@ -74,6 +87,10 @@ def run_tick(
     else:
         vault.load_vault()
 
+    if not is_dry:
+        from .migration import migrate_legacy_state
+        migrate_legacy_state(memory_store.memory_dir, vault)
+
     print_header(f"SEO-YEON HAN — AUTONOMOUS SOCIAL AGENT TICK {'[DRY-RUN]' if is_dry else '[LIVE]'}")
 
     # 1. Check Operational Status
@@ -81,6 +98,24 @@ def run_tick(
     if not ok and not is_dry:
         print(f"[HALTED] {status_msg}")
         return 1
+
+    # 3. Authenticate with Bluesky
+    bsky_client.dry_run = is_dry
+    auth_ok = bsky_client.authenticate() if MODE.get() != "offline" else False
+    if not auth_ok and not is_dry:
+        print("[ERROR] Bluesky authentication failed; no simulated success.")
+        return 1
+
+    if auth_ok and not is_dry:
+        from .delivery import recover_delivery
+        if not recover_delivery():
+            print("[Delivery] An uncertain action requires reconciliation before new actions.")
+            return 1
+
+    if not is_dry:
+        from .state_manager import state_manager
+        now = get_seoul_datetime()
+        state_manager.update_circadian_dynamics(now.hour, now.day, now=now)
 
     # 2. Build Environment & Temporal Context
     posts_today, replies_today, dms_today, likes_today = memory_store.get_activity_counts_today()
@@ -112,14 +147,6 @@ def run_tick(
         from .consolidator import consolidator
         consolidator.consolidate(context, dry_run=is_dry)
 
-    # 3. Authenticate with Bluesky
-    bsky_client.dry_run = is_dry
-    auth_ok = bsky_client.authenticate()
-    if not auth_ok and not is_dry:
-        print("[WARNING] Bluesky authentication failed. Proceeding with simulated dry-run.")
-        is_dry = True
-        bsky_client.dry_run = True
-
     # 4. Gather Sensory Observations
     print("\n[Observing Bluesky Sensory Inputs...]")
     notifications = []
@@ -130,17 +157,19 @@ def run_tick(
         notifications = bsky_client.list_notifications(limit=30)
         dms = bsky_client.list_convos(limit=10)
         feed_items = bsky_client.get_discovery_feed(limit=25)
-    elif is_dry:
-        feed_items = [
-            {
-                "post": {
-                    "uri": "at://did:plc:simulated/post/1",
-                    "cid": "simcid1",
-                    "author": {"handle": "seoul_life.bsky.social", "did": "did:plc:simulated_user"},
-                    "record": {"text": "autumn in seoul forest is cold today, drinking roasted barley tea"},
-                }
-            }
-        ]
+    elif is_dry and os.environ.get("SEOYEON_REPLAY_FILE"):
+        fixture = json.loads(pathlib.Path(os.environ["SEOYEON_REPLAY_FILE"]).read_text(encoding="utf-8"))
+        notifications, dms, feed_items = fixture.get("notifications", []), fixture.get("dms", []), fixture.get("feed", [])
+
+    if auth_ok and not is_dry:
+        from .continuity import ContinuityStore
+        from .delivery import Outbox, recover_delivery
+        store = ContinuityStore()
+        for item in feed_items[:10]:
+            post = item.get("post", item)
+            text = post.get("record", {}).get("text", "")
+            if post.get("uri") and text:
+                store.observe(post["uri"], text, kind="external_observation", subject=post.get("author", {}).get("did", ""))
 
     print(f"  Notifications: {len(notifications)} received")
     print(f"  Conversations: {len(dms)} direct message threads")
@@ -168,6 +197,15 @@ def run_tick(
     else:
         outcome = decision_engine.evaluate(context, notifications, dms, feed_items, can_image=can_img)
 
+    if not force_action:
+        from .choice import choose
+        outcome = choose(outcome, context)
+    target = outcome.target_data or {}
+    post_target = target.get("post") or target.get("notification") or {}
+    previous_posts = memory_store.get_recent_context().get("posts", [])
+    previous_id = previous_posts[0].get("post_id", "") if previous_posts else "start"
+    bsky_client.action_identity = outcome.selected_action.value + ":" + (target.get("last_message_id") or post_target.get("uri") or target.get("did") or (context.date_display + ":" + previous_id))
+
     print("\n[Cognitive Evaluation]")
     print(f"  Candidate Scores: {json.dumps(outcome.candidate_scores, indent=2)}")
     print(f"  Selected Action:  >>> {outcome.selected_action.value} <<<")
@@ -180,6 +218,9 @@ def run_tick(
     if outcome.selected_action == ActionType.NO_ACTION:
         print("\n[Outcome] Decision is NO_ACTION. Seo-yeon remains quietly offline. Restraint preserved.")
         executed = True
+        if not is_dry:
+            from .continuity import reflect
+            reflect(context)
         result_details = {"action": "NO_ACTION", "reason": outcome.reason}
 
     elif outcome.selected_action == ActionType.PUBLISH_TEXT_POST:
@@ -187,79 +228,49 @@ def run_tick(
         post_text, model_used = generator.generate_post(outcome.intent, context)
         print(f"  Draft ({model_used}): \"{post_text}\"")
 
+        if not post_text:
+            log_tick({"ts": dt.datetime.now(dt.timezone.utc).isoformat(), "action": "NO_ACTION", "executed": False, "status": "draft_unavailable", "dry_run": is_dry})
+            return 0
         res = bsky_client.publish_text_post(post_text)
         if res.get("uri"):
             print(f"  [SUCCESS] Published: {res.get('uri')}")
             if not is_dry:
                 memory_store.record_recent_post(post_text, topic="general_thought", post_id=res.get("uri", ""))
                 memory_store.log_episode("post", "Published spontaneous thought", {"text": post_text, "uri": res.get("uri")})
-                goal_manager.detect_and_record_goal_activity(post_text, post_uri=res.get("uri"))
+                from .continuity import learn_interaction
+                learn_interaction(res["uri"], "", post_text, "self")
             executed = True
             result_details = {"uri": res.get("uri"), "text": post_text, "model": model_used}
 
     elif outcome.selected_action == ActionType.PUBLISH_IMAGE_POST:
-        print(f"\n[Generating Image Post with Kie.ai ({config.kie_image_model})...]")
         post_text, model_used = generator.generate_post(outcome.intent, context, include_image=True)
-
         scene_desc = generator.determine_image_scene(post_text, context)
-        print(f"  Draft ({model_used}): \"{post_text}\"")
-        print(f"  Scene Description: \"{scene_desc}\"")
-
-        can_img, img_reason = budget_manager.can_generate_image()
-        img_res_id = budget_manager.reserve(0.045, action_type="image_generation", provider="kie.ai") if can_img else None
-
-        img_bytes, prompt_used, err = None, "", img_reason
-        if img_res_id:
-            img_bytes, prompt_used, err = image_engine.generate_image(scene_desc, dry_run=is_dry)
-
+        if not post_text or not scene_desc:
+            return 0  # No justified draft/scene, no fabricated fallback.
+        from .budget_manager import IMAGE_GEN_COST
+        img_res_id = budget_manager.reserve(IMAGE_GEN_COST, action_type="image_generation", provider="kie.ai")
+        if not img_res_id:
+            return 0
+        image_engine.reservation_id = img_res_id
+        budget_manager.mark_submitted(img_res_id)
+        img_bytes, prompt_used, err = image_engine.generate_image(scene_desc,
+            is_selfie=getattr(generator, "last_scene", {}).get("is_selfie"), dry_run=is_dry)
         if img_bytes:
-            # 1. Image generation was completed and billed independently of publishing success
-            if not is_dry and img_res_id:
-                budget_manager.reconcile(
-                    img_res_id,
-                    actual_cost_usd=0.045,
-                    action_type="image_generation",
-                    details=prompt_used[:40],
-                )
-                img_res_id = None
-
-            # 2. Derive specific contextual alt text from the synthesized scene
-            alt_text = generator.derive_image_alt_text(scene_desc)
-
-            # 3. Publish to Bluesky
-            try:
-                res = bsky_client.publish_image_post(post_text, img_bytes, alt_text=alt_text)
-            except Exception as e:
-                print(f"  [WARNING] Exception publishing image post: {e}")
-                res = {}
-
-            if res.get("uri"):
-                print(f"  [SUCCESS] Published Image Post: {res.get('uri')}")
-                if not is_dry:
-                    memory_store.record_recent_post(post_text, topic="image_post", post_id=res.get("uri", ""), has_image=True)
-                    goal_manager.detect_and_record_goal_activity(post_text, post_uri=res.get("uri"))
-                executed = True
-                result_details = {"uri": res.get("uri"), "text": post_text, "image_prompt": prompt_used, "alt_text": alt_text}
+            budget_manager.reconcile(img_res_id, IMAGE_GEN_COST, action_type="image_generation", details="provider completion; estimated tariff")
+            approved, alt_text = generator.review_image(img_bytes, post_text, scene_desc)
+            if not approved:
+                result_details = {"status": "image_review_rejected"}
             else:
-                print(f"  [WARNING] Image generated but Bluesky publishing failed. Preserving text fallback.")
-                try:
-                    res = bsky_client.publish_text_post(post_text)
-                except Exception as e:
-                    print(f"  [WARNING] Exception fallback publishing text post: {e}")
-                    res = {}
-                executed = True
-                result_details = {"uri": res.get("uri"), "text": post_text, "image_generated": True, "publish_failed": True}
+                res = bsky_client.publish_image_post(post_text, img_bytes, alt_text=alt_text)
+                executed = bool(res.get("uri"))
+                if executed and not is_dry:
+                    memory_store.record_recent_post(post_text, topic="image_post", post_id=res["uri"], has_image=True)
+                result_details = {"uri":res.get("uri"), "text":post_text, "alt_text":alt_text, "status":"delivered" if executed else "delivery_uncertain"}
         else:
-            if img_res_id:
+            if getattr(image_engine, "last_outcome", "uncertain") in {"not_sent", "rejected"}:
                 budget_manager.release(img_res_id)
-                img_res_id = None
-            print(f"  [ERROR] Image generation failed: {err}. Falling back to text-only post.")
-            res = bsky_client.publish_text_post(post_text)
-            executed = True
-            result_details = {"uri": res.get("uri"), "text": post_text, "fallback": "text_only"}
-
-        if img_res_id:
-            budget_manager.release(img_res_id)
+            result_details = {"status":"image_generation_failed", "request_id":getattr(image_engine,"last_task_id","")}
+        image_engine.reservation_id = None
 
     elif outcome.selected_action in (ActionType.REPLY_COMMENT, ActionType.ANSWER_MENTION):
         notif = outcome.target_data.get("notification", {})
@@ -364,7 +375,8 @@ def run_tick(
                     root_uri=root_uri,
                     notification_uri=notif.get("uri", "")
                 )
-                goal_manager.detect_and_record_goal_activity(reply_text, post_uri=res.get("uri"))
+                from .continuity import learn_interaction
+                learn_interaction(res["uri"], user_text, reply_text, profile.did or target_author)
                 narrative_engine.detect_and_manage_loops(
                     partner_identifier=notif.get("author", {}).get("did", target_author),
                     partner_handle=target_author,
@@ -460,16 +472,6 @@ def run_tick(
         is_delivered = False
         if res and (res.get("id") or res.get("simulated")):
             is_delivered = True
-        elif not is_dry and convo_id:
-            # Uncertain delivery outcome (e.g. timeout during HTTP request). Verify if message appeared on thread
-            print(f"  [VERIFYING DELIVERY] Checking if message reached server despite uncertain HTTP response...")
-            recent_msgs = bsky_client.get_convo_messages(convo_id, limit=3)
-            for m in recent_msgs:
-                if m.get("text") == reply_text and m.get("sender", {}).get("did") == bsky_client.did:
-                    is_delivered = True
-                    res = {"id": m.get("id")}
-                    print(f"  [DELIVERY CONFIRMED] Message was successfully posted to convo.")
-                    break
 
         if is_delivered:
             print(f"  [SUCCESS] Direct Message Sent to @{handle}")
@@ -483,6 +485,9 @@ def run_tick(
                     memory_store.mark_dm_handled(sent_msg_id)
                 memory_store.record_user_interaction(handle, "[private direct message]", "[private direct message reply]", "dm")
                 vault.append_private_dm(convo_id, handle, dm_history[-1]["text"] if dm_history else "", reply_text)
+                from .continuity import learn_interaction
+                learn_interaction(last_msg_id or sent_msg_id, dm_history[-1]["text"] if dm_history else "", reply_text,
+                                  profile.did or handle, scope="private:" + (profile.did or handle))
                 narrative_engine.detect_and_manage_loops(
                     partner_identifier=convo_id or handle,
                     partner_handle=handle,
@@ -505,12 +510,13 @@ def run_tick(
         print(f"\n[Liking Feed Post from @{author}...]")
         if not is_dry:
             res = bsky_client.like_post(post_uri, post_cid)
-            memory_store.record_recent_like(post_uri, author)
-            print(f"  [SUCCESS] Liked: {post_uri}")
+            if res.get("uri"):
+                memory_store.record_recent_like(post_uri, author)
+            print("  [SUCCESS] Like confirmed." if res.get("uri") else "  [ERROR] Like not confirmed.")
         else:
             print(f"  [DRY-RUN] Would like post: {post_uri}")
-        executed = True
-        result_details = {"liked_post": post_uri}
+        executed = is_dry or bool(res.get("uri"))
+        result_details = {"liked_post": post_uri, "status": "delivered" if executed else "delivery_uncertain"}
 
     elif outcome.selected_action == ActionType.BROWSE_AND_REPLY:
         post = outcome.target_data.get("post", {})
@@ -601,7 +607,8 @@ def run_tick(
                     root_uri=root_uri,
                     notification_uri=target_uri
                 )
-                goal_manager.detect_and_record_goal_activity(reply_text, post_uri=res.get("uri"))
+                from .continuity import learn_interaction
+                learn_interaction(res["uri"], user_text, reply_text, profile.did or target_author)
                 narrative_engine.detect_and_manage_loops(
                     partner_identifier=post.get("author", {}).get("did", target_author),
                     partner_handle=target_author,
@@ -657,10 +664,10 @@ def run_tick(
         print(f"\n[Reposting Post by @{author}...]")
         if not is_dry:
             res = bsky_client.repost(post_uri, post_cid)
-            print(f"  [SUCCESS] Reposted: {post_uri}")
+            print("  [SUCCESS] Repost confirmed." if res.get("uri") else "  [ERROR] Repost not confirmed.")
         else:
             print(f"  [DRY-RUN] Would repost: {post_uri}")
-        executed = True
+        executed = is_dry or bool(res.get("uri"))
         result_details = {"reposted_post": post_uri}
 
     elif outcome.selected_action == ActionType.FOLLOW:
@@ -669,10 +676,10 @@ def run_tick(
         print(f"\n[Following User @{handle} ({subject_did})...]")
         if not is_dry:
             res = bsky_client.follow(subject_did)
-            print(f"  [SUCCESS] Followed: @{handle}")
+            print("  [SUCCESS] Follow confirmed." if res.get("uri") else "  [ERROR] Follow not confirmed.")
         else:
             print(f"  [DRY-RUN] Would follow: @{handle}")
-        executed = True
+        executed = is_dry or bool(res.get("uri"))
         result_details = {"followed_did": subject_did}
 
     # 8. Record Tick History & Observability
@@ -688,7 +695,7 @@ def run_tick(
         "budget": budget_manager.get_summary(),
     })
 
-    if executed:
+    if executed and not is_dry:
         try:
             from .state_manager import state_manager
             state_manager.consume_interaction(outcome.selected_action.value)
@@ -704,10 +711,12 @@ def run_tick(
     notifier.check_and_send_evening_summary(context, dry_run=is_dry)
 
     # 10. Persist Encrypted Private Vault
-    vault.save_vault()
-
+    if not is_dry:
+        vault.save_vault()
+        from .delivery import checkpoint
+        checkpoint()
     print("=" * 65 + "\n")
-    return 0
+    return 0 if executed else 1
 
 
 def show_status() -> int:
@@ -765,7 +774,7 @@ def show_status() -> int:
     else:
         print("  No active goals.")
 
-    print("\n[Narrative Continuity & Arcs]")
+    print("\n[Legacy narrative records — not verified current activity]")
     arcs = narrative_engine.get_active_narrative_arcs()
     if arcs:
         for a in arcs:
@@ -773,7 +782,7 @@ def show_status() -> int:
     else:
         print("  No active narrative arcs.")
 
-    print("\n[Credentials & Connectivity]")
+    print("\n[Offline snapshot: credentials intentionally not loaded]")
     print(f"  Bluesky Handle:    {config.bsky_handle}")
     print(f"  App Password:      {'Configured' if config.bsky_app_password else 'MISSING'}")
     print(f"  Kie API Key:       {'Configured' if config.kie_api_key else 'Missing'}")
@@ -800,8 +809,15 @@ def main() -> int:
     parser.add_argument("--daily-summary", action="store_true", help="Generate and send Telegram check-in to my master")
     parser.add_argument("--plan-week", action="store_true", help="Display or generate Seo-yeon's 7-day weekly life itinerary")
     parser.add_argument("--force-plan", action="store_true", help="Force regenerate fresh 7-day weekly itinerary with LLM")
+    parser.add_argument("--preview", action="store_true", help="Paid provider preview in isolated state; never publish")
+    parser.add_argument("--replay", type=str, help="Offline observation fixture JSON")
     parser.add_argument("--date", type=str, help="Target date for daily summary (YYYY-MM-DD)")
     args = parser.parse_args()
+    if args.replay:
+        os.environ["SEOYEON_REPLAY_FILE"] = args.replay
+        args.dry_run = True
+    if args.preview:
+        args.dry_run = True
 
     if args.plan_week or args.force_plan:
         from .weekly_planner import weekly_planner

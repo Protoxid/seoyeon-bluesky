@@ -1,3 +1,5 @@
+> Historical document. Current behavior and limitations are described in [README](../README.md) and [implementation record](2026-10-10-implementation.md). Previous test counts, simulation scores, automatic progress and readiness claims are not current guarantees.
+
 # Seo-yeon Han AI Persona — 30-Day Deterministic Simulation Report (V2 vs V2.5)
 
 ## 1. Executive Summary

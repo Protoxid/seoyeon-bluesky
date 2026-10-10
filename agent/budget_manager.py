@@ -14,11 +14,13 @@ from __future__ import annotations
 
 import datetime as dt
 import json
+import math
 import pathlib
 import uuid
 from typing import Any, Dict, Optional, Tuple
 
 from .config import DATA_DIR, config
+from .storage import write_json, serialized
 
 BUDGET_LEDGER_FILE = DATA_DIR / "budget_ledger.json"
 
@@ -50,6 +52,7 @@ class BudgetManager:
         kst_tz = dt.timezone(dt.timedelta(hours=9))
         return utc_now.astimezone(kst_tz).date().isoformat()
 
+    @serialized("ledger_file")
     def _ensure_ledger(self) -> None:
         if not self.ledger_file.exists():
             today_str = self._get_seoul_date_str()
@@ -64,14 +67,15 @@ class BudgetManager:
                 "active_reservations": {},
                 "history": [],
             }
-            self.ledger_file.write_text(json.dumps(initial_data, indent=2), encoding="utf-8")
+            write_json(self.ledger_file, initial_data)
 
+    @serialized("ledger_file")
     def _load_ledger(self) -> Dict[str, Any]:
         self._ensure_ledger()
         try:
             data = json.loads(self.ledger_file.read_text(encoding="utf-8"))
-        except Exception:
-            data = {}
+        except (ValueError, OSError) as exc:
+            raise RuntimeError("Budget ledger unreadable; spending blocked") from exc
 
         today_str = self._get_seoul_date_str()
         current_month = today_str[:7]
@@ -104,7 +108,7 @@ class BudgetManager:
                     ts = dt.datetime.fromisoformat(ts_str)
                     if ts.tzinfo is None:
                         ts = ts.replace(tzinfo=dt.timezone.utc)
-                    if ts < stale_cutoff:
+                    if ts < stale_cutoff and res_info.get("status") == "held":
                         expired_keys.append(res_id)
                 except Exception:
                     expired_keys.append(res_id)
@@ -118,7 +122,7 @@ class BudgetManager:
         return data
 
     def _save_ledger(self, data: Dict[str, Any]) -> None:
-        self.ledger_file.write_text(json.dumps(data, indent=2), encoding="utf-8")
+        write_json(self.ledger_file, data)
 
     def get_reserved_amount(self) -> float:
         """Returns the total dollar amount currently held under active reservations."""
@@ -160,7 +164,7 @@ class BudgetManager:
         """
         pricing = self._get_model_pricing(model)
         # Approximate 3.5 chars per token for mixed Korean/English prompts
-        approx_prompt_tokens = max(50, int(len(prompt_text) / 3.5)) if prompt_text else 350
+        approx_prompt_tokens = max(50, len(prompt_text.encode("utf-8"))) if prompt_text else 350
 
         # Enforce reasoning token headroom for models like Claude Sonnet 5.5
         effective_output_tokens = max(max_tokens, 700) if is_reasoning else max_tokens
@@ -171,6 +175,7 @@ class BudgetManager:
         conservative_estimate = raw_estimate * 1.25
         return round(max(0.002, conservative_estimate), 6)
 
+    @serialized("ledger_file")
     def can_spend(self, estimated_cost: float = 0.005) -> Tuple[bool, str]:
         """Checks if estimated spend (plus active reservations) is within caps."""
         data = self._load_ledger()
@@ -186,6 +191,7 @@ class BudgetManager:
 
         return True, "Within budget limits"
 
+    @serialized("ledger_file")
     def can_generate_image(self) -> Tuple[bool, str]:
         """Checks if an image generation is permitted today."""
         if not config.allow_images:
@@ -198,6 +204,7 @@ class BudgetManager:
 
         return self.can_spend(IMAGE_GEN_COST)
 
+    @serialized("ledger_file")
     def reserve(
         self,
         amount_usd: float = 0.005,
@@ -211,10 +218,16 @@ class BudgetManager:
         prior to starting an API call. Survives runner restarts.
         Returns reservation_id if approved, None if budget exhausted.
         """
+        if not math.isfinite(amount_usd) or amount_usd < 0:
+            raise ValueError("Negative reservation")
         data = self._load_ledger()
         reserved = self.get_reserved_amount()
         daily = data.get("daily_spend_usd", 0.0) + reserved
         monthly = data.get("monthly_spend_usd", 0.0) + reserved
+        if action_type == "image_generation":
+            pending = sum(r.get("action_type") == "image_generation" for r in data["active_reservations"].values())
+            if data.get("daily_images_count", 0) + pending >= config.max_images_per_day:
+                return None
 
         if daily + amount_usd > config.daily_ai_budget:
             return None
@@ -239,6 +252,7 @@ class BudgetManager:
         self._save_ledger(data)
         return res_id
 
+    @serialized("ledger_file")
     def reconcile(
         self,
         reservation_id: Optional[str],
@@ -253,7 +267,13 @@ class BudgetManager:
         Reconciles an active reservation with actual incurred cost, releasing the reserve
         and committing the single definitive charge to the ledger.
         """
+        if not math.isfinite(actual_cost_usd) or actual_cost_usd < 0:
+            raise ValueError("Negative charge")
         data = self._load_ledger()
+        if reservation_id in data.get("reconciled_ids", []):
+            return 0.0
+        if reservation_id:
+            data.setdefault("reconciled_ids", []).append(reservation_id)
         if reservation_id and "active_reservations" in data and reservation_id in data["active_reservations"]:
             del data["active_reservations"][reservation_id]
 
@@ -285,6 +305,7 @@ class BudgetManager:
         self._save_ledger(data)
         return actual_cost_usd
 
+    @serialized("ledger_file")
     def release(self, reservation_id: Optional[str]) -> None:
         """Releases an active reservation without committing any charges (e.g. on call failure)."""
         if not reservation_id:
@@ -293,6 +314,17 @@ class BudgetManager:
         if "active_reservations" in data and reservation_id in data["active_reservations"]:
             del data["active_reservations"][reservation_id]
             self._save_ledger(data)
+
+    @serialized("ledger_file")
+    def mark_submitted(self, reservation_id, request_id=""):
+        data = self._load_ledger()
+        if reservation_id in data["active_reservations"]:
+            data["active_reservations"][reservation_id].update(status="submitted", request_id=request_id)
+            self._save_ledger(data)
+            import os
+            if os.environ.get("SEOYEON_GIT_CHECKPOINT") == "1":
+                from .delivery import checkpoint
+                checkpoint()
 
     def record_spend(self, cost_usd: float, action_type: str, details: str = "") -> None:
         """Records a direct charge without prior reservation."""

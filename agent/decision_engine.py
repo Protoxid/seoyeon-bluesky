@@ -169,6 +169,7 @@ class DecisionEngine:
                     )
                     handle = other_member.get("handle", "user")
                     profile = ms.get_user_profile(handle)
+                    profile.did = other_member.get("did", "") or profile.did
 
                     # Deduplication: check last message in thread
                     last_msg = dm.get("lastMessage", {})
@@ -203,7 +204,7 @@ class DecisionEngine:
         # -------------------------------------------------------------
         # 3. Notifications (Replies & Mentions)
         # -------------------------------------------------------------
-        if config.allow_replies and notifications and context.circadian_phase != "deep_night":
+        if config.allow_replies and notifications:
             valid_notif_candidates: List[ActionCandidate] = []
             for notif in notifications[:20]:
                 reason = notif.get("reason")
@@ -288,58 +289,12 @@ class DecisionEngine:
             if weather_inspire:
                 post_score = min(0.85, post_score + 0.15)
 
-            # Determine whether this post warrants an accompanying photograph or text-only
-            wants_image = False
+            # Both formats are available; model judgment decides whether a visual adds anything.
+            candidates.append(ActionCandidate(action=ActionType.PUBLISH_TEXT_POST,
+                score=post_score, confidence=0.75, reason="Eligible original thought", intent="share_ordinary_thought"))
             if can_image and config.allow_images:
-                try:
-                    from .budget_manager import budget_manager
-                    can_gen, _ = budget_manager.can_generate_image()
-                except Exception:
-                    can_gen = True
-
-                if can_gen and post_score >= 0.45:
-                    recent_posts = ms.get_recent_context().get("posts", [])
-                    hours_since_last_image = 999.0
-                    for p in recent_posts:
-                        if p.get("has_image"):
-                            try:
-                                p_dt = dt.datetime.fromisoformat(p.get("created_at", ""))
-                                if p_dt.tzinfo is None:
-                                    p_dt = p_dt.replace(tzinfo=dt.timezone.utc)
-                                diff = (dt.datetime.now(dt.timezone.utc) - p_dt).total_seconds() / 3600.0
-                                hours_since_last_image = max(0.0, diff)
-                                break
-                            except Exception:
-                                pass
-
-                    is_atmospheric = (
-                        weather_inspire
-                        or context.circadian_phase in ("morning", "evening", "deep_night")
-                        or bool(context.scheduled_area)
-                    )
-                    if hours_since_last_image >= 8.0 and is_atmospheric and context.hours_since_last_post >= 6.0:
-                        wants_image = True
-
-            if wants_image:
-                candidates.append(
-                    ActionCandidate(
-                        action=ActionType.PUBLISH_IMAGE_POST,
-                        score=min(0.88, post_score + 0.05),
-                        confidence=0.75,
-                        reason="Candid visual moment and ambient setting warrant an accompanying photograph.",
-                        intent="share_visual_moment",
-                    )
-                )
-            else:
-                candidates.append(
-                    ActionCandidate(
-                        action=ActionType.PUBLISH_TEXT_POST,
-                        score=post_score,
-                        confidence=0.75,
-                        reason=f"Spontaneous thought ({context.hours_since_last_post:.1f}h since last post, {context.circadian_phase}).",
-                        intent="share_ordinary_thought",
-                    )
-                )
+                candidates.append(ActionCandidate(action=ActionType.PUBLISH_IMAGE_POST,
+                    score=post_score, confidence=0.75, reason="Eligible visual idea", intent="share_visual_moment"))
 
         # -------------------------------------------------------------
         # 5. Feed Browsing & Community Engagement (Thoughtful Reply or Like)
@@ -347,7 +302,7 @@ class DecisionEngine:
         # -------------------------------------------------------------
         # 5. Feed Browsing & Multi-Candidate Evaluation (Rank up to 10 items)
         # -------------------------------------------------------------
-        if feed_items and context.circadian_phase != "deep_night":
+        if feed_items:
             best_reply_candidate: Optional[ActionCandidate] = None
             best_like_candidate: Optional[ActionCandidate] = None
             best_quote_candidate: Optional[ActionCandidate] = None
@@ -390,6 +345,10 @@ class DecisionEngine:
                     continue
 
                 evaluated_count += 1
+                if author_did and not author.get("viewer", {}).get("following"):
+                    candidates.append(ActionCandidate(action=ActionType.FOLLOW, score=0.50, confidence=0.65,
+                        reason="Consider following this public author if their work is worth returning to.",
+                        target_data={"did": author_did, "handle": author_handle, "post": post}))
                 text_lower = text.lower()
 
                 # User profile and memory context
@@ -439,8 +398,7 @@ class DecisionEngine:
                         target_data={"post": post},
                         intent="add_perspective",
                     )
-                    if best_reply_candidate is None or cand.score > best_reply_candidate.score:
-                        best_reply_candidate = cand
+                    candidates.append(cand)
 
                 # 5b. Quiet Like Candidate Evaluation
                 if (
@@ -462,8 +420,7 @@ class DecisionEngine:
                         reason=f"Quietly like post by @{author.get('handle')} during feed browsing.",
                         target_data={"post": post},
                     )
-                    if best_like_candidate is None or cand.score > best_like_candidate.score:
-                        best_like_candidate = cand
+                    candidates.append(cand)
 
                 # 5c. Quote Post Candidate Evaluation
                 if (
@@ -485,8 +442,7 @@ class DecisionEngine:
                         target_data={"post": post},
                         intent="quote_with_perspective",
                     )
-                    if best_quote_candidate is None or cand.score > best_quote_candidate.score:
-                        best_quote_candidate = cand
+                    candidates.append(cand)
 
                 # 5d. Repost Candidate (for evocative community imagery)
                 if (
@@ -496,32 +452,21 @@ class DecisionEngine:
                 ):
                     cand = ActionCandidate(
                         action=ActionType.REPOST,
-                        score=0.40,
+                        score=0.55,
                         confidence=0.60,
                         reason=f"Quietly repost visual snapshot by @{author.get('handle')}.",
                         target_data={"post": post},
                     )
-                    if best_repost_candidate is None:
-                        best_repost_candidate = cand
-
-            if best_reply_candidate:
-                candidates.append(best_reply_candidate)
-            if best_like_candidate:
-                candidates.append(best_like_candidate)
-            if best_quote_candidate:
-                candidates.append(best_quote_candidate)
-            if best_repost_candidate:
-                candidates.append(best_repost_candidate)
+                    candidates.append(cand)
 
         # -------------------------------------------------------------
         # Modulate scores with cognitive state & social battery
         # -------------------------------------------------------------
         try:
             sm = self.state_manager
-            raw_scores = {c.action.value: c.score for c in candidates}
-            modulated_scores = sm.modulate_candidate_scores(raw_scores)
             for c in candidates:
-                c.score = max(0.0, min(1.0, round(modulated_scores.get(c.action.value, c.score), 3)))
+                adjusted = sm.modulate_candidate_scores({c.action.value: c.score})
+                c.score = max(0.0, min(1.0, round(adjusted.get(c.action.value, c.score), 3)))
         except Exception:
             for c in candidates:
                 c.score = max(0.0, min(1.0, round(c.score, 3)))
@@ -539,14 +484,16 @@ class DecisionEngine:
         )
 
         # Calibrated organic threshold: external outward actions require meaningful conviction (>= 0.50)
-        EXTERNAL_ACTION_THRESHOLD = 0.50
+        EXTERNAL_ACTION_THRESHOLD = config.action_threshold
         if winner.action != ActionType.NO_ACTION and winner.score < EXTERNAL_ACTION_THRESHOLD:
             no_action_cand = next((c for c in candidates if c.action == ActionType.NO_ACTION), None)
             if no_action_cand:
                 winner = no_action_cand
                 winner.reason = f"Organic motivation below threshold ({EXTERNAL_ACTION_THRESHOLD:.2f}). Remaining offline."
 
-        score_dict = {c.action.value: round(c.score, 3) for c in candidates}
+        score_dict = {}
+        for c in candidates:
+            score_dict[c.action.value] = max(score_dict.get(c.action.value, 0.0), round(c.score, 3))
 
         return DecisionOutcome(
             selected_action=winner.action,

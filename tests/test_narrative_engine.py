@@ -92,36 +92,13 @@ class TestNarrativeEngine(unittest.TestCase):
         self.assertIn("risograph studio", prompt_str)
 
     def test_narrative_arcs_and_milestones(self):
-        """Verifies narrative arcs store and append milestones across days."""
-        arcs = self.engine.get_active_narrative_arcs()
-        self.assertGreaterEqual(len(arcs), 1)
-        persimmon_arc = arcs[0]
-
-        # Add a new milestone
-        success = self.engine.add_narrative_milestone(
-            arc_id=persimmon_arc.arc_id,
-            note="Persimmons are beginning to wrinkle slightly; skin feels leathery.",
-        )
-        self.assertTrue(success)
-
-        context_str = self.engine.format_narrative_arcs_context()
-        self.assertIn("wrinkle slightly", context_str)
+        self.assertEqual(self.engine.get_active_narrative_arcs(), [])
+        self.assertEqual(self.engine.advance_arcs_daily(30), [])
 
     def test_temporal_coherence_validation(self):
-        """Verifies temporal validator blocks claiming evening/night activities during morning hours."""
-        # 09:00 KST (morning): Cannot claim to have finished dinner
-        ok, reason = self.engine.validate_temporal_statement("just finished dinner with radish soup.", current_hour_kst=9)
-        self.assertFalse(ok)
-        self.assertIn("Temporal inconsistency", reason)
-
-        # 09:00 KST: Ordinary morning observation is completely valid
-        ok, reason = self.engine.validate_temporal_statement("morning light through the kitchen blind is cold.", current_hour_kst=9)
-        self.assertTrue(ok)
-        self.assertIsNone(reason)
-
-        # 15:00 KST (afternoon): Cannot claim midnight activities
-        ok, reason = self.engine.validate_temporal_statement("midnight walk along the silent bridge was freezing.", current_hour_kst=15)
-        self.assertFalse(ok)
+        for text in ("yesterday dinner was good", "midnight walk was freezing", "dinner after a night shift"):
+            self.assertTrue(self.engine.validate_temporal_statement(text, 9)[0])
+        self.assertFalse(self.engine.validate_temporal_statement("finished", 9, {"completed_at": "2099-01-01T00:00:00+09:00"})[0])
 
 
 if __name__ == "__main__":

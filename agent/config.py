@@ -15,13 +15,15 @@ from typing import Dict, List, Optional
 
 PROJECT_ROOT = pathlib.Path(__file__).resolve().parent.parent
 BASE_DIR = PROJECT_ROOT
-DATA_DIR = PROJECT_ROOT / "data"
+DATA_DIR = pathlib.Path(os.environ.get("SEOYEON_DATA_DIR", str(PROJECT_ROOT / "data")))
 MEMORY_DIR = DATA_DIR / "memory"
 LOGS_DIR = DATA_DIR / "logs"
 
 
 def _load_env_files() -> None:
     """Loads environment variables from .env files if present."""
+    if os.environ.get("ENV") == "test" or os.environ.get("SEOYEON_MODE") == "offline":
+        return
     for p in [PROJECT_ROOT / ".env", PROJECT_ROOT / "growth" / ".env", pathlib.Path(".env")]:
         if p.exists() and p.is_file():
             try:
@@ -110,6 +112,12 @@ class AgentConfig:
     kie_image_model: str = field(
         default_factory=lambda: os.environ.get("KIE_IMAGE_MODEL", "gpt-image-2-5-sunburst-image-to-image")
     )
+    kie_pov_model: str = field(default_factory=lambda: os.environ.get(
+        "KIE_POV_MODEL", "gpt-image-2-5-sunburst-text-to-image"))
+    kie_resolution: str = field(default_factory=lambda: os.environ.get("KIE_RESOLUTION", "1K"))
+    action_threshold: float = field(default_factory=lambda: _get_float("ACTION_THRESHOLD", 0.50))
+    enable_continuity: bool = field(default_factory=lambda: _get_bool("ENABLE_CONTINUITY", True))
+    vision_model: str = field(default_factory=lambda: os.environ.get("VISION_MODEL", "anthropic/claude-sonnet-5.5"))
 
     # --- Bluesky Credentials ---
     bsky_handle: str = field(
@@ -127,15 +135,15 @@ class AgentConfig:
             "성수동",
             "뚝섬",
             "서울숲",
-            "아이스 아메리카노",
-            "보리차",
-            "필라테스",
-            "폼롤러",
+            "독립영화",
+            "헌책",
+            "한글 타이포그래피",
+            "서울 건축",
             "2호선",
             "seongsu",
-            "seoul cafe",
-            "reformer pilates",
-            "foam roller",
+            "translated literature",
+            "independent cinema",
+            "graphic design",
         ]
     )
 
@@ -158,7 +166,7 @@ class AgentConfig:
     kie_api_key: Optional[str] = field(
         default_factory=lambda: os.environ.get("KIE_API_KEY") or (
             (PROJECT_ROOT / "personas" / "seoyeon" / "kie_key.txt").read_text(encoding="utf-8").strip()
-            if (PROJECT_ROOT / "personas" / "seoyeon" / "kie_key.txt").exists() else None
+            if os.environ.get("ENV") != "test" and os.environ.get("SEOYEON_MODE") != "offline" and (PROJECT_ROOT / "personas" / "seoyeon" / "kie_key.txt").exists() else None
         )
     )
     openrouter_api_key: Optional[str] = field(

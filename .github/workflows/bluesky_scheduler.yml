@@ -43,7 +43,13 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Configure durable state commits
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
       - name: Execute Autonomous Agent Cognitive Tick
+        if: github.ref == 'refs/heads/main'
         env:
           BSKY_HANDLE: ${{ secrets.BSKY_HANDLE }}
           BSKY_APP_PASSWORD: ${{ secrets.BSKY_APP_PASSWORD }}
@@ -52,6 +58,8 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           DATA_ENCRYPTION_KEY: ${{ secrets.DATA_ENCRYPTION_KEY || format('{0}:{1}:seoyeon_vault_v2', secrets.BSKY_APP_PASSWORD, secrets.BSKY_HANDLE) }}
+          ENV: production
+          SEOYEON_GIT_CHECKPOINT: "1"
           INPUT_DRY_RUN: ${{ github.event.inputs.dry_run }}
           INPUT_FORCE_ACTION: ${{ github.event.inputs.force_action }}
 
@@ -67,7 +75,7 @@ jobs:
           python agent_runner.py $FLAGS
 
       - name: Commit updated memory, logs, and audit ledger
-        if: ${{ !cancelled() && github.event.inputs.dry_run != 'true' }}
+        if: ${{ !cancelled() && github.ref == 'refs/heads/main' && github.event.inputs.dry_run != 'true' }}
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
@@ -90,7 +98,9 @@ jobs:
           done
           git diff --staged --quiet || {
             git commit -m "chore(agent): persist autonomous memory and audit ledger [skip ci]"
+            persisted=false
             for i in 1 2 3; do
-              git pull --rebase --autostash origin main && git push origin main && break || sleep 2
+              git pull --rebase --autostash origin main && git push origin main && { persisted=true; break; } || sleep 2
             done
+            test "$persisted" = true
           }

@@ -2,7 +2,7 @@ name: CI Test Suite
 
 on:
   push:
-    branches: [ main, feature/* ]
+    branches: [ "**" ]
   pull_request:
     branches: [ main ]
 
@@ -31,4 +31,6 @@ jobs:
           DATA_ENCRYPTION_KEY: test_ci_encryption_key_mock_only
           OPENROUTER_API_KEY: test_ci_mock_openrouter_key
         run: |
-          python -m unittest discover -s tests -p "test_*.py"
+          python scripts/run_tests.py
+          git diff --exit-code
+          test -z "$(git ls-files --others --exclude-standard)"

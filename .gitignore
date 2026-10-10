@@ -100,3 +100,6 @@ data/.vault/
 data/logs/telegram_outbox.jsonl
 *.bak
 data/*.bak
+
+*.lock
+test-results*.txt

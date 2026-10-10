@@ -140,6 +140,10 @@ class PrivateVault:
 
             self.vault_dir.mkdir(parents=True, exist_ok=True)
             for filename, content in bundle.items():
+                if pathlib.Path(filename).name != filename or "/" in filename or "\\" in filename or filename in {".", ".."}:
+                    raise ValueError("Unsafe vault member name")
+                if not isinstance(content, str):
+                    raise ValueError("Invalid vault member content")
                 target_path = self.vault_dir / filename
                 target_path.write_text(content, encoding="utf-8")
             self._load_failed = False
@@ -170,7 +174,7 @@ class PrivateVault:
             from cryptography.fernet import Fernet
             bundle: Dict[str, str] = {}
             for item in self.vault_dir.iterdir():
-                if item.is_file():
+                if item.is_file() and item.suffix not in {".lock", ".tmp"}:
                     bundle[item.name] = item.read_text(encoding="utf-8")
 
             if not bundle and not self.enc_file.exists():

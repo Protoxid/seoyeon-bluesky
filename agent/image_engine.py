@@ -115,7 +115,12 @@ class ImageEngine:
         If is_selfie=None: Automatically inferred from scene_description (POV vs selfie).
         Returns: (image_bytes, prompt_used, error_or_notes)
         """
-        is_dry = dry_run if dry_run is not None else config.dry_run
+        from .runtime import MODE
+        is_dry = (dry_run if dry_run is not None else config.dry_run) or MODE.get() == "offline"
+        self.last_task_id = ""
+        self.last_outcome = "not_sent"
+        if not scene_description.strip():
+            return None, "", "No grounded scene supplied"
 
         if is_selfie is None:
             desc_lower = scene_description.lower()
@@ -154,19 +159,20 @@ class ImageEngine:
                 u = get_or_upload_master_reference(ref_path, self.api_key)
                 if u:
                     ref_urls.append(u)
-        model = config.kie_image_model
-        if not is_selfie and "image-to-image" in model:
-            model = model.replace("-image-to-image", "")
+        if is_selfie and len(ref_urls) < 2:
+            return None, prompt, "Required identity references unavailable; selfie blocked"
+        model = config.kie_image_model if is_selfie else config.kie_pov_model
 
         # 2. Build task payload
         task_input: dict = {
             "prompt": prompt,
             "aspect_ratio": aspect,
-            "resolution": "1K",
+            "resolution": config.kie_resolution,
+            "background": "opaque",
         }
         if is_selfie and ref_urls and "image-to-image" in model:
             task_input["input_urls"] = ref_urls
-            task_input["background"] = "auto"
+            task_input["background"] = "opaque"
             ref_names = ", ".join(p.name for p in (MASTER_A1_PATH, MASTER_C5_PATH) if p.exists())
             print(f"[Kie ImageEngine] Model: {model} | Identity References Fed: [{ref_names}] -> {len(ref_urls)} URLs")
         else:
@@ -191,15 +197,23 @@ class ImageEngine:
             method="POST",
         )
 
+        self.last_outcome = "uncertain"
         try:
             with urllib.request.urlopen(req, timeout=30) as resp:
                 data = json.loads(resp.read().decode("utf-8"))
+                if data.get("code") not in (None, 200):
+                    self.last_outcome = "rejected"
                 task_id = (data.get("data") or {}).get("taskId")
                 if not task_id:
                     return None, prompt, f"Kie did not return taskId: {json.dumps(data)}"
         except Exception as e:
             return None, prompt, f"Kie createTask failed: {e}"
 
+        self.last_task_id = task_id
+        from .budget_manager import budget_manager
+        reservation = getattr(self, "reservation_id", None)
+        if reservation:
+            budget_manager.mark_submitted(reservation, task_id)
         # 4. Poll task completion
         print(f"[Kie ImageEngine] Task {task_id} queued on Kie ({model}). Polling...")
         poll_url = f"{KIE_API_BASE}/api/v1/jobs/recordInfo?taskId={task_id}"
@@ -218,6 +232,10 @@ class ImageEngine:
                     state = str(job_data.get("state", job_data.get("status", ""))).lower()
 
                     if state in ("success", "succeeded", "completed", "1"):
+                        self.last_outcome = "completed"
+                        if reservation:
+                            from .budget_manager import IMAGE_GEN_COST
+                            budget_manager.reconcile(reservation, IMAGE_GEN_COST, action_type="image_generation", details="provider completion; estimated tariff")
                         raw = job_data.get("resultJson") or job_data.get("result") or "{}"
                         res = json.loads(raw) if isinstance(raw, str) else raw
                         urls = (
@@ -241,6 +259,7 @@ class ImageEngine:
                             return dl_resp.read(), prompt, None
 
                     elif state in ("fail", "failed", "error", "2", "3"):
+                        self.last_outcome = "rejected"
                         fail_msg = (
                             job_data.get("failMsg")
                             or job_data.get("errorMessage")

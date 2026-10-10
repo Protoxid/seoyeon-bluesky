@@ -24,83 +24,25 @@ class TestWeeklyPlanner(unittest.TestCase):
         morning_time = dt.datetime(2026, 10, 8, 9, 30, tzinfo=kst_tz)
         act = self.planner.get_current_activity(morning_time)
         self.assertEqual(act["phase"], "morning")
-        self.assertTrue(len(act["activity"]) > 0)
-        self.assertTrue(len(act["area"]) > 0)
+        self.assertEqual(act["activity"], "")
+        self.assertEqual(act["area"], "")
 
         # Test deep night
         night_time = dt.datetime(2026, 10, 8, 3, 15, tzinfo=kst_tz)
         act_night = self.planner.get_current_activity(night_time)
         self.assertEqual(act_night["phase"], "deep_night")
-        self.assertIn("bed", act_night["area"].lower())
+        self.assertEqual(act_night["area"], "")
 
     def test_format_schedule_summary(self):
         summary = self.planner.format_schedule_summary()
-        self.assertIn("=== Han Seo-yeon Weekly Life Itinerary", summary)
-        self.assertIn("[MONDAY]", summary)
-        self.assertIn("[SUNDAY]", summary)
+        self.assertIn("=== Han Seo-yeon Optional Intentions", summary)
+        self.assertIn("intentions", summary)
+        self.assertNotIn("[SUNDAY]", summary)
 
-    def test_cognitive_scene_synthesis_deep_night(self):
-        weather = WeatherSnapshot(
-            temperature_c=14.0,
-            description="clear sky",
-            is_raining=False,
-            is_snowing=False,
-            windspeed_kmh=7.0,
-            retrieved_at="2026-10-08T03:30:00Z",
-        )
-        ctx = EnvironmentContext(
-            seoul_time_iso="2026-10-08T03:30:00+09:00",
-            seoul_time_display="03:30 KST",
-            date_display="2026-10-08",
-            day_of_week="Thursday",
-            is_weekend=False,
-            circadian_phase="deep_night",
-            season="autumn",
-            holiday_note=None,
-            weather=weather,
-            hours_since_last_post=2.0,
-            hours_since_last_action=2.0,
-            posts_today=1,
-            replies_today=0,
-            dms_today=0,
-            scheduled_activity="in bed half-asleep",
-            scheduled_area="bed in bedroom",
-        )
-        scene = generator.determine_image_scene("test requested by my human", ctx)
-        self.assertIn("bed", scene.lower())
-        self.assertIn("duvet", scene.lower())
-
-    def test_cognitive_scene_synthesis_stray_cat(self):
-        weather = WeatherSnapshot(
-            temperature_c=18.0,
-            description="sunny",
-            is_raining=False,
-            is_snowing=False,
-            windspeed_kmh=5.0,
-            retrieved_at="2026-10-08T10:30:00Z",
-        )
-        ctx = EnvironmentContext(
-            seoul_time_iso="2026-10-08T10:30:00+09:00",
-            seoul_time_display="10:30 KST",
-            date_display="2026-10-08",
-            day_of_week="Thursday",
-            is_weekend=False,
-            circadian_phase="morning",
-            season="autumn",
-            holiday_note=None,
-            weather=weather,
-            hours_since_last_post=3.0,
-            hours_since_last_action=3.0,
-            posts_today=0,
-            replies_today=0,
-            dms_today=0,
-            scheduled_activity="walking to studio",
-            scheduled_area="Seongsu street",
-        )
-        scene = generator.determine_image_scene("met a stray cat on the way to the studio", ctx)
-        self.assertIn("cat", scene.lower())
-        self.assertTrue(len(scene) > 20)
-
+    def test_context_read_never_creates_calendar(self):
+        from unittest.mock import patch
+        with patch.object(self.planner, "_generate_schedule_with_llm", side_effect=AssertionError("read triggered generation")):
+            self.assertEqual(self.planner.get_current_activity()["activity"], "")
 
 if __name__ == "__main__":
     unittest.main()

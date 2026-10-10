@@ -25,17 +25,14 @@ class TestStateManager(unittest.TestCase):
         self.assertTrue(self.state_file.exists())
 
     def test_circadian_dynamics_morning_reformer(self):
-        # 8 AM KST: teaching reformer class
         st = self.manager.update_circadian_dynamics(hour=8, day_of_month=5)
-        self.assertGreaterEqual(st.physical_fatigue, 0.35)
-        self.assertIn("reformer", st.mood_descriptor.lower())
+        self.assertAlmostEqual(st.physical_fatigue, 0.20)
+        self.assertNotIn("reformer", st.mood_descriptor)
 
     def test_circadian_dynamics_deep_night(self):
-        # 3 AM KST: deep night sleep
         st = self.manager.update_circadian_dynamics(hour=3, day_of_month=5)
-        self.assertEqual(st.physical_fatigue, 0.10)
-        self.assertEqual(st.social_battery, 0.90)
-        self.assertIn("asleep", st.mood_descriptor.lower())
+        self.assertAlmostEqual(st.physical_fatigue, 0.20)
+        self.assertNotIn("asleep", st.mood_descriptor)
 
     def test_consume_interaction(self):
         initial_battery = self.manager.get_state().social_battery
@@ -47,11 +44,8 @@ class TestStateManager(unittest.TestCase):
         st = self.manager.get_state()
         st.social_battery = 0.4
         self.manager.save_state(st)
-
-        self.manager.on_master_contact("checked in")
-        st_after = self.manager.get_state()
-        self.assertGreater(st_after.social_battery, 0.4)
-        self.assertIn("my master", st_after.mood_descriptor)
+        self.manager.on_master_contact("hello")
+        self.assertEqual(self.manager.get_state().social_battery, 0.4)
 
     def test_modulate_candidate_scores_when_drained(self):
         st = self.manager.get_state()

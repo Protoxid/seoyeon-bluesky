@@ -20,7 +20,7 @@ if hasattr(sys.stdout, "reconfigure"):
 if hasattr(sys.stderr, "reconfigure"):
     sys.stderr.reconfigure(encoding="utf-8", errors="replace")
 
-from agent.runner import main
+from agent.cli import main
 
 if __name__ == "__main__":
     sys.exit(main())

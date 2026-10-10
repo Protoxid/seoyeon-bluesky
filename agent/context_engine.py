@@ -55,6 +55,8 @@ class WeatherSnapshot:
     retrieved_at: str
 
     def summary(self) -> str:
+        if self.description == "unavailable":
+            return "unavailable; do not invent weather"
         precip = ""
         if self.is_raining:
             precip = ", raining"
@@ -156,9 +158,6 @@ def check_korean_holidays(date_obj: dt.date) -> Optional[str]:
     }
     if (m, d) in fixed_holidays:
         return fixed_holidays[(m, d)]
-    # Early October Chuseok / autumn break season note
-    if m == 10 and 1 <= d <= 5:
-        return "Early October autumn holidays / brisk autumn transition"
     return None
 
 
@@ -175,6 +174,10 @@ def fetch_seoul_weather() -> WeatherSnapshot:
                 return WeatherSnapshot(**cached_data)
         except Exception:
             pass
+
+    from .runtime import MODE
+    if MODE.get() == "offline":
+        return WeatherSnapshot(0.0, "unavailable", False, False, 0.0, now_utc.isoformat())
 
     # Fetch from Open-Meteo (lat: 37.5665, lon: 126.9780 - Central Seoul)
     url = "https://api.open-meteo.com/v1/forecast?latitude=37.5665&longitude=126.9780&current_weather=true"
@@ -206,8 +209,8 @@ def fetch_seoul_weather() -> WeatherSnapshot:
     except Exception as e:
         # Fallback if network or API error
         return WeatherSnapshot(
-            temperature_c=18.0,
-            description="clear autumn weather",
+            temperature_c=0.0,
+            description="unavailable",
             is_raining=False,
             is_snowing=False,
             windspeed_kmh=6.0,
@@ -233,26 +236,12 @@ def build_environment_context(
     holiday = check_korean_holidays(now_kst.date())
     weather = fetch_seoul_weather()
 
-    # Dynamic ambient Seoul city micro-texture
-    city_texture = "October in Seongsu: fallen yellow ginkgo fan-leaves on brick tiles, roasted barley tea steaming on the small counter, quiet circular rumble of Subway Line 2."
-
-    # Update cognitive state & energy dynamics
-    try:
-        from .state_manager import state_manager
-        state_manager.update_circadian_dynamics(now_kst.hour, now_kst.day, is_raining=weather.is_raining)
-        state_desc = state_manager.format_prompt_state()
-    except Exception:
-        state_desc = ""
-
-    # Current scheduled life activity & area
-    try:
-        from .weekly_planner import weekly_planner
-        act_info = weekly_planner.get_current_activity(now_kst)
-        scheduled_activity = act_info.get("activity", "")
-        scheduled_area = act_info.get("area", "")
-    except Exception:
-        scheduled_activity = ""
-        scheduled_area = ""
+    city_texture = ""
+    from .state_manager import state_manager
+    state_desc = state_manager.format_prompt_state()
+    scheduled_activity = ""
+    scheduled_area = ""
+    # Observation is read-only. Fictional activity is labeled, never invented here.
 
     return EnvironmentContext(
         seoul_time_iso=now_kst.isoformat(),

@@ -93,61 +93,8 @@ class Goal:
         )
 
 
-# Default canonical goals grounded in her identity and seasonal reality
-CANONICAL_SEED_GOALS: List[Dict[str, Any]] = [
-    {
-        "goal_id": "g_novel_han_kang_202610",
-        "title": "Finishing Han Kang's 'We Do Not Part'",
-        "description": "Reading the Korean paperback edition in quiet evening hours; reflecting on memory and quiet prose.",
-        "category": GoalCategory.CULTURAL.value,
-        "priority": GoalPriority.HIGH.value,
-        "status": GoalStatus.ACTIVE.value,
-        "created_at": "2026-10-01T00:00:00+00:00",
-        "target_date": "2026-10-25",
-        "progress_events": [
-            {
-                "timestamp": "2026-10-02T14:30:00+00:00",
-                "event_type": "progress",
-                "note": "Read chapters 1 through 3 on the subway Line 2 loop.",
-                "post_uri": None,
-                "metrics_delta": {"current_page": 65, "total_pages": 310},
-            }
-        ],
-        "metrics": {"current_page": 65, "total_pages": 310, "percent": 21.0},
-    },
-    {
-        "goal_id": "g_domestic_kitchen_crockery_202610",
-        "title": "Water propagating kitchen ivy cuttings",
-        "description": "Rooting two small English ivy stems in small clear glass jars on the sunlit kitchen windowsill.",
-        "category": GoalCategory.DOMESTIC.value,
-        "priority": GoalPriority.MEDIUM.value,
-        "status": GoalStatus.ACTIVE.value,
-        "created_at": "2026-10-04T08:00:00+00:00",
-        "target_date": "2026-10-31",
-        "progress_events": [
-            {
-                "timestamp": "2026-10-04T08:00:00+00:00",
-                "event_type": "milestone",
-                "note": "Trimmed stems and placed in filtered water.",
-                "post_uri": None,
-                "metrics_delta": {"stage": "placed in water", "roots_visible": False},
-            }
-        ],
-        "metrics": {"stage": "waiting for root nodes", "days_in_water": 4},
-    },
-    {
-        "goal_id": "g_craft_seoul_typography_202610",
-        "title": "Documenting vintage Hangul storefront signboards",
-        "description": "Walking Seongsu and Euljiro backstreets noticing geometric metal and painted letterforms from the 1980s.",
-        "category": GoalCategory.PERSONAL_CRAFT.value,
-        "priority": GoalPriority.MEDIUM.value,
-        "status": GoalStatus.ACTIVE.value,
-        "created_at": "2026-10-05T11:00:00+00:00",
-        "target_date": "2026-11-15",
-        "progress_events": [],
-        "metrics": {"signs_documented": 3, "target_signs": 10},
-    },
-]
+# Fresh installations begin without invented achievements.
+CANONICAL_SEED_GOALS = []
 
 
 class GoalManager:
@@ -174,14 +121,13 @@ class GoalManager:
     def _load_raw(self) -> Dict[str, Any]:
         try:
             return json.loads(self.storage_file.read_text(encoding="utf-8"))
-        except Exception:
-            return {"goals": CANONICAL_SEED_GOALS, "updated_at": dt.datetime.now(dt.timezone.utc).isoformat()}
+        except (json.JSONDecodeError, OSError) as exc:
+            raise RuntimeError("Cannot read goals; refusing to reset history") from exc
 
     def _save_raw(self, data: Dict[str, Any]) -> None:
         data["updated_at"] = dt.datetime.now(dt.timezone.utc).isoformat()
-        temp_file = self.storage_file.with_suffix(".tmp")
-        temp_file.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
-        temp_file.replace(self.storage_file)
+        from .storage import write_json
+        write_json(self.storage_file, data)
 
     def get_all_goals(self) -> List[Goal]:
         data = self._load_raw()
@@ -209,21 +155,7 @@ class GoalManager:
         target_date: Optional[str] = None,
         metrics: Optional[Dict[str, Any]] = None,
     ) -> Optional[Goal]:
-        """Proposes a new goal while strictly enforcing anti-cliché quotas."""
-        # Anti-cliché quota check: pilates & coffee <= 10%
-        text_for_cliche = f"{title} {description}".lower()
-        is_cliche = any(w in text_for_cliche for w in ("pilates", "필라테스", "coffee", "커피", "latte", "cafe"))
-        if is_cliche:
-            all_goals = self.get_all_goals()
-            cliche_count = sum(
-                1 for g in all_goals
-                if any(w in f"{g.title} {g.description}".lower() for w in ("pilates", "필라테스", "coffee", "커피", "latte", "cafe"))
-            )
-            total_count = len(all_goals) + 1
-            if (cliche_count + 1) / total_count > 0.10:
-                print(f"[GoalManager] Blocked proposing cliché goal '{title}': exceeds 10% quota limit.")
-                return None
-
+        """Proposes an operator-supplied goal without prescribing a topic mix."""
         goal_id = f"g_{category}_{uuid.uuid4().hex[:6]}"
         now_iso = dt.datetime.now(dt.timezone.utc).isoformat()
         goal = Goal(
@@ -378,138 +310,39 @@ class GoalManager:
             lines.append(f"- [{g.category}] {g.title}: {g.description}{progress_summary}")
         return "\n".join(lines)
 
-    def detect_and_record_goal_activity(self, text: str, post_uri: Optional[str] = None) -> List[str]:
-        """
-        Scans published text or interaction content to check if it organically touches
-        upon an active goal, registering a progress milestone and updating concrete metrics.
-        """
-        text_lower = text.lower()
-        advanced_goal_ids = []
+    def detect_and_record_goal_activity(self, text: str, post_uri=None) -> List[str]:
+        """Compatibility API: prose is not evidence of work completed."""
+        return []
 
-        keywords_map = {
-            "g_novel_han_kang_202610": ["han kang", "한강", "we do not part", "작별하지 않는다", "novel", "소설", "chapter", "reading page"],
-            "g_domestic_kitchen_crockery_202610": ["ivy", "water prop", "cuttings", "windowsill", "glass jar", "kitchen sill", "roots", "아이비"],
-            "g_craft_seoul_typography_202610": ["typography", "signboard", "hangul sign", "간판", "letterform", "euljiro print", "vintage type"],
-        }
+    def advance_active_goals_daily(self, context=None, days_elapsed=1, dry_run=False) -> List[str]:
+        """Elapsed days alone do not create achievements."""
+        return []
 
-        for goal in self.get_active_goals():
-            gid = goal.goal_id
-            kw_list = keywords_map.get(gid, [])
-            title_tokens = [w.lower() for w in re.findall(r"\w+", goal.title) if len(w) > 3]
-            match = any(kw in text_lower for kw in kw_list) or (sum(1 for t in title_tokens if t in text_lower) >= 2)
-
-            if match:
-                snippet = text[:150] + "..." if len(text) > 150 else text
-                metrics = dict(goal.metrics)
-                note = f"Organically referenced in social reflection: \"{snippet}\""
-                metrics_update = None
-
-                if gid == "g_novel_han_kang_202610":
-                    curr_page = metrics.get("current_page", 65)
-                    total_pages = metrics.get("total_pages", 310)
-                    new_page = min(total_pages, curr_page + 15)
-                    percent = round((new_page / total_pages) * 100, 1)
-                    metrics_update = {"current_page": new_page, "percent": percent}
-                    note = f"Social reflection on han kang novel (page {new_page}/{total_pages}): \"{snippet}\""
-                    if new_page >= total_pages:
-                        self.complete_goal(gid, note="Finished reading Han Kang novel following reflection.", post_uri=post_uri)
-                        advanced_goal_ids.append(gid)
-                        continue
-
-                elif gid == "g_craft_seoul_typography_202610":
-                    signs = metrics.get("signs_documented", 3)
-                    target = metrics.get("target_signs", 10)
-                    new_signs = min(target, signs + 1)
-                    metrics_update = {"signs_documented": new_signs}
-                    note = f"Social reflection on vintage signboards. Documented {new_signs}/{target}."
-                    if new_signs >= target:
-                        self.complete_goal(gid, note="Completed documentation of 10 storefront signboards.", post_uri=post_uri)
-                        advanced_goal_ids.append(gid)
-                        continue
-
-                self.record_progress(
-                    goal_id=gid,
-                    note=note,
-                    event_type="reflection",
-                    metrics_update=metrics_update,
-                    post_uri=post_uri,
-                )
-                advanced_goal_ids.append(gid)
-
-        return advanced_goal_ids
-
-    def advance_active_goals_daily(
-        self,
-        context: Optional[Any] = None,
-        days_elapsed: int = 1,
-        dry_run: bool = False,
-    ) -> List[str]:
-        """
-        Advances active personal pursuits autonomously as calendar days elapse
-        (during quiet evening reflection or nightly consolidation pass).
-        Ensures reading progresses, plant cuttings root, and craft projects advance
-        without requiring constant social media posting.
-        """
-        advanced_notes: List[str] = []
-        for goal in self.get_active_goals():
-            gid = goal.goal_id
-            metrics = dict(goal.metrics)
-
-            if gid == "g_novel_han_kang_202610":
-                curr_page = metrics.get("current_page", 65)
-                total_pages = metrics.get("total_pages", 310)
-                new_page = min(total_pages, curr_page + 20 * days_elapsed)
-                percent = round((new_page / total_pages) * 100, 1)
-                metrics["current_page"] = new_page
-                metrics["percent"] = percent
-                note = f"Read quiet pages before sleep ({new_page}/{total_pages} pages, {percent}%)."
-
-                if new_page >= total_pages:
-                    if not dry_run:
-                        self.complete_goal(gid, note="Finished reading the complete Korean edition of Han Kang's 'We Do Not Part'.")
-                    advanced_notes.append(f"{goal.title}: Completed ({total_pages}/{total_pages} pages)")
-                else:
-                    if not dry_run:
-                        self.record_progress(gid, note=note, event_type="progress", metrics_update=metrics)
-                    advanced_notes.append(f"{goal.title}: {note}")
-
-            elif gid == "g_domestic_kitchen_crockery_202610":
-                days_in_water = metrics.get("days_in_water", 4) + days_elapsed
-                metrics["days_in_water"] = days_in_water
-                if days_in_water >= 21:
-                    metrics["stage"] = "fully rooted, ready to pot"
-                    if not dry_run:
-                        self.complete_goal(gid, note="Both ivy cuttings have developed robust 3-inch white roots and were potted into soil.")
-                    advanced_notes.append(f"{goal.title}: Completed (roots mature after {days_in_water} days)")
-                elif days_in_water >= 10:
-                    metrics["stage"] = "first pale root tips emerged"
-                    metrics["roots_visible"] = True
-                    note = f"First white root tips emerged from the lower node in the glass jar (day {days_in_water})."
-                    if not dry_run:
-                        self.record_progress(gid, note=note, event_type="milestone", metrics_update=metrics)
-                    advanced_notes.append(f"{goal.title}: {note}")
-                else:
-                    note = f"Changed filtered water on the sunny windowsill (day {days_in_water})."
-                    if not dry_run:
-                        self.record_progress(gid, note=note, event_type="progress", metrics_update=metrics)
-                    advanced_notes.append(f"{goal.title}: {note}")
-
-            elif gid == "g_craft_seoul_typography_202610":
-                signs = metrics.get("signs_documented", 3)
-                target = metrics.get("target_signs", 10)
-                new_signs = min(target, signs + 1)
-                metrics["signs_documented"] = new_signs
-                if new_signs >= target:
-                    if not dry_run:
-                        self.complete_goal(gid, note=f"Completed documenting {target} vintage Hangul storefront signboards across Seongsu and Euljiro.")
-                    advanced_notes.append(f"{goal.title}: Completed ({target}/{target} signs)")
-                else:
-                    note = f"Cataloged painted enamel signboard in alley ({new_signs}/{target})."
-                    if not dry_run:
-                        self.record_progress(gid, note=note, event_type="progress", metrics_update=metrics)
-                    advanced_notes.append(f"{goal.title}: {note}")
-
-        return advanced_notes
+    def apply_evidence(self, goal_id, event_id, note, metrics, completed=False):
+        """Apply one validated activity atomically; replay is idempotent."""
+        from .storage import file_lock
+        if not event_id or not note or not isinstance(metrics, dict):
+            raise ValueError("Progress requires event evidence and metrics")
+        with file_lock(self.storage_file):
+            data = self._load_raw()
+            for goal in data.get("goals", []):
+                if goal["goal_id"] != goal_id:
+                    continue
+                events = goal.setdefault("progress_events", [])
+                if any(e.get("event_id") == event_id for e in events):
+                    return False
+                if goal["status"] not in {"ACTIVE", "IN_PROGRESS"}:
+                    return False
+                goal.setdefault("metrics", {}).update(metrics)
+                goal["status"] = "COMPLETED" if completed else "IN_PROGRESS"
+                events.append({"event_id": event_id, "note": note,
+                               "metrics_delta": metrics, "event_type": "completion" if completed else "progress",
+                               "timestamp": dt.datetime.now(dt.timezone.utc).isoformat()})
+                if completed:
+                    goal["completion_notes"] = note
+                self._save_raw(data)
+                return True
+        return False
 
 
 goal_manager = GoalManager()

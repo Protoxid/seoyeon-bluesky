@@ -141,40 +141,19 @@ class TestDmReliability(unittest.TestCase):
         self.assertTrue(memory_store.has_replied_to_dm("sent_123"))
 
     def test_uncertain_delivery_resolved_via_thread_check(self):
-        target_msg_id = "msg_timeout_1"
-        reply_body = "tea is steeping now."
-        fake_outcome = DecisionOutcome(
-            selected_action=ActionType.ANSWER_DM,
-            reason="Unread DM",
-            target_data={
-                "convo_id": "convo_3",
-                "handle": "test_user.bsky.social",
-                "last_message_id": target_msg_id,
-            },
-            intent="warm_reply",
-            candidate_scores={"ANSWER_DM": 0.8},
-            all_candidates=[],
-        )
+        from agent.delivery import Outbox
+        from pathlib import Path
+        import tempfile
+        from unittest.mock import Mock
+        with tempfile.TemporaryDirectory() as folder:
+            outbox = Outbox(Path(folder) / "outbox.json", persist=lambda: None)
+            transport = Mock(return_value={})
+            lookup = Mock(return_value={"id": "confirmed"})
+            result = outbox.send("dm1", "dm", {"text": "same"}, transport, lookup)
+            self.assertEqual(result["id"], "confirmed")
+            outbox.send("dm1", "dm", {"text": "changed"}, transport, lookup)
+            transport.assert_called_once()
 
-        # send_dm returns {} (e.g. timeout), but thread check sees it did arrive on server
-        delivered_thread = [
-            {"id": "msg_timeout_1", "text": "how are you?", "sender": {"did": "did:plc:other"}},
-            {"id": "landed_msg_456", "text": reply_body, "sender": {"did": bsky_client.did}},
-        ]
-
-        with patch("agent.runner.decision_engine.evaluate", return_value=fake_outcome), \
-             patch("agent.runner.notifier.check_and_send_evening_summary"), \
-             patch("agent.runner.notifier.process_master_inbox", return_value=0), \
-             patch.object(bsky_client, "authenticate", return_value=True), \
-             patch.object(generator, "generate_dm_reply", return_value=(reply_body, "mock")), \
-             patch.object(bsky_client, "send_dm", return_value={}), \
-             patch.object(bsky_client, "get_convo_messages", side_effect=[[], delivered_thread]), \
-             patch.object(bsky_client, "mark_convo_read"):
-
-            run_tick(dry_run=False)
-
-        # Verified through uncertain delivery reconciliation
-        self.assertTrue(memory_store.has_replied_to_dm(target_msg_id))
 
     def test_truthful_ai_disclosure_in_replies_and_dms(self):
         # Truthful plain disclosure in a reply must pass validation

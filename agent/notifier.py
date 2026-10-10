@@ -35,7 +35,9 @@ class MasterNotifier:
     def _log_to_outbox(self, entry: Dict[str, Any]) -> None:
         LOGS_DIR.mkdir(parents=True, exist_ok=True)
         with open(TELEGRAM_OUTBOX_FILE, "a", encoding="utf-8") as f:
-            f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+            safe = {k:v for k,v in entry.items() if k != "text"}
+            safe["text"] = "[private message to my master]"
+            f.write(json.dumps(safe, ensure_ascii=False) + "\n")
 
     def send_telegram_message(
         self,
@@ -46,7 +48,10 @@ class MasterNotifier:
         Sends an outbound text message to the human creator on Telegram.
         Falls back cleanly to local outbox logging in dry-run or if the bot token is unset.
         """
-        is_dry = dry_run if dry_run is not None else config.dry_run
+        from .runtime import may_publish
+        is_dry = (dry_run if dry_run is not None else config.dry_run) or not may_publish()
+        if not text.strip():
+            return False
         seoul_now = get_seoul_datetime().strftime("%Y-%m-%d %H:%M:%S KST")
 
         outbox_entry = {
@@ -60,8 +65,7 @@ class MasterNotifier:
 
         if is_dry:
             print(f"\n[DRY-RUN Telegram -> my master {self.master_handle}]")
-            for line in text.splitlines():
-                print(f"  {line}")
+            print("  [private message redacted]")
             outbox_entry["status"] = "simulated_dry_run"
             self._log_to_outbox(outbox_entry)
             return True
@@ -74,7 +78,7 @@ class MasterNotifier:
             print(f"Message logged to outbox for my master {self.master_handle}: \"{text[:80]}...\"")
             outbox_entry["status"] = "token_missing_saved_to_outbox"
             self._log_to_outbox(outbox_entry)
-            return True
+            return False
 
         # Send live message via Telegram Bot API
         telegram_url = f"https://api.telegram.org/bot{token}/sendMessage"
@@ -83,31 +87,24 @@ class MasterNotifier:
             "text": text,
         }
 
-        try:
-            req = urllib.request.Request(
-                telegram_url,
-                data=json.dumps(payload).encode("utf-8"),
-                headers={"Content-Type": "application/json"},
-                method="POST",
-            )
-            with urllib.request.urlopen(req, timeout=12) as resp:
-                res = json.loads(resp.read().decode("utf-8"))
-                if res.get("ok"):
-                    print(f"  [SUCCESS] Telegram message delivered to my master {self.master_handle}")
-                    outbox_entry["status"] = "delivered"
-                    outbox_entry["message_id"] = res.get("result", {}).get("message_id")
-                    self._log_to_outbox(outbox_entry)
-                    return True
-                else:
-                    print(f"  [WARNING] Telegram API returned non-ok: {res}")
-                    outbox_entry["status"] = f"api_error_{res.get('description', '')}"
-                    self._log_to_outbox(outbox_entry)
-                    return False
-        except Exception as e:
-            print(f"  [ERROR] Failed to send Telegram message to my master {self.master_handle}: {e}")
-            outbox_entry["status"] = f"network_error: {str(e)}"
-            self._log_to_outbox(outbox_entry)
-            return False
+        from .delivery import Outbox, action_key
+        identity = getattr(self, "action_identity", "") or (get_seoul_datetime().date().isoformat() + ":" + text)
+        key = action_key("telegram.sendMessage", identity + ":" + text)
+        def transport(endpoint, body):
+            try:
+                req = urllib.request.Request(telegram_url, data=json.dumps(body).encode("utf-8"),
+                    headers={"Content-Type": "application/json"}, method="POST")
+                with urllib.request.urlopen(req, timeout=12) as response:
+                    result = json.loads(response.read().decode("utf-8"))
+                if result.get("ok"):
+                    return {"id": result.get("result", {}).get("message_id")}
+            except Exception:
+                print("[Telegram] Delivery uncertain; private details redacted.")
+            return {}
+        receipt = Outbox().send(key, "telegram.sendMessage", payload, transport)
+        outbox_entry["status"] = "delivered" if receipt.get("id") else "uncertain"
+        self._log_to_outbox(outbox_entry)
+        return bool(receipt.get("id"))
 
     def ask_master(
         self,
@@ -152,6 +149,8 @@ class MasterNotifier:
         Sends the end-of-day in-character check-in message to my master.
         """
         seoul_now = get_seoul_datetime().strftime("%Y-%m-%d %H:%M:%S KST")
+        if not summary_text.strip():
+            return False
         date_str = (summary_data or {}).get("date", get_seoul_datetime().strftime("%Y-%m-%d"))
 
         formatted_msg = (
@@ -171,7 +170,8 @@ class MasterNotifier:
         Polls the Telegram Bot API for incoming messages sent by my master.
         Only processes messages matching the master's handle or chat ID.
         """
-        is_dry = dry_run if dry_run is not None else config.dry_run
+        from .runtime import may_publish
+        is_dry = (dry_run if dry_run is not None else config.dry_run) or not may_publish()
         if is_dry:
             return []
 
@@ -206,18 +206,13 @@ class MasterNotifier:
                     chat_id = str(msg.get("chat", {}).get("id", "")).strip()
                     text = msg.get("text", "").strip()
 
-                    # Always advance update offset to acknowledge receipt
-                    if up_id:
-                        memory_store.set_telegram_last_update_id(up_id)
 
                     if not text:
                         continue
 
                     # Authenticate: sender must be my master (handle or chat_id)
                     is_master = (
-                        sender_username == master_clean_handle
-                        or (master_chat_id and sender_id == master_chat_id)
-                        or (master_chat_id and chat_id == master_chat_id)
+                        bool(master_chat_id) and sender_id == master_chat_id and chat_id == master_chat_id
                     )
 
                     if is_master:
@@ -232,9 +227,21 @@ class MasterNotifier:
                     else:
                         print(f"[Telegram Notice] Ignored message from unauthorized sender: @{sender_username} (id: {sender_id})")
         except Exception as e:
-            print(f"[MasterNotifier] Error polling getUpdates: {e}")
+            print("[MasterNotifier] Polling failed; details redacted.")
 
-        return messages
+        # Queue encrypted messages durably before acknowledging Telegram updates.
+        from .vault import vault
+        from .storage import read_json, write_json
+        from .delivery import checkpoint
+        queue_file = vault.vault_dir / "telegram_inbox.json"
+        queue = read_json(queue_file, {})
+        for item in messages:
+            queue.setdefault(str(item["update_id"]), item)
+        if messages:
+            write_json(queue_file, queue)
+            checkpoint()
+            memory_store.set_telegram_last_update_id(max(item["update_id"] for item in messages))
+        return list(queue.values())
 
     def execute_master_directive(
         self,
@@ -247,7 +254,8 @@ class MasterNotifier:
         Maintains strict space-time and environmental coherence with her current Seoul moment.
         Sends a follow-up confirmation message to my master upon completion.
         """
-        is_dry = dry_run if dry_run is not None else config.dry_run
+        from .runtime import may_publish
+        is_dry = (dry_run if dry_run is not None else config.dry_run) or not may_publish()
         action_type = directive.get("action_type")
         topic_hint = directive.get("topic_hint") or ""
 
@@ -283,8 +291,11 @@ class MasterNotifier:
             img_res_id = budget_manager.reserve(0.045, action_type="image_generation", provider="kie.ai") if can_img else None
 
             img_bytes, prompt_used, err = None, "", img_reason
-            if img_res_id:
-                img_bytes, prompt_used, err = image_engine.generate_image(scene_desc, dry_run=is_dry)
+            if img_res_id and post_text and scene_desc:
+                image_engine.reservation_id = img_res_id
+                if not is_dry:
+                    budget_manager.mark_submitted(img_res_id)
+                img_bytes, prompt_used, err = image_engine.generate_image(scene_desc, dry_run=is_dry, is_selfie=generator.last_scene.get("is_selfie", True))
 
             if img_bytes:
                 # Decouple billing: Image was successfully rendered by provider
@@ -297,7 +308,9 @@ class MasterNotifier:
                     )
                     img_res_id = None
 
-                alt_text = generator.derive_image_alt_text(scene_desc)
+                approved, alt_text = generator.review_image(img_bytes, post_text, scene_desc)
+                if not approved:
+                    return result
                 res = bsky_client.publish_image_post(post_text, img_bytes, alt_text=alt_text)
                 uri = res.get("uri", "")
                 if uri:
@@ -315,7 +328,7 @@ class MasterNotifier:
                     confirm_msg = f"done, my master. posted to bluesky: {web_url}"
                     self.send_telegram_message(confirm_msg, dry_run=dry_run)
             else:
-                if img_res_id:
+                if img_res_id and getattr(image_engine, "last_outcome", "not_sent") in {"not_sent", "rejected"}:
                     budget_manager.release(img_res_id)
                     img_res_id = None
                 # If image generation failed, do NOT pollute Bluesky with unwanted text post; report to master on Telegram
@@ -323,7 +336,7 @@ class MasterNotifier:
                 confirm_msg = f"camera service hit an issue ({err or 'timeout'}), my master. i did not publish to bluesky. let me know if you want me to retry taking it."
                 self.send_telegram_message(confirm_msg, dry_run=dry_run)
 
-            if img_res_id:
+            if img_res_id and getattr(image_engine, "last_outcome", "not_sent") in {"not_sent", "rejected"}:
                 budget_manager.release(img_res_id)
 
         # -------------------------------------------------------------
@@ -339,6 +352,8 @@ class MasterNotifier:
             )
             print(f"  Post draft: \"{post_text}\"")
 
+            if not post_text:
+                return result
             res = bsky_client.publish_text_post(post_text)
             uri = res.get("uri", "")
             if uri:
@@ -543,6 +558,9 @@ class MasterNotifier:
 
         processed = 0
         for item in incoming:
+            self.action_identity = "operator:" + str(item.get("update_id", item.get("message_id", "")))
+            from .bsky_client import bsky_client
+            bsky_client.action_identity = self.action_identity
             text = item.get("text", "")
             print(f"\n[Telegram Inbound from my master {self.master_handle}]: \"{text}\"")
 
@@ -557,7 +575,8 @@ class MasterNotifier:
             print(f"[Telegram Outbound to my master]: \"{reply_text}\" (model: {model_used})")
 
             # 4. Deliver acknowledgment to master
-            self.send_telegram_message(reply_text, dry_run=dry_run)
+            if not reply_text or not self.send_telegram_message(reply_text, dry_run=dry_run):
+                continue
 
             # 5. If it is an order, execute it on Bluesky with strict space-time coherence!
             exec_details: Dict[str, Any] = {}
@@ -565,6 +584,17 @@ class MasterNotifier:
                 print(f"[Master Directive] Obeying directive '{directive.get('action_type')}' from my master...")
                 exec_details = self.execute_master_directive(directive, context, dry_run=dry_run)
 
+            if directive.get("is_order") and not exec_details.get("success"):
+                continue
+            if not dry_run:
+                from .vault import vault
+                from .storage import read_json, write_json
+                from .delivery import checkpoint
+                queue_file = vault.vault_dir / "telegram_inbox.json"
+                queue = read_json(queue_file, {})
+                queue.pop(str(item.get("update_id")), None)
+                write_json(queue_file, queue)
+                checkpoint()
             processed += 1
 
         return processed
