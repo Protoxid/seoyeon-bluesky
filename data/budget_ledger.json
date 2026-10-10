@@ -1,7 +1,7 @@
 {
-  "current_day": "2026-10-10",
+  "current_day": "2026-10-11",
   "current_month": "2026-10",
-  "daily_spend_usd": 0.0418,
+  "daily_spend_usd": 0.0,
   "monthly_spend_usd": 0.4827,
   "daily_images_count": 0,
   "history": [
@@ -260,7 +260,19 @@
       "details": "tokens: 575+241"
     }
   ],
-  "daily_tokens": 9117,
-  "active_reservations": {},
+  "daily_tokens": 0,
+  "active_reservations": {
+    "res_12f0160984bd": {
+      "reservation_id": "res_12f0160984bd",
+      "amount_usd": 0.028849,
+      "action_type": "llm_generation",
+      "provider": "openrouter",
+      "model": "anthropic/claude-sonnet-5.5",
+      "details": "",
+      "status": "submitted",
+      "timestamp": "2026-10-10T16:11:43.935221+00:00",
+      "request_id": ""
+    }
+  },
   "monthly_tokens": 15682
 }
