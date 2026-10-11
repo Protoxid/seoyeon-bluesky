@@ -103,3 +103,17 @@ class TestRuntimeGuards(unittest.TestCase):
         outcome = DecisionOutcome(post.action, "", {}, "", {}, [post, quiet])
         with patch("agent.generator.generator._call_llm", return_value=('{"candidate_id":0,"confidence":1}', "mock")):
             self.assertEqual(choose(outcome, context).selected_action, ActionType.NO_ACTION)
+
+    def test_choice_receives_authored_identity_without_forcing_an_action(self):
+        from agent.choice import choose
+        from agent.decision_engine import ActionCandidate, ActionType, DecisionOutcome
+        from agent.context_engine import build_environment_context
+        from agent.memory_store import memory_store
+        quiet = ActionCandidate(ActionType.NO_ACTION, .4, .9, "quiet")
+        outcome = DecisionOutcome(quiet.action, "", {}, "", {}, [quiet])
+        with execution_mode("live"), patch("agent.generator.generator._call_llm", return_value=('{}', "mock")) as call:
+            result = choose(outcome, build_environment_context())
+        packet = json.loads(call.call_args.args[1])
+        self.assertEqual(packet["identity"], memory_store.format_identity_prompt())
+        self.assertIn(memory_store.get_identity()["current_vocation"], packet["identity"])
+        self.assertEqual(result.selected_action, ActionType.NO_ACTION)

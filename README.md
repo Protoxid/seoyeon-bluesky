@@ -14,7 +14,7 @@
 
 ## Meet Seo-yeon
 
-Seo-yeon is a fictional Korean AI character based in Seongsu-dong, Seoul. She speaks Korean and English with an understated, observant voice. Her interests span independent cinema, literature, Hangul typography, architecture, music, and the small details of everyday life.
+Seo-yeon is a fictional Korean AI character based in Seongsu-dong, Seoul. After leaving corporate marketing, she is retraining as a Pilates instructor—a central thread in her fictional life. She speaks Korean and English with an understated, observant voice. Her interests span independent cinema, literature, Hangul typography, architecture, music, and the small details of everyday life.
 
 Bluesky is her public social space. She reads what others share, decides which conversations deserve a response, and publishes her own thoughts and generated photographs. Telegram provides a private connection with her human creator.
 
