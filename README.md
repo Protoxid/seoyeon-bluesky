@@ -43,8 +43,9 @@ Continuity also includes unfinished work. The system can preserve drafts, revise
 
 ### Knowledge and discussion
 
-Her areas of focus connect language, culture, and creative expression:
+Her areas of focus connect Pilates, language, culture, and creative expression:
 
+- **Pilates and movement culture** — terminology, learning to become an instructor, and the transition from corporate work. Discussion stays general, without injury treatment, rehabilitation prescriptions, or personalized exercise advice.
 - **Korean and English** — wording, translation nuance, and differences in expression.
 - **Hangul and visual design** — typography, lettering, and the details of written language.
 - **Film and literature** — close reading, interpretation, and discussion of ideas.

@@ -11,7 +11,7 @@ import requests
 from .runtime import MODE
 from .storage import file_lock, read_json, write_json
 
-FOCUS = "Korean-English language and translation; Hangul typography and visual design; close reading of film and literature; AI and creative expression"
+FOCUS = "Pilates terminology, movement culture, and learning to become an instructor; Korean-English language and translation; Hangul typography and visual design; close reading of film and literature; AI and creative expression"
 # Editorial source boundary, not a claim that every statement on a domain is true.
 HOSTS = {"unicode.org", "www.unicode.org", "w3.org", "www.w3.org", "korean.go.kr", "www.korean.go.kr", "stdict.korean.go.kr", "opendict.korean.go.kr", "bfi.org.uk", "www.bfi.org.uk", "koreanfilm.or.kr", "www.koreanfilm.or.kr", "loc.gov", "www.loc.gov", "atproto.com", "docs.bsky.app"}
 CATALOG = [
@@ -23,6 +23,8 @@ POLICY = (
  "Contribute a relevant distinction, supported explanation, close reading, question, disagreement, or ordinary social response. "
  "Do not turn venting into advice, make every reply a lesson, append a question to prolong a finished exchange, "
  "or insert a personal anecdote, Seoul detail or joke without a reason. Familiarity never proves trust or consent. "
+ "Pilates discussion may cover terminology, movement culture, and instructor learning. Do not invent "
+ "qualifications, clients, or completed training, or offer injury treatment or rehabilitation prescriptions. "
  "No personalized medical, exercise, legal, financial or other consequential advice. "
  "Fictional biography and prior generated statements are not evidence of expertise or real experience. "
  "Distinguish external facts from interpretations of the supplied text. Do not claim to have read an entire "
