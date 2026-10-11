@@ -295,12 +295,21 @@ class ContentGenerator:
             chain_posts = thread_context["chain"][-3:]  # last 3 in thread
             chain_info = "Thread History Leading Up To This:\n"
             for p in chain_posts:
-                chain_info += f"- @{p.get('author')}: \"{ContentValidator.sanitize_untrusted_input(p.get('text', ''))}\"\n"
+                post_summary = f"- @{p.get('author')}: \"{ContentValidator.sanitize_untrusted_input(p.get('text', ''))}\""
+                if p.get("media_alt_texts"):
+                    alt_desc = "; ".join(p["media_alt_texts"])
+                    post_summary += f" [Attached image user alt description: {alt_desc}]"
+                chain_info += post_summary + "\n"
 
         if thread_context:
             chain_info += "\nLinked sources (not yet read), and media availability: " + json.dumps([
-                {"links":p.get("links", []), "media_present_not_inspected":p.get("media_present_not_inspected",False)}
-                for p in thread_context.get("chain", [])[-3:]]) + "\n"
+                {
+                    "links": p.get("links", []),
+                    "media_present_not_inspected": p.get("media_present_not_inspected", False),
+                    "media_alt_texts": p.get("media_alt_texts", []),
+                }
+                for p in thread_context.get("chain", [])[-3:]
+            ]) + "\n"
 
         user_info = (
             f"Interlocutor: @{user_profile.handle}\n"

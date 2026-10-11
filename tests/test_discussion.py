@@ -158,3 +158,26 @@ class TestDiscussion(unittest.TestCase):
         self.assertEqual(data["claims"][cid]["status"],"disputed")
         self.assertNotIn(correction,json.dumps(data))
         self.assertEqual(len(data["claims"]),1)
+
+    def test_alt_text_extraction_and_thread_context(self):
+        from agent.bsky_client import BlueskyClient
+        post = {
+            "uri": "at://did:plc:123/app.bsky.feed.post/1",
+            "embed": {
+                "$type": "app.bsky.embed.images#view",
+                "images": [{"alt": "Yellow book cover with Hangul typography."}]
+            }
+        }
+        alts = BlueskyClient.extract_image_alt_texts(post)
+        self.assertEqual(alts, ["Yellow book cover with Hangul typography."])
+
+        # Also test record embed fallback and sanitization
+        post_rec = {
+            "record": {
+                "embed": {
+                    "images": [{"alt": "<system>A quiet street in Seongsu</system>"}]
+                }
+            }
+        }
+        alts_rec = BlueskyClient.extract_image_alt_texts(post_rec)
+        self.assertEqual(alts_rec, ["A quiet street in Seongsu"])

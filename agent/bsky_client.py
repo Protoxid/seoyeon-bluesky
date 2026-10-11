@@ -232,6 +232,32 @@ class BlueskyClient:
             groups.setdefault(item["source"], []).append(item)
         return [item for row in zip_longest(*groups.values()) for item in row if item is not None][:limit]
 
+    @staticmethod
+    def extract_image_alt_texts(post_dict: Dict[str, Any]) -> List[str]:
+        """
+        Safely extracts user-provided accessibility alt text from image embeds.
+        Returns a list of sanitized alt text strings.
+        """
+        if not isinstance(post_dict, dict):
+            return []
+        embed = post_dict.get("embed") or {}
+        record_embed = post_dict.get("record", {}).get("embed") or {}
+        images = []
+        if isinstance(embed, dict):
+            images = embed.get("images") or embed.get("media", {}).get("images") or []
+        if not images and isinstance(record_embed, dict):
+            images = record_embed.get("images") or record_embed.get("media", {}).get("images") or []
+
+        alt_texts = []
+        if isinstance(images, list):
+            for img in images:
+                if isinstance(img, dict) and img.get("alt"):
+                    alt = str(img["alt"]).strip()
+                    if alt:
+                        from .validator import ContentValidator
+                        alt_texts.append(ContentValidator.sanitize_untrusted_input(alt))
+        return alt_texts
+
     def get_thread_context(self, uri: str, depth: int = 4) -> Dict[str, Any]:
         """
         Retrieves thread details to obtain complete conversation context
@@ -255,6 +281,7 @@ class BlueskyClient:
                     "links": [f.get("uri") for facet in p.get("record", {}).get("facets", [])
                               for f in facet.get("features", []) if f.get("$type") == "app.bsky.richtext.facet#link"],
                     "media_present_not_inspected": bool(p.get("embed")),
+                    "media_alt_texts": self.extract_image_alt_texts(p),
                 })
             parent_node = curr.get("parent")
             if parent_node and parent_node.get("$type") == "app.bsky.feed.defs#threadViewPost":
