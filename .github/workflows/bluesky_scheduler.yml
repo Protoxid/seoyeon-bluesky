@@ -3,8 +3,9 @@ name: Seo-yeon Autonomous Social Agent (Bluesky)
 on:
   schedule:
     # Runs every 30 mins during KST waking hours: 07:00 KST to 01:30 KST (22:00 UTC - 16:30 UTC)
-    - cron: '*/30 22,23 * * *'
-    - cron: '*/30 0-16 * * *'
+    # Uses odd-minute offsets (17,47) to avoid global GitHub Actions :00 and :30 queue congestion and dropped runs
+    - cron: '17,47 22,23 * * *'
+    - cron: '17,47 0-16 * * *'
   workflow_dispatch:
     inputs:
       dry_run:
