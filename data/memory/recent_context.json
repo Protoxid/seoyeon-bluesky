@@ -581,5 +581,12 @@
     "at://did:plc:pqwleyi7yjqenorqykg77vfr/app.bsky.feed.post/3mv5ws3oins2o",
     "at://did:plc:qmzkrqxywyhq4ar4k3nxdbvg/app.bsky.feed.post/3mwci7ysi4t2t",
     "at://did:plc:56g2fyxiytrwnf5ytdvy3hzn/app.bsky.feed.post/3mwmnrkh6722r"
+  ],
+  "likes": [
+    {
+      "post_uri": "at://did:plc:itwquoajbboah7jfto3ydr2e/app.bsky.feed.post/3mhoxp5he3225",
+      "target_handle": "webi18n.bsky.social",
+      "created_at": "2026-10-11T00:35:47.499106+00:00"
+    }
   ]
 }
