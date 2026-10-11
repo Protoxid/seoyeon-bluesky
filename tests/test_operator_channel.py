@@ -118,3 +118,49 @@ class TestOperatorChannel(unittest.TestCase):
         with patch.object(bsky_client,"ensure_session"),patch.object(bsky_client,"get_discovery_feed",return_value=[{"post":{"uri":"at://test","cid":"cid"}}]),patch.object(bsky_client,"like_post",return_value={}),patch.object(self.notifier,"send_telegram_message") as send:
             result=self.notifier.execute_master_directive({"action_type":"BROWSE_AND_LIKE"},self.context,dry_run=True)
         self.assertFalse(result["success"]); send.assert_not_called()
+
+    def pending_reply(self):
+        self.channel.update("10",inbound="reply to someone else's post",reply="shall i choose?",
+            directive={"needs_clarification":True,"pending_action":"BROWSE_AND_REPLY"},
+            stage="done",ack_sent=True,created_at=dt.datetime.now(dt.timezone.utc).isoformat())
+
+    def test_delegated_choice_continues_only_exact_pending_action(self):
+        self.pending_reply()
+        answer={"mode":"continue","pending_id":"10","action_type":"BROWSE_AND_REPLY",
+                "confidence":1,"authorization_quote":"your choice"}
+        with patch.object(generator,"_call_llm",return_value=(json.dumps(answer),"mock")) as call:
+            result=generator.parse_master_directive("your choice")
+        self.assertTrue(result["is_order"])
+        self.assertEqual(result["continued_request_id"],"10")
+        self.assertIn("reply to someone else's post",result["topic_hint"])
+        self.assertEqual(json.loads(call.call_args.args[1])["pending_request"]["id"],"10")
+        for field,value in (("pending_id","other"),("action_type","PUBLISH_IMAGE_POST"),("authorization_quote","made up")):
+            with patch.object(generator,"_call_llm",return_value=(json.dumps({**answer,field:value}),"mock")):
+                self.assertFalse(generator.parse_master_directive("your choice")["is_order"])
+
+    def test_expired_completed_or_intervening_chat_cannot_be_continued(self):
+        self.pending_reply()
+        self.channel.update("10",created_at=(dt.datetime.now(dt.timezone.utc)-dt.timedelta(days=2)).isoformat())
+        self.assertIsNone(self.channel.pending_request())
+        self.pending_reply()
+        self.channel.update("11",stage="done",ack_sent=True,directive={"is_order":False},inbound="never mind")
+        self.assertIsNone(self.channel.pending_request())
+        answer={"mode":"continue","pending_id":"10","action_type":"BROWSE_AND_REPLY","confidence":1,"authorization_quote":"yes"}
+        with patch.object(generator,"_call_llm",return_value=(json.dumps(answer),"mock")):
+            self.assertFalse(generator.parse_master_directive("yes")["is_order"])
+        self.channel.update("11",directive={"is_order":True,"action_type":"BROWSE_AND_REPLY"})
+        self.assertIsNone(self.channel.pending_request())
+
+    def test_cancelled_request_does_not_execute(self):
+        self.pending_reply()
+        with patch.object(generator,"_call_llm",return_value=('{"mode":"chat"}',"mock")):
+            self.assertFalse(generator.parse_master_directive("don't do it")["is_order"])
+
+    def test_browse_request_can_execute_without_supplied_post(self):
+        message="please answer someone else's post"
+        answer={"mode":"execute","action_type":"BROWSE_AND_REPLY","confidence":1,"authorization_quote":message}
+        with patch.object(generator,"_call_llm",return_value=(json.dumps(answer),"mock")):
+            self.assertEqual(generator.parse_master_directive(message)["action_type"],"BROWSE_AND_REPLY")
+        with patch.object(generator,"_call_llm",return_value=("i'll look for a conversation", "mock")) as call:
+            generator.generate_master_reply(message,self.context,{"is_order":True,"action_type":"BROWSE_AND_REPLY"})
+        self.assertIn("browsing Bluesky notifications and the feed",call.call_args.args[0])

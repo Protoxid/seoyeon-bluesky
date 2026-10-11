@@ -22,6 +22,22 @@ class OperatorChannel:
         return [{"inbound":r.get("inbound", "")[:1200], "reply":r.get("reply", "")[:1200],
                  "result":r.get("result", {}), "partial":len(r.get("inbound", ""))>1200 or len(r.get("reply", ""))>1200}
                 for r in rows[-8:]]
+    def pending_request(self):
+        """Only the latest delivered clarification may be continued, for 24 hours."""
+        from datetime import datetime, timezone
+        rows=list(self.load()["turns"].items())
+        if not rows: return None
+        key,row=rows[-1]
+        directive=row.get("directive",{})
+        if row.get("stage")!="done" or not row.get("ack_sent") or not directive.get("pending_action"):
+            return None
+        try:
+            age=(datetime.now(timezone.utc)-datetime.fromisoformat(row["created_at"])).total_seconds()
+            if not 0 <= age <= 86400: return None
+        except (KeyError, ValueError, TypeError): return None
+        return {"id":key,"action_type":directive["pending_action"],
+                "request":row.get("inbound", ""),"clarification":row.get("reply", "")}
+
     def setting(self, mode):
         if mode not in {"meaningful","daily","off"}: raise ValueError("Invalid check-in preference")
         with file_lock(self.path):

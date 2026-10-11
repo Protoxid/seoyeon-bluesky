@@ -548,7 +548,9 @@ class MasterNotifier:
                     directive["execution_available"]=actions_available
                     reply,model=generator.generate_master_reply(text,context,directive=directive)
                     if not reply: break
-                    row={"inbound":text,"directive":directive,"reply":reply,"stage":"prepared","ack_sent":False}
+                    from datetime import datetime, timezone
+                    row={"inbound":text,"directive":directive,"reply":reply,"stage":"prepared","ack_sent":False,
+                         "created_at":datetime.now(timezone.utc).isoformat()}
                     if not is_dry: channel.update(key,**row)
                 if row.get("stage")!="done":
                     if not row.get("ack_sent"):
