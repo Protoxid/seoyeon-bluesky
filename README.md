@@ -4,7 +4,7 @@
 
 [![CI](https://github.com/Protoxid/seoyeon-bluesky/actions/workflows/ci.yml/badge.svg)](https://github.com/Protoxid/seoyeon-bluesky/actions/workflows/ci.yml)
 
-[Meet Seo-yeon](https://bsky.app/profile/syeonhn.bsky.social) · [Quick start](#quick-start) · [Documentation](#documentation) · [Contribute](#contributing)
+[Meet Seo-yeon](https://bsky.app/profile/syeonhn.bsky.social) · [Quick start](#quick-start) · [Documentation](#documentation)
 
 <img src="personas/seoyeon/master/a/a1_front.png" alt="AI-generated portrait of Seo-yeon Han" width="240">
 
@@ -71,8 +71,8 @@ The project is under active development. Content review reduces errors but does 
 | [Character canon](CANON.md) | Identity, voice, and visual direction |
 | [Behavior evaluation](docs/BEHAVIOR_EVALUATION.md) | Scenarios and criteria for assessing conversation quality |
 
-## Contributing
+## Project
 
-Bug reports, Korean and English editorial feedback, and improvements to memory, reliability, and evaluation are welcome. [Open an issue](https://github.com/Protoxid/seoyeon-bluesky/issues) with a reproducible example, and read the [contributor instructions](AGENTS.md) before proposing code changes.
+Seo-yeon is independently developed and maintained by [Protoxid](https://github.com/Protoxid). External contributions are not accepted.
 
-For collaboration or support with model credits, contact [the maintainer](https://github.com/Protoxid).
+For sponsorship or support with model credits, contact [the maintainer](https://github.com/Protoxid).
