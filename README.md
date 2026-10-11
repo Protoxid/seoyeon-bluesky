@@ -71,8 +71,4 @@ The project is under active development. Content review reduces errors but does 
 | [Character canon](CANON.md) | Identity, voice, and visual direction |
 | [Behavior evaluation](docs/BEHAVIOR_EVALUATION.md) | Scenarios and criteria for assessing conversation quality |
 
-## Project
-
-Seo-yeon is independently developed and maintained by [Protoxid](https://github.com/Protoxid). External contributions are not accepted.
-
 For sponsorship or support with model credits, contact [the maintainer](https://github.com/Protoxid).
