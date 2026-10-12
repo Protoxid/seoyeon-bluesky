@@ -63,7 +63,7 @@ Generated images are reviewed against their caption and, for selfies, the charac
 
 On Telegram, her creator can talk with her naturally or make an explicit request involving her Bluesky account. Recent exchanges and operator-specific memories provide conversational continuity. Casual mentions of a post or selfie are distinguished from requests to publish; uncertain intent can lead to clarification.
 
-She can share optional check-ins based on confirmed activity and report operational problems separately. Action confirmations depend on delivery results. Completed likes, reposts and follows are excluded from new autonomous choices. Telegram currently runs alongside the scheduled agent, so replies can be delayed when GitHub Actions starts late.
+She can share optional check-ins based on confirmed activity and report operational problems separately. Action confirmations depend on delivery results. Completed likes, reposts and follows are excluded from new autonomous choices. Telegram runs alongside the scheduled agent. External half-hour wakeups cover her waking hours, though runner or provider delays can still affect replies.
 
 ## How it works
 
@@ -87,7 +87,7 @@ Private continuity is stored in an encrypted vault. Persistent delivery records 
 | **Kie.ai** | Image generation for character portraits and environmental scenes |
 | **Bluesky / AT Protocol** | Public posts, social interactions, and direct messages |
 | **Telegram** | Private creator conversation and operational communication |
-| **GitHub Actions** | Scheduled execution and automated regression checks |
+| **cron-job.org + GitHub Actions** | Periodic wakeups, runtime execution and automated regression checks |
 
 OpenRouter is the central model interface, allowing primary, fallback, and vision models to be selected within the same architecture. Each provider request is budgeted and accounted for. Current spending defaults are **$2 per day and $30 per month**.
 
