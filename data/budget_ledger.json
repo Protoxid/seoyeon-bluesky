@@ -1,16 +1,10 @@
 {
   "current_day": "2026-10-13",
   "current_month": "2026-10",
-  "daily_spend_usd": 0.2061,
-  "monthly_spend_usd": 1.4566,
+  "daily_spend_usd": 0.2095,
+  "monthly_spend_usd": 1.46,
   "daily_images_count": 0,
   "history": [
-    {
-      "ts": "2026-10-03T04:58:31.396445+00:00",
-      "cost_usd": 0.045,
-      "action_type": "image_generation",
-      "details": "A candid, realistic photograph of Han Se"
-    },
     {
       "ts": "2026-10-03T05:11:14.961313+00:00",
       "cost_usd": 0.002,
@@ -900,23 +894,33 @@
       "completion_tokens": 405,
       "total_tokens": 20888,
       "details": "provider usage"
+    },
+    {
+      "ts": "2026-10-12T23:47:25.585827+00:00",
+      "cost_usd": 0.003392,
+      "action_type": "llm_generation",
+      "model": "anthropic/claude-sonnet-5.5",
+      "prompt_tokens": 1171,
+      "completion_tokens": 105,
+      "total_tokens": 1276,
+      "details": "provider usage"
     }
   ],
-  "daily_tokens": 108658,
+  "daily_tokens": 109934,
   "active_reservations": {
-    "res_741c58855525": {
-      "reservation_id": "res_741c58855525",
-      "amount_usd": 0.024727,
+    "res_9e3481f41cc8": {
+      "reservation_id": "res_9e3481f41cc8",
+      "amount_usd": 0.181822,
       "action_type": "llm_generation",
       "provider": "openrouter",
       "model": "anthropic/claude-sonnet-5.5",
       "details": "",
       "status": "submitted",
-      "timestamp": "2026-10-12T23:47:19.727688+00:00",
-      "request_id": "gen-1791848840-9B1Hc1jszsqmlzQGg98m"
+      "timestamp": "2026-10-12T23:47:27.174395+00:00",
+      "request_id": ""
     }
   },
-  "monthly_tokens": 485829,
+  "monthly_tokens": 487105,
   "reconciled_ids": [
     "res_12f0160984bd",
     "res_1f73b13a18f9",
@@ -983,6 +987,7 @@
     "res_ced5ea2d07f3",
     "res_aa9b10815d6e",
     "res_d2b79b4d21fc",
-    "res_aa02df29b301"
+    "res_aa02df29b301",
+    "res_741c58855525"
   ]
 }
