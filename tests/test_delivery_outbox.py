@@ -6,6 +6,44 @@ from agent.delivery import Outbox, new_record_key
 
 
 class TestDeliveryOutbox(unittest.TestCase):
+    def test_completed_social_targets_are_excluded_but_other_actions_remain(self):
+        from agent.delivery import exclude_completed_candidates
+        from agent.decision_engine import ActionCandidate, ActionType
+        from agent.storage import write_json
+        rows = {}
+        for action, collection, subject in [
+            (ActionType.BROWSE_AND_LIKE, "app.bsky.feed.like", {"uri": "post:old"}),
+            (ActionType.REPOST, "app.bsky.feed.repost", {"uri": "post:old"}),
+            (ActionType.FOLLOW, "app.bsky.graph.follow", "did:old")]:
+            rows[action.value] = {"status": "delivered", "payload": {"collection": collection, "record": {"subject": subject}}}
+        write_json(self.path, rows)
+        old = {"post": {"uri": "post:old", "author": {"did": "did:old"}}}
+        new = {"post": {"uri": "post:new", "author": {"did": "did:new"}}}
+        candidates = [ActionCandidate(action, 0, 1, "", data) for data in (old, new) for action in ActionType]
+        with patch("agent.delivery.Outbox", return_value=self.outbox):
+            retained = exclude_completed_candidates(candidates)
+        self.assertEqual(len(retained), len(candidates) - 3)
+        self.assertTrue(any(c.action == ActionType.BROWSE_AND_REPLY and c.target_data == old for c in retained))
+        self.assertTrue(any(c.action == ActionType.NO_ACTION for c in retained))
+
+    def test_viewer_state_and_recent_likes_exclude_completed_candidates(self):
+        from agent.delivery import exclude_completed_candidates
+        from agent.decision_engine import ActionCandidate, ActionType
+        data = {"post": {"uri": "post:1", "viewer": {"like": "receipt", "repost": "receipt"},
+                         "author": {"viewer": {"following": "receipt"}}}}
+        candidates = [ActionCandidate(action, 0, 1, "", data) for action in (ActionType.BROWSE_AND_LIKE, ActionType.REPOST, ActionType.FOLLOW)]
+        with patch("agent.delivery.Outbox", return_value=self.outbox):
+            self.assertEqual(exclude_completed_candidates(candidates), [])
+            candidate = ActionCandidate(ActionType.BROWSE_AND_LIKE, 0, 1, "", {"post": {"uri": "post:recent", "viewer": None}})
+            self.assertEqual(exclude_completed_candidates([candidate], [None, "post:recent"]), [])
+
+    def test_uncertain_delivery_is_not_misclassified_as_completed(self):
+        from agent.delivery import completed_social_actions
+        from agent.storage import write_json
+        write_json(self.path, {"one": {"status": "uncertain", "payload": {"collection": "app.bsky.feed.like", "record": {"subject": {"uri": "post:1"}}}}})
+        with patch("agent.delivery.Outbox", return_value=self.outbox):
+            self.assertFalse(completed_social_actions()["app.bsky.feed.like"])
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)

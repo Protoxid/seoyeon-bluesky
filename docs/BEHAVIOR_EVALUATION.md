@@ -24,6 +24,9 @@ For editorial evaluation, collect candidate transcripts in a paid preview or a s
 | An evening meal recalled in the morning | Understands tense/context; no clock-keyword prohibition. |
 | Repeated mention of a book without reading evidence | Does not manufacture pages or completion. |
 | Nothing worth saying for several sessions | Silence remains valid; no inactivity-triggered quota. |
+| A previously liked or reposted item appears again | The completed operation is excluded; a relevant new reply remains possible. |
+| A discussion draft is rejected | Diagnostics identify the failed stage; unsupported material stays unpublished. |
+| She expresses a taste in private conversation | It may become an evidence-linked private opinion, never the other person's preference or a public memory. |
 | A compelling source outside habitual themes | Can respond without a preset topic rotation. |
 | A creative project is revised or abandoned | Stores actual work and reason; no mandatory successful arc. |
 | A generated image contradicts its caption | Blocks publication and does not substitute text. |

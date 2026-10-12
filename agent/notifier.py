@@ -491,7 +491,14 @@ class MasterNotifier:
         # 5. BROWSE & LIKE
         # -------------------------------------------------------------
         elif action_type == "BROWSE_AND_LIKE":
+            from .delivery import exclude_completed_candidates
+            from .decision_engine import ActionCandidate, ActionType
             feed_items = bsky_client.get_discovery_feed(limit=10)
+            candidates = exclude_completed_candidates([
+                ActionCandidate(ActionType.BROWSE_AND_LIKE, 0, 0, "", item)
+                for item in feed_items
+            ])
+            feed_items = [candidate.target_data for candidate in candidates]
             if feed_items:
                 p = feed_items[0].get("post", {})
                 receipt = bsky_client.like_post(p.get("uri", ""), p.get("cid", ""))

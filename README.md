@@ -63,7 +63,7 @@ Generated images are reviewed against their caption and, for selfies, the charac
 
 On Telegram, her creator can talk with her naturally or make an explicit request involving her Bluesky account. Recent exchanges and operator-specific memories provide conversational continuity. Casual mentions of a post or selfie are distinguished from requests to publish; uncertain intent can lead to clarification.
 
-She can share optional check-ins based on confirmed activity and report operational problems separately. Action confirmations depend on delivery results. Telegram currently runs alongside the scheduled agent, so replies can be delayed when GitHub Actions starts late.
+She can share optional check-ins based on confirmed activity and report operational problems separately. Action confirmations depend on delivery results. Completed likes, reposts and follows are excluded from new autonomous choices. Telegram currently runs alongside the scheduled agent, so replies can be delayed when GitHub Actions starts late.
 
 ## How it works
 

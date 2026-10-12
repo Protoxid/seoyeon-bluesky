@@ -9,6 +9,11 @@ def choose(outcome, context):
     from .continuity import ContinuityStore
     from .config import config
     from .runtime import MODE
+    from .delivery import exclude_completed_candidates
+    before=len(outcome.all_candidates)
+    outcome.all_candidates=exclude_completed_candidates(outcome.all_candidates,
+        [row.get("post_uri") for row in memory_store.get_recent_context().get("likes",[])])
+    completed_count=before-len(outcome.all_candidates)
     post_actions = {ActionType.PUBLISH_TEXT_POST, ActionType.PUBLISH_IMAGE_POST, ActionType.QUOTE_POST}
     reply_actions = {ActionType.REPLY_COMMENT, ActionType.ANSWER_MENTION, ActionType.BROWSE_AND_REPLY}
     outcome.all_candidates = [c for c in outcome.all_candidates if
@@ -20,6 +25,7 @@ def choose(outcome, context):
         return outcome
     quiet = next(c for c in outcome.all_candidates if c.action == ActionType.NO_ACTION)
     selected = quiet
+    selection_status="model_unavailable"
     options = []
     from .discussion import POLICY
     from .bsky_client import bsky_client
@@ -81,6 +87,7 @@ def choose(outcome, context):
                     "continuity": store.context(subject="self"), "public_relationships": public_memories}, ensure_ascii=False), max_tokens=350)
     if raw and MODE.get() != "offline":
         try:
+            selection_status="invalid_choice"
             choice = json.loads(raw)
             index, confidence = choice["candidate_id"], choice["confidence"]
             if type(index) is int and 0 <= index < len(outcome.all_candidates) and type(confidence) in (int, float) and config.action_threshold <= confidence <= 1:
@@ -89,13 +96,14 @@ def choose(outcome, context):
                 original = proposed.action in {ActionType.PUBLISH_TEXT_POST, ActionType.PUBLISH_IMAGE_POST}
                 if not original or (isinstance(contribution, str) and 8 <= len(contribution.strip()) <= 500):
                     selected = proposed
+                    selection_status="chosen_silence" if proposed is quiet else "validated_choice"
                     if original:
                         selected.target_data = {**(selected.target_data or {}), "topic_hint": contribution.strip()}
         except (ValueError, TypeError, KeyError):
             pass
     from collections import Counter
     outcome.discussion_diagnostics = {"eligible_actions": dict(Counter(c.action.value for c in outcome.all_candidates)),
-        "threads_read": len(threads), "feed_filtering":getattr(outcome,"feed_diagnostics",{}), "selection": "quiet" if selected is quiet else "validated_choice"}
+        "threads_read": len(threads), "feed_filtering":getattr(outcome,"feed_diagnostics",{}), "selection": selection_status, "completed_candidates_removed":completed_count}
     outcome.selected_action = selected.action
     outcome.target_data = selected.target_data or {}
     outcome.intent = selected.intent

@@ -8,6 +8,10 @@ Live mode loads the encrypted vault and halts on decryption failure. It authenti
 
 The decision engine retains heuristic scores for diagnostics and legacy simulation. The live chooser does not use these scores as action instructions. Cadence caps, budget limits, authentication, privacy and idempotency remain explicit operational rules.
 
+Before model selection, confirmed likes, reposts and follows are removed from the candidate set using Bluesky viewer state and durable delivery receipts. Recent likes also cover older history without outbox records. A previously liked post can still be eligible for a reply. Telegram browse-and-like uses the same completed-action filter. Delivery recovery remains responsible for uncertain sends; uncertainty is not treated as completion.
+
+Interaction learning distinguishes another person's stated preference from Seo-yeon's own expressed opinion. Both require exact evidence and preserve their original scope. Logs report `learning_status` as updated, no retained update, model unavailable or validation rejected, without printing the conversation. No retained update may be legitimate; these diagnostics do not compel new memories.
+
 ## Storage
 
 | Store | Purpose |
@@ -53,6 +57,8 @@ Every OpenRouter attempt has its own reservation and reconciliation, including b
 ## Scheduling and health
 
 GitHub wakes the runtime periodically. A wakeup does not mean a social action is due. Personal Telegram check-ins default to meaningful confirmed activity; daily summaries are an explicit preference. Reflection maintenance is operational work, not a fabricated life event. Failures of authentication, image delivery, vault loading or state persistence return nonzero rather than masquerading as dry-run success. Inspect Actions logs and `pending` when a workflow fails.
+
+An external cron-job.org dispatcher is being prepared to replace delayed GitHub schedule triggers. Until its authenticated dry-run succeeds and it is enabled, the repository schedule remains authoritative. Its intended cadence matches the current schedule: minutes 17 and 47, Seoul hours 07 through 01, with the existing budgets. Use only a repository-restricted fine-grained GitHub token with Actions write permission, held by the scheduler, never in repository files. Test with `dry_run=true`; HTTP acceptance alone does not prove workflow completion. Remove the repository's `schedule` trigger only when the replacement is verified, retaining `workflow_dispatch` and the shared concurrency group. Do not leave two periodic dispatchers active.
 
 ## Historical exposure
 

@@ -148,3 +148,31 @@ def recover_delivery():
         if not receipt:
             clear = False
     return clear
+
+
+def completed_social_actions():
+    """Confirmed targets remain known after the rolling activity history expires."""
+    result={"app.bsky.feed.like":set(), "app.bsky.feed.repost":set(), "app.bsky.graph.follow":set()}
+    for row in read_json(Outbox().path, {}).values():
+        payload=row.get("payload",{}); collection=payload.get("collection")
+        if row.get("status")!="delivered" or collection not in result: continue
+        subject=payload.get("record",{}).get("subject")
+        target=subject.get("uri") if isinstance(subject,dict) else subject
+        if isinstance(target,str): result[collection].add(target)
+    return result
+
+
+def exclude_completed_candidates(candidates, recent_likes=()):
+    from .decision_engine import ActionType
+    completed=completed_social_actions()
+    completed["app.bsky.feed.like"].update(uri for uri in recent_likes if isinstance(uri, str) and uri)
+    retained=[]
+    for candidate in candidates:
+        post=(candidate.target_data or {}).get("post") or {}
+        viewer=post.get("viewer") or {}; author=post.get("author") or {}
+        uri=post.get("uri")
+        if candidate.action==ActionType.BROWSE_AND_LIKE and (viewer.get("like") or uri in completed["app.bsky.feed.like"]): continue
+        if candidate.action==ActionType.REPOST and (viewer.get("repost") or uri in completed["app.bsky.feed.repost"]): continue
+        if candidate.action==ActionType.FOLLOW and ((author.get("viewer") or {}).get("following") or author.get("did") in completed["app.bsky.graph.follow"]): continue
+        retained.append(candidate)
+    return retained

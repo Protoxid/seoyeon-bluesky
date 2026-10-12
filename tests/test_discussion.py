@@ -27,6 +27,19 @@ class TestDiscussion(unittest.TestCase):
     def test_social_fragment_needs_no_citation(self):
         result,call,_=self.draft({"text":"same","kind":"social","claims":[]})
         self.assertEqual(result[0],"same"); self.assertEqual(call.call_count,2)
+
+    def test_diagnostics_distinguish_failed_stages_without_exposing_text(self):
+        cases = [
+            ("broken", None, "invalid_draft_json"),
+            (json.dumps({"text":"a fact","kind":"knowledge","claims":[]}), None, "missing_knowledge_evidence"),
+            (json.dumps({"text":"same","kind":"social","claims":[]}), "broken", "invalid_review_json"),
+            (json.dumps({"text":"same","kind":"social","claims":[]}), "", "review_unavailable"),
+        ]
+        for draft, review, status in cases:
+            gen = ContentGenerator()
+            with patch("agent.discussion.source_packet", return_value=[]), patch.object(gen,"_call_llm",side_effect=[(draft,"mock"),(review,"mock")]):
+                self.assertEqual(grounded_draft(gen,"sys","private words",content_type="reply")[0], "")
+            self.assertEqual(gen.last_discussion_status, status)
     def test_supported_knowledge_stores_evidence(self):
         claim={"claim":"Hangul uses jamo.","source_id":"source1","quote":self.source["text"]}
         result,_,_=self.draft({"text":"hangul uses jamo.","kind":"knowledge","claims":[claim]},sources=[self.source])

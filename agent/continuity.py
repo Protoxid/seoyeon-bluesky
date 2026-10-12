@@ -285,11 +285,15 @@ def learn_interaction(source_id, inbound, outgoing, subject, *, scope="public"):
         "commitments=[{topic,status:open|fulfilled|declined|withdrawn,source_ids,quote?,id?,reason?}]. "
         "Optional disputed_claims=[{id,quote}] ONLY when the inbound statement explicitly corrects a supplied "
         "prior_source_interpretation. Quote the exact correction. This quarantines it for review, not a replacement truth. "
-        "Every update cites supplied source_ids; quotes must be verbatim spans. Existing IDs may only be revised "
+        "Every update cites supplied source_ids; quotes must be verbatim spans. Memory confidence is numeric 0 to 1; only >=0.75 is retained. "
+        "preference, boundary and relationship memories must quote an inbound user statement. "
+        "Use opinion for Seo-yeon's own expressed taste, citing her outgoing statement. Do not classify her taste as a user preference. "
+        "Existing IDs may only be revised "
         "with explicit evidence and a reason. Openness or familiarity does not authorize actions. "
         "Do not invent achievements, physical experiences, intimacy, or operational permissions.",
         json.dumps(prompt, ensure_ascii=False), max_tokens=900)
     if not raw:
+        print("[Continuity] learning_status=model_unavailable")
         return
     try:
         proposal = json.loads(raw.strip().removeprefix("```json").removesuffix("```").strip())
@@ -303,11 +307,15 @@ def learn_interaction(source_id, inbound, outgoing, subject, *, scope="public"):
                 or dispute["quote"] not in inbound): raise ValueError("Unverified correction")
         if any(k not in {"memories", "commitments"} for k in proposal):
             raise ValueError("Interaction cannot alter creative work")
+        before=store.load()
         store.apply(proposal_id, proposal, source_ids, scope=scope, subject=subject)
+        after=store.load()
+        changed=sum(before[name]!=after[name] for name in ("memories","commitments"))
+        print("[Continuity] learning_status="+("updated" if changed else "no_retained_update"))
         for dispute in disputes:
             references.dispute(dispute["id"], "Conversation correction; interpretation quarantined pending source review.")
     except (ValueError, TypeError, KeyError):
-        print("[Continuity] Unverified update rejected; evidence retained for later review.")
+        print("[Continuity] learning_status=validation_rejected; evidence retained.")
 
 
 def reflect(context):

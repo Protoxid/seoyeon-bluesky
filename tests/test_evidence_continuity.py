@@ -41,6 +41,13 @@ class TestEvidenceContinuity(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.store.apply("one", {"memories": [self.memory(source)]}, [source])
 
+    def test_own_expressed_taste_can_be_retained_as_scoped_opinion(self):
+        source = self.store.observe("out", "I prefer quiet films", kind="published_statement", scope="private:person")
+        self.store.apply("one", {"memories": [self.memory(source, kind="opinion")]}, [source], scope="private:person", subject="person")
+        memory = self.store.load()["memories"]["taste"]
+        self.assertEqual(memory["subject"], "self")
+        self.assertNotIn("quiet films", self.store.context(subject="self"))
+
     def test_unknown_sources_rejected_atomically(self):
         source = self.evidence()
         proposal = {"memories": [self.memory(source), self.memory("invented", id="other")]}
