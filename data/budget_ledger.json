@@ -1,16 +1,10 @@
 {
   "current_day": "2026-10-13",
   "current_month": "2026-10",
-  "daily_spend_usd": 0.5761,
-  "monthly_spend_usd": 1.8266,
+  "daily_spend_usd": 0.5779,
+  "monthly_spend_usd": 1.8284,
   "daily_images_count": 0,
   "history": [
-    {
-      "ts": "2026-10-07T12:52:30.841096+00:00",
-      "cost_usd": 0.045,
-      "action_type": "image_generation",
-      "details": "candid claw-clip selfie avatar v2"
-    },
     {
       "ts": "2026-10-07T18:03:17.936510+00:00",
       "cost_usd": 0.045,
@@ -980,23 +974,21 @@
       "completion_tokens": 1600,
       "total_tokens": 6482,
       "details": "provider usage"
+    },
+    {
+      "ts": "2026-10-13T02:18:16.912984+00:00",
+      "cost_usd": 0.0017758,
+      "action_type": "llm_generation",
+      "model": "deepseek-v4.1-flash",
+      "prompt_tokens": 3679,
+      "completion_tokens": 1600,
+      "total_tokens": 5279,
+      "details": "provider usage"
     }
   ],
-  "daily_tokens": 291114,
-  "active_reservations": {
-    "res_c67ebf820879": {
-      "reservation_id": "res_c67ebf820879",
-      "amount_usd": 0.002412,
-      "action_type": "llm_generation",
-      "provider": "openrouter",
-      "model": "deepseek-v4.1-flash",
-      "details": "",
-      "status": "submitted",
-      "timestamp": "2026-10-13T02:18:04.904336+00:00",
-      "request_id": "gen-1791857886-HqbW95Rr49rEQFNWMyYz"
-    }
-  },
-  "monthly_tokens": 668285,
+  "daily_tokens": 296393,
+  "active_reservations": {},
+  "monthly_tokens": 673564,
   "reconciled_ids": [
     "res_12f0160984bd",
     "res_1f73b13a18f9",
@@ -1083,6 +1075,7 @@
     "res_ca22c38cd2a8",
     "res_d5108bb54c2f",
     "res_b86f867fac96",
-    "res_a52516af7bad"
+    "res_a52516af7bad",
+    "res_c67ebf820879"
   ]
 }
