@@ -1,16 +1,10 @@
 {
   "current_day": "2026-10-13",
   "current_month": "2026-10",
-  "daily_spend_usd": 0.6755,
-  "monthly_spend_usd": 1.926,
+  "daily_spend_usd": 0.6822,
+  "monthly_spend_usd": 1.9326,
   "daily_images_count": 0,
   "history": [
-    {
-      "ts": "2026-10-08T11:55:40.996679+00:00",
-      "cost_usd": 0.002,
-      "action_type": "text_post",
-      "details": "the 90s film i'm watching hold"
-    },
     {
       "ts": "2026-10-09T12:02:08.209885+00:00",
       "cost_usd": 0.013287,
@@ -1000,23 +994,33 @@
       "completion_tokens": 17,
       "total_tokens": 9566,
       "details": "provider usage"
+    },
+    {
+      "ts": "2026-10-13T02:47:59.307122+00:00",
+      "cost_usd": 0.00665,
+      "action_type": "llm_generation",
+      "model": "anthropic/claude-sonnet-5.5",
+      "prompt_tokens": 2080,
+      "completion_tokens": 249,
+      "total_tokens": 2329,
+      "details": "provider usage"
     }
   ],
-  "daily_tokens": 339622,
+  "daily_tokens": 341951,
   "active_reservations": {
-    "res_70d7288fdd96": {
-      "reservation_id": "res_70d7288fdd96",
-      "amount_usd": 0.035816,
+    "res_2b480b539f1b": {
+      "reservation_id": "res_2b480b539f1b",
+      "amount_usd": 0.024994,
       "action_type": "llm_generation",
       "provider": "openrouter",
       "model": "anthropic/claude-sonnet-5.5",
       "details": "",
       "status": "submitted",
-      "timestamp": "2026-10-13T02:47:51.650341+00:00",
-      "request_id": "gen-1791859672-uMd1nZHfpalGkaTD4xI5"
+      "timestamp": "2026-10-13T02:47:59.328168+00:00",
+      "request_id": ""
     }
   },
-  "monthly_tokens": 716793,
+  "monthly_tokens": 719122,
   "reconciled_ids": [
     "res_12f0160984bd",
     "res_1f73b13a18f9",
@@ -1108,6 +1112,7 @@
     "res_7e13d8f2df54",
     "res_da0aada3936f",
     "res_7d9fef69b72a",
-    "res_657af6b45d64"
+    "res_657af6b45d64",
+    "res_70d7288fdd96"
   ]
 }
