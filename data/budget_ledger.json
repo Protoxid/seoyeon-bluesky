@@ -1,20 +1,10 @@
 {
   "current_day": "2026-10-13",
   "current_month": "2026-10",
-  "daily_spend_usd": 1.0923,
-  "monthly_spend_usd": 2.3427,
+  "daily_spend_usd": 1.1377,
+  "monthly_spend_usd": 2.3881,
   "daily_images_count": 0,
   "history": [
-    {
-      "ts": "2026-10-11T11:17:15.512443+00:00",
-      "cost_usd": 0.03108,
-      "action_type": "llm_generation",
-      "model": "anthropic/claude-sonnet-5.5",
-      "prompt_tokens": 13910,
-      "completion_tokens": 326,
-      "total_tokens": 14236,
-      "details": "provider usage"
-    },
     {
       "ts": "2026-10-11T11:17:21.848056+00:00",
       "cost_usd": 0.010444,
@@ -1004,23 +994,33 @@
       "completion_tokens": 111,
       "total_tokens": 1282,
       "details": "provider usage"
+    },
+    {
+      "ts": "2026-10-13T07:17:42.346371+00:00",
+      "cost_usd": 0.045394,
+      "action_type": "llm_generation",
+      "model": "anthropic/claude-sonnet-5.5",
+      "prompt_tokens": 19552,
+      "completion_tokens": 629,
+      "total_tokens": 20181,
+      "details": "provider usage"
     }
   ],
-  "daily_tokens": 565515,
+  "daily_tokens": 585696,
   "active_reservations": {
-    "res_5ecc6e22b196": {
-      "reservation_id": "res_5ecc6e22b196",
-      "amount_usd": 0.187114,
+    "res_0c73688cb2b1": {
+      "reservation_id": "res_0c73688cb2b1",
+      "amount_usd": 0.075607,
       "action_type": "llm_generation",
       "provider": "openrouter",
       "model": "anthropic/claude-sonnet-5.5",
       "details": "",
       "status": "submitted",
-      "timestamp": "2026-10-13T07:17:27.156385+00:00",
-      "request_id": "gen-1791875848-pOR0q5nnoTSgBbZs20Fk"
+      "timestamp": "2026-10-13T07:17:42.350449+00:00",
+      "request_id": ""
     }
   },
-  "monthly_tokens": 942686,
+  "monthly_tokens": 962867,
   "reconciled_ids": [
     "res_12f0160984bd",
     "res_1f73b13a18f9",
@@ -1140,6 +1140,7 @@
     "res_1d25989685f3",
     "res_3f6cd5198cae",
     "res_f435c7665e9f",
-    "res_29cb99d2381d"
+    "res_29cb99d2381d",
+    "res_5ecc6e22b196"
   ]
 }
