@@ -1,16 +1,10 @@
 {
   "current_day": "2026-10-13",
   "current_month": "2026-10",
-  "daily_spend_usd": 0.5473,
-  "monthly_spend_usd": 1.7978,
+  "daily_spend_usd": 0.5503,
+  "monthly_spend_usd": 1.8008,
   "daily_images_count": 0,
   "history": [
-    {
-      "ts": "2026-10-07T11:53:09.130613+00:00",
-      "cost_usd": 0.045,
-      "action_type": "image_generation",
-      "details": "Seongsu sunset street banner"
-    },
     {
       "ts": "2026-10-07T12:52:30.833754+00:00",
       "cost_usd": 0.045,
@@ -972,23 +966,33 @@
       "completion_tokens": 700,
       "total_tokens": 22452,
       "details": "provider usage"
+    },
+    {
+      "ts": "2026-10-13T02:17:46.884307+00:00",
+      "cost_usd": 0.003011085,
+      "action_type": "llm_generation",
+      "model": "deepseek-v4.1-flash",
+      "prompt_tokens": 15449,
+      "completion_tokens": 700,
+      "total_tokens": 16149,
+      "details": "provider usage"
     }
   ],
-  "daily_tokens": 268483,
+  "daily_tokens": 284632,
   "active_reservations": {
-    "res_b86f867fac96": {
-      "reservation_id": "res_b86f867fac96",
-      "amount_usd": 0.009203,
+    "res_a52516af7bad": {
+      "reservation_id": "res_a52516af7bad",
+      "amount_usd": 0.069679,
       "action_type": "llm_generation",
       "provider": "openrouter",
-      "model": "deepseek-v4.1-flash",
+      "model": "anthropic/claude-sonnet-5.5",
       "details": "",
       "status": "submitted",
-      "timestamp": "2026-10-13T02:17:40.825812+00:00",
-      "request_id": "gen-1791857862-ZBj4xwOVc6saNM18FxBU"
+      "timestamp": "2026-10-13T02:17:46.889797+00:00",
+      "request_id": ""
     }
   },
-  "monthly_tokens": 645654,
+  "monthly_tokens": 661803,
   "reconciled_ids": [
     "res_12f0160984bd",
     "res_1f73b13a18f9",
@@ -1073,6 +1077,7 @@
     "res_527a4454d6b7",
     "res_94a4b4cdcb08",
     "res_ca22c38cd2a8",
-    "res_d5108bb54c2f"
+    "res_d5108bb54c2f",
+    "res_b86f867fac96"
   ]
 }
