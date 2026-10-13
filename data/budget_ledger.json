@@ -1,20 +1,10 @@
 {
   "current_day": "2026-10-13",
   "current_month": "2026-10",
-  "daily_spend_usd": 1.2125,
-  "monthly_spend_usd": 2.4629,
+  "daily_spend_usd": 1.216,
+  "monthly_spend_usd": 2.4664,
   "daily_images_count": 0,
   "history": [
-    {
-      "ts": "2026-10-11T16:43:17.887837+00:00",
-      "cost_usd": 0.008318,
-      "action_type": "llm_generation",
-      "model": "anthropic/claude-sonnet-5.5",
-      "prompt_tokens": 3579,
-      "completion_tokens": 116,
-      "total_tokens": 3695,
-      "details": "provider usage"
-    },
     {
       "ts": "2026-10-11T16:43:24.008074+00:00",
       "cost_usd": 0.003522,
@@ -1004,23 +994,33 @@
       "completion_tokens": 120,
       "total_tokens": 5901,
       "details": "provider usage"
+    },
+    {
+      "ts": "2026-10-13T08:17:30.273443+00:00",
+      "cost_usd": 0.003452,
+      "action_type": "llm_generation",
+      "model": "anthropic/claude-sonnet-5.5",
+      "prompt_tokens": 1171,
+      "completion_tokens": 111,
+      "total_tokens": 1282,
+      "details": "provider usage"
     }
   ],
-  "daily_tokens": 617154,
+  "daily_tokens": 618436,
   "active_reservations": {
-    "res_a0428ba22725": {
-      "reservation_id": "res_a0428ba22725",
-      "amount_usd": 0.024727,
+    "res_d8227afbbd1d": {
+      "reservation_id": "res_d8227afbbd1d",
+      "amount_usd": 0.18405,
       "action_type": "llm_generation",
       "provider": "openrouter",
       "model": "anthropic/claude-sonnet-5.5",
       "details": "",
       "status": "submitted",
-      "timestamp": "2026-10-13T08:17:23.328429+00:00",
-      "request_id": "gen-1791879444-tWUzIJU0zzBOI4VhQ6gB"
+      "timestamp": "2026-10-13T08:17:34.482216+00:00",
+      "request_id": ""
     }
   },
-  "monthly_tokens": 994325,
+  "monthly_tokens": 995607,
   "reconciled_ids": [
     "res_12f0160984bd",
     "res_1f73b13a18f9",
@@ -1145,6 +1145,7 @@
     "res_0c73688cb2b1",
     "res_2666bd8462e0",
     "res_0d3c92535d1b",
-    "res_7ee8829f9bba"
+    "res_7ee8829f9bba",
+    "res_a0428ba22725"
   ]
 }
