@@ -1,20 +1,10 @@
 {
   "current_day": "2026-10-13",
   "current_month": "2026-10",
-  "daily_spend_usd": 0.9235,
-  "monthly_spend_usd": 2.1739,
+  "daily_spend_usd": 0.9269,
+  "monthly_spend_usd": 2.1773,
   "daily_images_count": 0,
   "history": [
-    {
-      "ts": "2026-10-10T20:23:49.080191+00:00",
-      "cost_usd": 0.033142,
-      "action_type": "llm_generation",
-      "model": "anthropic/claude-sonnet-5.5",
-      "prompt_tokens": 13071,
-      "completion_tokens": 700,
-      "total_tokens": 13771,
-      "details": "provider usage"
-    },
     {
       "ts": "2026-10-10T20:23:55.399770+00:00",
       "cost_usd": 0.0023472,
@@ -1004,23 +994,33 @@
       "completion_tokens": 576,
       "total_tokens": 13486,
       "details": "provider usage"
+    },
+    {
+      "ts": "2026-10-13T05:47:23.921636+00:00",
+      "cost_usd": 0.003372,
+      "action_type": "llm_generation",
+      "model": "anthropic/claude-sonnet-5.5",
+      "prompt_tokens": 1171,
+      "completion_tokens": 103,
+      "total_tokens": 1274,
+      "details": "provider usage"
     }
   ],
-  "daily_tokens": 467253,
+  "daily_tokens": 468527,
   "active_reservations": {
-    "res_4bd3bae86277": {
-      "reservation_id": "res_4bd3bae86277",
-      "amount_usd": 0.024727,
+    "res_0fa28a11e53a": {
+      "reservation_id": "res_0fa28a11e53a",
+      "amount_usd": 0.186664,
       "action_type": "llm_generation",
       "provider": "openrouter",
       "model": "anthropic/claude-sonnet-5.5",
       "details": "",
       "status": "submitted",
-      "timestamp": "2026-10-13T05:47:17.888371+00:00",
-      "request_id": "gen-1791870439-Fznkyhu6nfyrtWiEvAAt"
+      "timestamp": "2026-10-13T05:47:25.678845+00:00",
+      "request_id": ""
     }
   },
-  "monthly_tokens": 844424,
+  "monthly_tokens": 845698,
   "reconciled_ids": [
     "res_12f0160984bd",
     "res_1f73b13a18f9",
@@ -1129,6 +1129,7 @@
     "res_a8e4a7fc29c9",
     "res_a1cce4466292",
     "res_bc14121f04d3",
-    "res_9d177e33ee06"
+    "res_9d177e33ee06",
+    "res_4bd3bae86277"
   ]
 }
