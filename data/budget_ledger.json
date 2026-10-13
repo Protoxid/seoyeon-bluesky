@@ -1,20 +1,10 @@
 {
   "current_day": "2026-10-13",
   "current_month": "2026-10",
-  "daily_spend_usd": 1.216,
-  "monthly_spend_usd": 2.4664,
+  "daily_spend_usd": 1.2608,
+  "monthly_spend_usd": 2.5112,
   "daily_images_count": 0,
   "history": [
-    {
-      "ts": "2026-10-11T16:43:24.008074+00:00",
-      "cost_usd": 0.003522,
-      "action_type": "llm_generation",
-      "model": "anthropic/claude-sonnet-5.5",
-      "prompt_tokens": 1171,
-      "completion_tokens": 118,
-      "total_tokens": 1289,
-      "details": "provider usage"
-    },
     {
       "ts": "2026-10-11T16:43:33.663451+00:00",
       "cost_usd": 0.04598,
@@ -1004,23 +994,33 @@
       "completion_tokens": 111,
       "total_tokens": 1282,
       "details": "provider usage"
+    },
+    {
+      "ts": "2026-10-13T08:17:43.703767+00:00",
+      "cost_usd": 0.044826,
+      "action_type": "llm_generation",
+      "model": "anthropic/claude-sonnet-5.5",
+      "prompt_tokens": 19398,
+      "completion_tokens": 603,
+      "total_tokens": 20001,
+      "details": "provider usage"
     }
   ],
-  "daily_tokens": 618436,
+  "daily_tokens": 638437,
   "active_reservations": {
-    "res_d8227afbbd1d": {
-      "reservation_id": "res_d8227afbbd1d",
-      "amount_usd": 0.18405,
+    "res_5c698c22bdd0": {
+      "reservation_id": "res_5c698c22bdd0",
+      "amount_usd": 0.132791,
       "action_type": "llm_generation",
       "provider": "openrouter",
       "model": "anthropic/claude-sonnet-5.5",
       "details": "",
       "status": "submitted",
-      "timestamp": "2026-10-13T08:17:34.482216+00:00",
-      "request_id": "gen-1791879455-UElUk0HtnBeEz6ZE0eAE"
+      "timestamp": "2026-10-13T08:17:47.444883+00:00",
+      "request_id": ""
     }
   },
-  "monthly_tokens": 995607,
+  "monthly_tokens": 1015608,
   "reconciled_ids": [
     "res_12f0160984bd",
     "res_1f73b13a18f9",
@@ -1146,6 +1146,7 @@
     "res_2666bd8462e0",
     "res_0d3c92535d1b",
     "res_7ee8829f9bba",
-    "res_a0428ba22725"
+    "res_a0428ba22725",
+    "res_d8227afbbd1d"
   ]
 }
