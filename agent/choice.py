@@ -103,7 +103,7 @@ def choose(outcome, context):
             pass
     from collections import Counter
     outcome.discussion_diagnostics = {"eligible_actions": dict(Counter(c.action.value for c in outcome.all_candidates)),
-        "threads_read": len(threads), "feed_filtering":getattr(outcome,"feed_diagnostics",{}), "selection": selection_status, "completed_candidates_removed":completed_count}
+        "threads_read": len(threads), "feed_filtering":getattr(outcome,"feed_diagnostics",{}), "selection": selection_status, "closed_social_candidates_removed":completed_count}
     outcome.selected_action = selected.action
     outcome.target_data = selected.target_data or {}
     outcome.intent = selected.intent

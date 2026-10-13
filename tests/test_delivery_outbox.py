@@ -6,6 +6,52 @@ from agent.delivery import Outbox, new_record_key
 
 
 class TestDeliveryOutbox(unittest.TestCase):
+    def test_abandoned_targets_are_ineligible_without_becoming_delivered(self):
+        from agent.delivery import completed_social_actions, exclude_completed_candidates
+        from agent.decision_engine import ActionCandidate, ActionType
+        from agent.storage import write_json
+        for action, collection, subject in [
+            (ActionType.BROWSE_AND_LIKE, "app.bsky.feed.like", {"uri": "post:old"}),
+            (ActionType.REPOST, "app.bsky.feed.repost", {"uri": "post:old"}),
+            (ActionType.FOLLOW, "app.bsky.graph.follow", "did:old")]:
+            with self.subTest(action=action):
+                row = {"status": "abandoned", "payload": {"collection": collection, "record": {"subject": subject}}}
+                write_json(self.path, {"closed": row})
+                old = {"post": {"uri": "post:old", "author": {"did": "did:old"}}}
+                fresh = {"post": {"uri": "post:new", "author": {"did": "did:new"}}}
+                blocked = ActionCandidate(action, 1, 1, "", old)
+                allowed = [ActionCandidate(action, 1, 1, "", fresh),
+                           ActionCandidate(ActionType.BROWSE_AND_REPLY, 1, 1, "", old),
+                           ActionCandidate(ActionType.NO_ACTION, 0, 1, "")]
+                before = self.path.read_bytes()
+                with patch("agent.delivery.Outbox", return_value=self.outbox):
+                    self.assertEqual(exclude_completed_candidates([blocked] + allowed), allowed)
+                    self.assertFalse(completed_social_actions()[collection])
+                self.assertEqual(self.path.read_bytes(), before)
+                transport = Mock()
+                self.assertEqual(self.outbox.send("closed", "endpoint", {}, transport, idempotent=True), {})
+                transport.assert_not_called()
+
+    def test_chooser_never_offers_abandoned_repost_to_model(self):
+        import json
+        from agent.choice import choose
+        from agent.context_engine import build_environment_context
+        from agent.decision_engine import ActionCandidate, ActionType, DecisionOutcome
+        from agent.runtime import execution_mode
+        from agent.storage import write_json
+        write_json(self.path, {"closed": {"status": "abandoned", "payload": {
+            "collection": "app.bsky.feed.repost", "record": {"subject": {"uri": "post:old"}}}}})
+        blocked = ActionCandidate(ActionType.REPOST, 1, 1, "", {"post": {"uri": "post:old"}})
+        quiet = ActionCandidate(ActionType.NO_ACTION, 0, 1, "")
+        outcome = DecisionOutcome(blocked.action, "", {}, "", {}, [blocked, quiet])
+        with execution_mode("live"), patch("agent.delivery.Outbox", return_value=self.outbox), patch(
+            "agent.generator.generator._call_llm", return_value=('{"candidate_id":0,"confidence":0.99}', "mock")
+        ) as model:
+            result = choose(outcome, build_environment_context())
+        self.assertEqual(result.selected_action, ActionType.NO_ACTION)
+        options = json.loads(model.call_args.args[1])["options"]
+        self.assertEqual([option["action"] for option in options], ["NO_ACTION"])
+
     def test_completed_social_targets_are_excluded_but_other_actions_remain(self):
         from agent.delivery import exclude_completed_candidates
         from agent.decision_engine import ActionCandidate, ActionType

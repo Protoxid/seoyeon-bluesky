@@ -25,6 +25,7 @@ For editorial evaluation, collect candidate transcripts in a paid preview or a s
 | Repeated mention of a book without reading evidence | Does not manufacture pages or completion. |
 | Nothing worth saying for several sessions | Silence remains valid; no inactivity-triggered quota. |
 | A previously liked or reposted item appears again | The completed operation is excluded; a relevant new reply remains possible. |
+| A previously abandoned repost appears again | The closed repost cannot be selected or retried; fresh targets and a relevant reply remain eligible. |
 | A discussion draft is rejected | Diagnostics identify the failed stage; unsupported material stays unpublished. |
 | She expresses a taste in private conversation | It may become an evidence-linked private opinion, never the other person's preference or a public memory. |
 | A compelling source outside habitual themes | Can respond without a preset topic rotation. |

@@ -150,12 +150,17 @@ def recover_delivery():
     return clear
 
 
-def completed_social_actions():
-    """Confirmed targets remain known after the rolling activity history expires."""
+def completed_social_actions(*, include_abandoned=False):
+    """Return confirmed targets, optionally including explicitly closed attempts.
+
+    Abandonment forbids retry; it must never be reported as successful delivery.
+    Pending/uncertain attempts remain the responsibility of delivery recovery.
+    """
+    statuses = {"delivered", "abandoned"} if include_abandoned else {"delivered"}
     result={"app.bsky.feed.like":set(), "app.bsky.feed.repost":set(), "app.bsky.graph.follow":set()}
     for row in read_json(Outbox().path, {}).values():
         payload=row.get("payload",{}); collection=payload.get("collection")
-        if row.get("status")!="delivered" or collection not in result: continue
+        if row.get("status") not in statuses or collection not in result: continue
         subject=payload.get("record",{}).get("subject")
         target=subject.get("uri") if isinstance(subject,dict) else subject
         if isinstance(target,str): result[collection].add(target)
@@ -163,8 +168,9 @@ def completed_social_actions():
 
 
 def exclude_completed_candidates(candidates, recent_likes=()):
+    """Exclude delivered or abandoned operations, preserving other choices."""
     from .decision_engine import ActionType
-    completed=completed_social_actions()
+    completed=completed_social_actions(include_abandoned=True)
     completed["app.bsky.feed.like"].update(uri for uri in recent_likes if isinstance(uri, str) and uri)
     retained=[]
     for candidate in candidates:
