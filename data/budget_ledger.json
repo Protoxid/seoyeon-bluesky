@@ -1,20 +1,10 @@
 {
   "current_day": "2026-10-13",
   "current_month": "2026-10",
-  "daily_spend_usd": 0.8886,
-  "monthly_spend_usd": 2.139,
+  "daily_spend_usd": 0.8919,
+  "monthly_spend_usd": 2.1423,
   "daily_images_count": 0,
   "history": [
-    {
-      "ts": "2026-10-10T20:14:14.278506+00:00",
-      "cost_usd": 0.033074,
-      "action_type": "llm_generation",
-      "model": "anthropic/claude-sonnet-5.5",
-      "prompt_tokens": 13402,
-      "completion_tokens": 627,
-      "total_tokens": 14029,
-      "details": "provider usage"
-    },
     {
       "ts": "2026-10-10T20:23:38.759385+00:00",
       "cost_usd": 0.002296,
@@ -1004,23 +994,33 @@
       "completion_tokens": 127,
       "total_tokens": 4968,
       "details": "provider usage"
+    },
+    {
+      "ts": "2026-10-13T05:17:25.548257+00:00",
+      "cost_usd": 0.003332,
+      "action_type": "llm_generation",
+      "model": "anthropic/claude-sonnet-5.5",
+      "prompt_tokens": 1171,
+      "completion_tokens": 99,
+      "total_tokens": 1270,
+      "details": "provider usage"
     }
   ],
-  "daily_tokens": 452497,
+  "daily_tokens": 453767,
   "active_reservations": {
-    "res_bc14121f04d3": {
-      "reservation_id": "res_bc14121f04d3",
-      "amount_usd": 0.024727,
+    "res_9d177e33ee06": {
+      "reservation_id": "res_9d177e33ee06",
+      "amount_usd": 0.129934,
       "action_type": "llm_generation",
       "provider": "openrouter",
       "model": "anthropic/claude-sonnet-5.5",
       "details": "",
       "status": "submitted",
-      "timestamp": "2026-10-13T05:17:17.989096+00:00",
-      "request_id": "gen-1791868639-CtyZcIBWUJOHpAnPsUtA"
+      "timestamp": "2026-10-13T05:17:29.150845+00:00",
+      "request_id": ""
     }
   },
-  "monthly_tokens": 829668,
+  "monthly_tokens": 830938,
   "reconciled_ids": [
     "res_12f0160984bd",
     "res_1f73b13a18f9",
@@ -1127,6 +1127,7 @@
     "res_9bd7cbb1240a",
     "res_372a64b8e9b7",
     "res_a8e4a7fc29c9",
-    "res_a1cce4466292"
+    "res_a1cce4466292",
+    "res_bc14121f04d3"
   ]
 }
