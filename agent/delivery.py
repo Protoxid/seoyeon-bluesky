@@ -34,18 +34,16 @@ def checkpoint():
     if os.environ.get("SEOYEON_GIT_CHECKPOINT") != "1":
         return
     from .config import PROJECT_ROOT
+    from .git_checkpoint import checked_git, push_checkpoint
     def git(*args):
-        result = subprocess.run(["git", *args], cwd=PROJECT_ROOT, capture_output=True)
-        if result.returncode:
-            raise RuntimeError("Durable state checkpoint failed; outbound work stopped")
-        return result.stdout
+        return checked_git(PROJECT_ROOT, *args)
     for relative in ("data/vault.enc", "data/budget_ledger.json", "data/memory", "data/logs/tick_history.jsonl"):
         if (PROJECT_ROOT / relative).exists():
             git("add", "--", relative)
     if git("diff", "--cached", "--name-only"):
         git("commit", "-m", "chore(agent): checkpoint delivery state [skip ci]")
     # Never send if the durable checkpoint cannot reach the remote repository.
-    git("push", "origin", "HEAD:main")
+    push_checkpoint(PROJECT_ROOT)
 
 
 class Outbox:

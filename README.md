@@ -76,7 +76,7 @@ She can share optional check-ins based on confirmed activity and report operatio
 | **Deliver** | Save the intended action before sending and record a confirmed result. |
 | **Remember** | Learn from confirmed exchanges and retain material for later reflection and creative work. |
 
-Private continuity is stored in an encrypted vault. Persistent delivery records help recover interrupted actions, while uncertain messages are held rather than blindly resent. Spending limits and activity ceilings constrain operation without setting engagement targets.
+Private continuity is stored in an encrypted vault. Persistent delivery records help recover interrupted actions, while uncertain messages are held rather than blindly resent. Temporary state-saving failures receive bounded retries; outbound work stops if the remote checkpoint cannot be verified. Spending limits and activity ceilings constrain operation without setting engagement targets.
 
 ## Technology
 

@@ -50,3 +50,5 @@ Require exact source provenance in automated cases, and let a separate reviewer 
 Evaluate ordinary chat, disagreement, a remembered preference, a negated or hypothetical posting request, an explicit request, and a failed/uncertain action. Check that replies do not perform obedience or force endearments, that private details stay private, and that asking about a selfie does not authorize publishing one. Meaningful check-ins may be skipped; operational uncertainty should still be reported accurately.
 
 Operator clarification review should include delegated feed selection, confirmation of one pending request, cancellation, topic changes, expired requests, and attempted action-type changes. Check that she distinguishes an uninspected feed from an inability to browse.
+
+Checkpoint regression tests cover transient transport failure, lost push acknowledgments, remote-read failure, credential-safe diagnostics and real local Git repositories with committed-but-unpushed state and divergent state. A failed checkpoint must still block outbound work. These checks do not guarantee external service availability.
