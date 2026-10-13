@@ -1,20 +1,10 @@
 {
   "current_day": "2026-10-13",
   "current_month": "2026-10",
-  "daily_spend_usd": 0.8325,
-  "monthly_spend_usd": 2.0829,
+  "daily_spend_usd": 0.8358,
+  "monthly_spend_usd": 2.0862,
   "daily_images_count": 0,
   "history": [
-    {
-      "ts": "2026-10-10T16:11:59.698781+00:00",
-      "cost_usd": 0.018858,
-      "action_type": "llm_generation",
-      "model": "anthropic/claude-sonnet-5.5",
-      "prompt_tokens": 8854,
-      "completion_tokens": 115,
-      "total_tokens": 8969,
-      "details": "provider usage"
-    },
     {
       "ts": "2026-10-10T16:12:05.510179+00:00",
       "cost_usd": 0.007114,
@@ -1004,23 +994,33 @@
       "completion_tokens": 587,
       "total_tokens": 5208,
       "details": "provider usage"
+    },
+    {
+      "ts": "2026-10-13T04:47:32.037225+00:00",
+      "cost_usd": 0.003342,
+      "action_type": "llm_generation",
+      "model": "anthropic/claude-sonnet-5.5",
+      "prompt_tokens": 1171,
+      "completion_tokens": 100,
+      "total_tokens": 1271,
+      "details": "provider usage"
     }
   ],
-  "daily_tokens": 416786,
+  "daily_tokens": 418057,
   "active_reservations": {
-    "res_9bd7cbb1240a": {
-      "reservation_id": "res_9bd7cbb1240a",
-      "amount_usd": 0.024727,
+    "res_372a64b8e9b7": {
+      "reservation_id": "res_372a64b8e9b7",
+      "amount_usd": 0.159293,
       "action_type": "llm_generation",
       "provider": "openrouter",
       "model": "anthropic/claude-sonnet-5.5",
       "details": "",
       "status": "submitted",
-      "timestamp": "2026-10-13T04:47:25.802865+00:00",
-      "request_id": "gen-1791866847-xTB7G0vjTWMlrCCRYvZq"
+      "timestamp": "2026-10-13T04:47:41.699312+00:00",
+      "request_id": ""
     }
   },
-  "monthly_tokens": 793957,
+  "monthly_tokens": 795228,
   "reconciled_ids": [
     "res_12f0160984bd",
     "res_1f73b13a18f9",
@@ -1123,6 +1123,7 @@
     "res_34952236cc7a",
     "res_fd74413d0aac",
     "res_a37ba1f952f8",
-    "res_6048790d942e"
+    "res_6048790d942e",
+    "res_9bd7cbb1240a"
   ]
 }
