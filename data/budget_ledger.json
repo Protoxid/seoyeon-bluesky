@@ -1,16 +1,10 @@
 {
   "current_day": "2026-10-13",
   "current_month": "2026-10",
-  "daily_spend_usd": 0.2645,
-  "monthly_spend_usd": 1.515,
+  "daily_spend_usd": 0.2679,
+  "monthly_spend_usd": 1.5184,
   "daily_images_count": 0,
   "history": [
-    {
-      "ts": "2026-10-03T09:59:19.076630+00:00",
-      "cost_usd": 0.002,
-      "action_type": "reply",
-      "details": "to @harbourlightgame.bsky.social"
-    },
     {
       "ts": "2026-10-03T14:40:33.486861+00:00",
       "cost_usd": 0.002,
@@ -912,23 +906,33 @@
       "completion_tokens": 168,
       "total_tokens": 4337,
       "details": "provider usage"
+    },
+    {
+      "ts": "2026-10-13T00:17:26.238823+00:00",
+      "cost_usd": 0.003402,
+      "action_type": "llm_generation",
+      "model": "anthropic/claude-sonnet-5.5",
+      "prompt_tokens": 1171,
+      "completion_tokens": 106,
+      "total_tokens": 1277,
+      "details": "provider usage"
     }
   ],
-  "daily_tokens": 134097,
+  "daily_tokens": 135374,
   "active_reservations": {
-    "res_5469f4f2d792": {
-      "reservation_id": "res_5469f4f2d792",
-      "amount_usd": 0.024727,
+    "res_46d0e53e1304": {
+      "reservation_id": "res_46d0e53e1304",
+      "amount_usd": 0.19878,
       "action_type": "llm_generation",
       "provider": "openrouter",
       "model": "anthropic/claude-sonnet-5.5",
       "details": "",
       "status": "submitted",
-      "timestamp": "2026-10-13T00:17:20.138568+00:00",
-      "request_id": "gen-1791850641-htP56iYOb64MTl3MoR9o"
+      "timestamp": "2026-10-13T00:17:27.838921+00:00",
+      "request_id": ""
     }
   },
-  "monthly_tokens": 511268,
+  "monthly_tokens": 512545,
   "reconciled_ids": [
     "res_12f0160984bd",
     "res_1f73b13a18f9",
@@ -998,6 +1002,7 @@
     "res_aa02df29b301",
     "res_741c58855525",
     "res_9e3481f41cc8",
-    "res_ca27f9909976"
+    "res_ca27f9909976",
+    "res_5469f4f2d792"
   ]
 }
