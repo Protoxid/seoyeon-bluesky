@@ -987,7 +987,19 @@
     }
   ],
   "daily_tokens": 296393,
-  "active_reservations": {},
+  "active_reservations": {
+    "res_7e13d8f2df54": {
+      "reservation_id": "res_7e13d8f2df54",
+      "amount_usd": 0.024727,
+      "action_type": "llm_generation",
+      "provider": "openrouter",
+      "model": "anthropic/claude-sonnet-5.5",
+      "details": "",
+      "status": "submitted",
+      "timestamp": "2026-10-13T02:47:17.191860+00:00",
+      "request_id": ""
+    }
+  },
   "monthly_tokens": 673564,
   "reconciled_ids": [
     "res_12f0160984bd",
