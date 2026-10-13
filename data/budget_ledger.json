@@ -1018,6 +1018,17 @@
       "status": "submitted",
       "timestamp": "2026-10-13T09:47:29.626262+00:00",
       "request_id": "gen-1791884851-gArkfee5lH7YnqUmuu1a"
+    },
+    "res_3a9d7deed158": {
+      "reservation_id": "res_3a9d7deed158",
+      "amount_usd": 0.024727,
+      "action_type": "llm_generation",
+      "provider": "openrouter",
+      "model": "anthropic/claude-sonnet-5.5",
+      "details": "",
+      "status": "submitted",
+      "timestamp": "2026-10-13T11:47:17.713032+00:00",
+      "request_id": ""
     }
   },
   "monthly_tokens": 1212151,
