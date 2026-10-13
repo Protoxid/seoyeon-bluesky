@@ -1,20 +1,10 @@
 {
   "current_day": "2026-10-13",
   "current_month": "2026-10",
-  "daily_spend_usd": 0.973,
-  "monthly_spend_usd": 2.2234,
+  "daily_spend_usd": 0.9749,
+  "monthly_spend_usd": 2.2253,
   "daily_images_count": 0,
   "history": [
-    {
-      "ts": "2026-10-10T20:24:12.739333+00:00",
-      "cost_usd": 0.023178,
-      "action_type": "llm_generation",
-      "model": "anthropic/claude-sonnet-5.5",
-      "prompt_tokens": 3699,
-      "completion_tokens": 1578,
-      "total_tokens": 5277,
-      "details": "provider usage"
-    },
     {
       "ts": "2026-10-11T00:35:30.209173+00:00",
       "cost_usd": 0.002566,
@@ -1004,23 +994,33 @@
       "completion_tokens": 700,
       "total_tokens": 20259,
       "details": "provider usage"
+    },
+    {
+      "ts": "2026-10-13T05:47:48.650474+00:00",
+      "cost_usd": 0.0018741,
+      "action_type": "llm_generation",
+      "model": "deepseek-v4.1-flash",
+      "prompt_tokens": 13491,
+      "completion_tokens": 700,
+      "total_tokens": 14191,
+      "details": "provider usage"
     }
   ],
-  "daily_tokens": 488786,
+  "daily_tokens": 502977,
   "active_reservations": {
-    "res_7d970515f7ca": {
-      "reservation_id": "res_7d970515f7ca",
-      "amount_usd": 0.008343,
+    "res_2bdecfd8b235": {
+      "reservation_id": "res_2bdecfd8b235",
+      "amount_usd": 0.071899,
       "action_type": "llm_generation",
       "provider": "openrouter",
-      "model": "deepseek-v4.1-flash",
+      "model": "anthropic/claude-sonnet-5.5",
       "details": "",
       "status": "submitted",
-      "timestamp": "2026-10-13T05:47:36.113147+00:00",
-      "request_id": "gen-1791870457-h3UB5fE5nWfoFEzCLmE1"
+      "timestamp": "2026-10-13T05:47:48.656365+00:00",
+      "request_id": ""
     }
   },
-  "monthly_tokens": 865957,
+  "monthly_tokens": 880148,
   "reconciled_ids": [
     "res_12f0160984bd",
     "res_1f73b13a18f9",
@@ -1131,6 +1131,7 @@
     "res_bc14121f04d3",
     "res_9d177e33ee06",
     "res_4bd3bae86277",
-    "res_0fa28a11e53a"
+    "res_0fa28a11e53a",
+    "res_7d970515f7ca"
   ]
 }
