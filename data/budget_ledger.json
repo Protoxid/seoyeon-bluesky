@@ -1,20 +1,10 @@
 {
   "current_day": "2026-10-13",
   "current_month": "2026-10",
-  "daily_spend_usd": 1.0888,
-  "monthly_spend_usd": 2.3392,
+  "daily_spend_usd": 1.0923,
+  "monthly_spend_usd": 2.3427,
   "daily_images_count": 0,
   "history": [
-    {
-      "ts": "2026-10-11T11:16:57.903221+00:00",
-      "cost_usd": 0.002642,
-      "action_type": "llm_generation",
-      "model": "anthropic/claude-sonnet-5.5",
-      "prompt_tokens": 1171,
-      "completion_tokens": 30,
-      "total_tokens": 1201,
-      "details": "provider usage"
-    },
     {
       "ts": "2026-10-11T11:17:15.512443+00:00",
       "cost_usd": 0.03108,
@@ -1004,23 +994,33 @@
       "completion_tokens": 84,
       "total_tokens": 5620,
       "details": "provider usage"
+    },
+    {
+      "ts": "2026-10-13T07:17:25.383722+00:00",
+      "cost_usd": 0.003452,
+      "action_type": "llm_generation",
+      "model": "anthropic/claude-sonnet-5.5",
+      "prompt_tokens": 1171,
+      "completion_tokens": 111,
+      "total_tokens": 1282,
+      "details": "provider usage"
     }
   ],
-  "daily_tokens": 564233,
+  "daily_tokens": 565515,
   "active_reservations": {
-    "res_29cb99d2381d": {
-      "reservation_id": "res_29cb99d2381d",
-      "amount_usd": 0.024727,
+    "res_5ecc6e22b196": {
+      "reservation_id": "res_5ecc6e22b196",
+      "amount_usd": 0.187114,
       "action_type": "llm_generation",
       "provider": "openrouter",
       "model": "anthropic/claude-sonnet-5.5",
       "details": "",
       "status": "submitted",
-      "timestamp": "2026-10-13T07:17:18.016538+00:00",
-      "request_id": "gen-1791875839-vjE9V8lo2b6sU4ip1FNA"
+      "timestamp": "2026-10-13T07:17:27.156385+00:00",
+      "request_id": ""
     }
   },
-  "monthly_tokens": 941404,
+  "monthly_tokens": 942686,
   "reconciled_ids": [
     "res_12f0160984bd",
     "res_1f73b13a18f9",
@@ -1139,6 +1139,7 @@
     "res_490c956fe3bc",
     "res_1d25989685f3",
     "res_3f6cd5198cae",
-    "res_f435c7665e9f"
+    "res_f435c7665e9f",
+    "res_29cb99d2381d"
   ]
 }
