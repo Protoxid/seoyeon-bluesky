@@ -1,16 +1,10 @@
 {
   "current_day": "2026-10-13",
   "current_month": "2026-10",
-  "daily_spend_usd": 0.5779,
-  "monthly_spend_usd": 1.8284,
+  "daily_spend_usd": 0.5812,
+  "monthly_spend_usd": 1.8317,
   "daily_images_count": 0,
   "history": [
-    {
-      "ts": "2026-10-07T18:03:17.936510+00:00",
-      "cost_usd": 0.045,
-      "action_type": "image_generation",
-      "details": "Candid everyday smartphone selfie of Seo"
-    },
     {
       "ts": "2026-10-08T01:27:09.928597+00:00",
       "cost_usd": 0.002,
@@ -984,23 +978,33 @@
       "completion_tokens": 1600,
       "total_tokens": 5279,
       "details": "provider usage"
+    },
+    {
+      "ts": "2026-10-13T02:47:22.777277+00:00",
+      "cost_usd": 0.003262,
+      "action_type": "llm_generation",
+      "model": "anthropic/claude-sonnet-5.5",
+      "prompt_tokens": 1171,
+      "completion_tokens": 92,
+      "total_tokens": 1263,
+      "details": "provider usage"
     }
   ],
-  "daily_tokens": 296393,
+  "daily_tokens": 297656,
   "active_reservations": {
-    "res_7e13d8f2df54": {
-      "reservation_id": "res_7e13d8f2df54",
-      "amount_usd": 0.024727,
+    "res_da0aada3936f": {
+      "reservation_id": "res_da0aada3936f",
+      "amount_usd": 0.182464,
       "action_type": "llm_generation",
       "provider": "openrouter",
       "model": "anthropic/claude-sonnet-5.5",
       "details": "",
       "status": "submitted",
-      "timestamp": "2026-10-13T02:47:17.191860+00:00",
-      "request_id": "gen-1791859638-KtEvFnOb5vFgYC4ry7aK"
+      "timestamp": "2026-10-13T02:47:23.856453+00:00",
+      "request_id": ""
     }
   },
-  "monthly_tokens": 673564,
+  "monthly_tokens": 674827,
   "reconciled_ids": [
     "res_12f0160984bd",
     "res_1f73b13a18f9",
@@ -1088,6 +1092,7 @@
     "res_d5108bb54c2f",
     "res_b86f867fac96",
     "res_a52516af7bad",
-    "res_c67ebf820879"
+    "res_c67ebf820879",
+    "res_7e13d8f2df54"
   ]
 }
