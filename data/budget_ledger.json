@@ -1,20 +1,10 @@
 {
   "current_day": "2026-10-15",
   "current_month": "2026-10",
-  "daily_spend_usd": 0.0647,
-  "monthly_spend_usd": 4.7575,
+  "daily_spend_usd": 0.106,
+  "monthly_spend_usd": 4.7988,
   "daily_images_count": 0,
   "history": [
-    {
-      "ts": "2026-10-13T16:17:36.320816+00:00",
-      "cost_usd": 0.012644,
-      "action_type": "llm_generation",
-      "model": "anthropic/claude-sonnet-5.5",
-      "prompt_tokens": 5967,
-      "completion_tokens": 71,
-      "total_tokens": 6038,
-      "details": "provider usage"
-    },
     {
       "ts": "2026-10-13T16:17:42.662621+00:00",
       "cost_usd": 0.002672,
@@ -1004,9 +994,19 @@
       "completion_tokens": 115,
       "total_tokens": 1286,
       "details": "provider usage"
+    },
+    {
+      "ts": "2026-10-14T15:47:46.663756+00:00",
+      "cost_usd": 0.04129,
+      "action_type": "llm_generation",
+      "model": "anthropic/claude-sonnet-5.5",
+      "prompt_tokens": 17145,
+      "completion_tokens": 700,
+      "total_tokens": 17845,
+      "details": "provider usage"
     }
   ],
-  "daily_tokens": 28968,
+  "daily_tokens": 46813,
   "active_reservations": {
     "res_c92b56856eb0": {
       "reservation_id": "res_c92b56856eb0",
@@ -1030,19 +1030,19 @@
       "timestamp": "2026-10-13T15:17:49.587743+00:00",
       "request_id": ""
     },
-    "res_6011334927b7": {
-      "reservation_id": "res_6011334927b7",
-      "amount_usd": 0.167794,
+    "res_81c0697f27df": {
+      "reservation_id": "res_81c0697f27df",
+      "amount_usd": 0.007463,
       "action_type": "llm_generation",
       "provider": "openrouter",
-      "model": "anthropic/claude-sonnet-5.5",
+      "model": "deepseek-v4.1-flash",
       "details": "",
       "status": "submitted",
-      "timestamp": "2026-10-14T15:47:33.837327+00:00",
-      "request_id": "gen-1791992855-cNCtzLcrGCCEl6crUsbA"
+      "timestamp": "2026-10-14T15:47:46.666969+00:00",
+      "request_id": ""
     }
   },
-  "monthly_tokens": 2155383,
+  "monthly_tokens": 2173228,
   "reconciled_ids": [
     "res_12f0160984bd",
     "res_1f73b13a18f9",
@@ -1310,6 +1310,7 @@
     "res_686300c02457",
     "res_12239fcafe7c",
     "res_c387bfba748d",
-    "res_ebe10bfe5504"
+    "res_ebe10bfe5504",
+    "res_6011334927b7"
   ]
 }
