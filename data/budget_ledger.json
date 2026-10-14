@@ -1,20 +1,10 @@
 {
   "current_day": "2026-10-14",
   "current_month": "2026-10",
-  "daily_spend_usd": 1.434,
-  "monthly_spend_usd": 4.4313,
+  "daily_spend_usd": 1.4612,
+  "monthly_spend_usd": 4.4585,
   "daily_images_count": 0,
   "history": [
-    {
-      "ts": "2026-10-13T10:17:45.471011+00:00",
-      "cost_usd": 0.00257367,
-      "action_type": "llm_generation",
-      "model": "deepseek-v4.1-flash",
-      "prompt_tokens": 12798,
-      "completion_tokens": 700,
-      "total_tokens": 13498,
-      "details": "provider usage"
-    },
     {
       "ts": "2026-10-13T10:17:51.111522+00:00",
       "cost_usd": 0.012196,
@@ -1004,9 +994,19 @@
       "completion_tokens": 644,
       "total_tokens": 20083,
       "details": "provider usage"
+    },
+    {
+      "ts": "2026-10-14T06:47:53.458288+00:00",
+      "cost_usd": 0.027158,
+      "action_type": "llm_generation",
+      "model": "anthropic/claude-sonnet-5.5",
+      "prompt_tokens": 11974,
+      "completion_tokens": 321,
+      "total_tokens": 12295,
+      "details": "provider usage"
     }
   ],
-  "daily_tokens": 717448,
+  "daily_tokens": 729743,
   "active_reservations": {
     "res_c92b56856eb0": {
       "reservation_id": "res_c92b56856eb0",
@@ -1029,20 +1029,9 @@
       "status": "submitted",
       "timestamp": "2026-10-13T15:17:49.587743+00:00",
       "request_id": ""
-    },
-    "res_094e0513b7dc": {
-      "reservation_id": "res_094e0513b7dc",
-      "amount_usd": 0.132806,
-      "action_type": "llm_generation",
-      "provider": "openrouter",
-      "model": "anthropic/claude-sonnet-5.5",
-      "details": "",
-      "status": "submitted",
-      "timestamp": "2026-10-14T06:47:46.513514+00:00",
-      "request_id": "gen-1791960468-J7bI2m50NroxTcrtTETD"
     }
   },
-  "monthly_tokens": 1995791,
+  "monthly_tokens": 2008086,
   "reconciled_ids": [
     "res_12f0160984bd",
     "res_1f73b13a18f9",
@@ -1280,6 +1269,7 @@
     "res_6ecfc6e97376",
     "res_f4cccf26ba01",
     "res_a2ad0dfc4166",
-    "res_f0d2a2199265"
+    "res_f0d2a2199265",
+    "res_094e0513b7dc"
   ]
 }
