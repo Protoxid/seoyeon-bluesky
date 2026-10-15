@@ -1,20 +1,10 @@
 {
   "current_day": "2026-10-15",
   "current_month": "2026-10",
-  "daily_spend_usd": 1.6643,
-  "monthly_spend_usd": 6.3571,
+  "daily_spend_usd": 1.6669,
+  "monthly_spend_usd": 6.3597,
   "daily_images_count": 0,
   "history": [
-    {
-      "ts": "2026-10-14T15:47:58.155537+00:00",
-      "cost_usd": 0.00380135,
-      "action_type": "llm_generation",
-      "model": "deepseek-v4.1-flash",
-      "prompt_tokens": 11981,
-      "completion_tokens": 700,
-      "total_tokens": 12681,
-      "details": "provider usage"
-    },
     {
       "ts": "2026-10-14T15:48:05.168301+00:00",
       "cost_usd": 0.014138,
@@ -1004,9 +994,19 @@
       "completion_tokens": 93,
       "total_tokens": 1264,
       "details": "provider usage"
+    },
+    {
+      "ts": "2026-10-15T11:47:23.238132+00:00",
+      "cost_usd": 0.002642,
+      "action_type": "llm_generation",
+      "model": "anthropic/claude-sonnet-5.5",
+      "prompt_tokens": 1171,
+      "completion_tokens": 30,
+      "total_tokens": 1201,
+      "details": "provider usage"
     }
   ],
-  "daily_tokens": 833151,
+  "daily_tokens": 834352,
   "active_reservations": {
     "res_c92b56856eb0": {
       "reservation_id": "res_c92b56856eb0",
@@ -1029,20 +1029,9 @@
       "status": "submitted",
       "timestamp": "2026-10-13T15:17:49.587743+00:00",
       "request_id": ""
-    },
-    "res_92156bb732ae": {
-      "reservation_id": "res_92156bb732ae",
-      "amount_usd": 0.024727,
-      "action_type": "llm_generation",
-      "provider": "openrouter",
-      "model": "anthropic/claude-sonnet-5.5",
-      "details": "",
-      "status": "submitted",
-      "timestamp": "2026-10-15T11:47:18.637462+00:00",
-      "request_id": "gen-1792064840-Fsei0F8abbe2JMBz7c2M"
     }
   },
-  "monthly_tokens": 2959566,
+  "monthly_tokens": 2960767,
   "reconciled_ids": [
     "res_12f0160984bd",
     "res_1f73b13a18f9",
@@ -1411,6 +1400,7 @@
     "res_2fc67f5231e7",
     "res_c9cbc870c3ff",
     "res_9390a91db147",
-    "res_c02d97ab4bf5"
+    "res_c02d97ab4bf5",
+    "res_92156bb732ae"
   ]
 }
