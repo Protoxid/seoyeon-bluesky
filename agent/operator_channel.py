@@ -3,6 +3,16 @@ import json
 from pathlib import Path
 from .storage import read_json, write_json, file_lock
 
+# Runtime capabilities, not fictional possessions or evidence of completion.
+CAPABILITIES = {
+    "PUBLISH_IMAGE_POST": "Generate and publish a fictional selfie using two canonical face references, or a POV image. No physical phone, camera, saved photo or real-world photoshoot is required. Subject to budget, provider availability and image review.",
+    "PUBLISH_TEXT_POST": "Draft, review and publish a Bluesky post.",
+    "BROWSE_AND_REPLY": "Browse notifications and feed, choose a suitable conversation and reply.",
+    "BROWSE_AND_LIKE": "Browse and like an eligible post.",
+    "ANSWER_DM": "Process eligible Bluesky direct messages.",
+    "CONSOLIDATE": "Consolidate stored memories.",
+}
+
 class OperatorChannel:
     def __init__(self, path=None, persist=None):
         if path is None:
@@ -36,6 +46,7 @@ class OperatorChannel:
             if not 0 <= age <= 86400: return None
         except (KeyError, ValueError, TypeError): return None
         return {"id":key,"action_type":directive["pending_action"],
+                "image_kind":directive.get("image_kind","unspecified"),
                 "request":row.get("inbound", ""),"clarification":row.get("reply", "")}
 
     def setting(self, mode):

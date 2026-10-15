@@ -14,6 +14,46 @@ from agent.runtime import execution_mode
 from agent.config import config
 
 class TestOperatorChannel(unittest.TestCase):
+    def test_selfie_authorization_carries_runtime_capability_and_image_type(self):
+        message="please post a selfie"
+        answer={"mode":"execute","action_type":"PUBLISH_IMAGE_POST","confidence":1,
+                "authorization_quote":message,"image_kind":"selfie"}
+        with patch.object(generator,"_call_llm",return_value=(json.dumps(answer),"mock")) as call:
+            directive=generator.parse_master_directive(message)
+        self.assertTrue(directive["is_order"])
+        self.assertEqual(directive["image_kind"],"selfie")
+        packet=json.loads(call.call_args.args[1])
+        self.assertIn("canonical face references",packet["capabilities"]["PUBLISH_IMAGE_POST"])
+        with patch.object(generator,"_call_llm",return_value=("i'll make one, my human","mock")) as reply:
+            generator.generate_master_reply(message,self.context,directive)
+        self.assertEqual(json.loads(reply.call_args.args[1])["capabilities"],packet["capabilities"])
+
+    def test_selfie_scene_cannot_silently_switch_to_pov(self):
+        for is_selfie, accepted in ((False,False),(True,True)):
+            with patch.object(generator,"_call_llm",return_value=(json.dumps({"description":"a fictional portrait","is_selfie":is_selfie}),"mock")):
+                scene=generator.determine_image_scene("a quiet frame",self.context,image_kind="selfie")
+            self.assertEqual(bool(scene),accepted)
+
+    def test_explicit_selfie_reaches_image_pipeline_and_receipt(self):
+        from agent.bsky_client import bsky_client
+        from agent.image_engine import image_engine
+        from agent.budget_manager import budget_manager
+        generator.last_scene={"is_selfie":True}
+        with patch.object(bsky_client,"ensure_session"), \
+             patch.object(generator,"generate_post",return_value=("a quiet frame","mock")), \
+             patch.object(generator,"determine_image_scene",return_value="fictional portrait") as scene, \
+             patch.object(budget_manager,"can_generate_image",return_value=(True,"")), \
+             patch.object(budget_manager,"reserve",return_value="test-reservation"), \
+             patch.object(image_engine,"generate_image",return_value=(b"image","prompt","")) as image, \
+             patch.object(generator,"review_image",return_value=(True,"portrait")), \
+             patch.object(bsky_client,"publish_image_post",return_value={"uri":"at://test/post/1"}) as publish, \
+             patch.object(self.notifier,"send_telegram_message",return_value=True):
+            result=self.notifier.execute_master_directive({"action_type":"PUBLISH_IMAGE_POST","topic_hint":"post a selfie","image_kind":"selfie"},self.context,dry_run=True)
+        self.assertTrue(result["success"])
+        self.assertEqual(scene.call_args.kwargs["image_kind"],"selfie")
+        self.assertTrue(image.call_args.kwargs["is_selfie"])
+        publish.assert_called_once()
+
     def setUp(self):
         self.temp=tempfile.TemporaryDirectory(); self.addCleanup(self.temp.cleanup)
         self.channel=OperatorChannel(Path(self.temp.name)/"operator.json",persist=lambda:None)

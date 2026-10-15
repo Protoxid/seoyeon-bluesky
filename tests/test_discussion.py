@@ -10,6 +10,35 @@ from agent.generator import ContentGenerator
 from agent.validator import ContentValidator
 
 class TestDiscussion(unittest.TestCase):
+    def test_discovery_receives_identity_and_public_activity_not_private_context(self):
+        from agent.memory_store import memory_store
+        from agent.continuity import ContinuityStore
+        with execution_mode("live"), patch.object(memory_store,"format_identity_prompt",return_value="Pilates instructor retraining"), \
+             patch.object(memory_store,"get_recent_context",return_value={"posts":[{"text":"a public observation"}],"dms":[{"text":"PRIVATE SECRET"}]}), \
+             patch.object(ContinuityStore,"context",return_value="public project") as context, \
+             patch("agent.generator.generator._call_llm",return_value=('{"queries":[]}',"mock")) as call:
+            self.assertEqual(discovery_queries(),[])
+        packet=json.loads(call.call_args.args[1])
+        self.assertIn("Pilates",packet["identity"])
+        self.assertNotIn("PRIVATE SECRET",call.call_args.args[1])
+        self.assertEqual(context.call_args.kwargs["subject"],"self")
+
+    def test_pilates_reference_available_without_leaking_private_research(self):
+        from agent.discussion import CATALOG
+        source=next(s for s in CATALOG if "pilates" in s["topics"])
+        self.assertTrue(safe_url(source["url"]))
+        self.assertFalse(safe_url(source["url"].replace("support.pilatesanytime.com","support.pilatesanytime.com.evil.test")))
+        with patch("agent.discussion.ReferenceLibrary",return_value=self.lib), patch("agent.discussion.fetch_page",return_value=None) as fetch:
+            with execution_mode("live"):
+                source_packet("pilates terminology")
+            fetch.assert_called_once_with(source["url"])
+            fetch.reset_mock()
+            with execution_mode("live"):
+                source_packet("pilates terminology",private=True)
+            with execution_mode("offline"):
+                source_packet("pilates terminology")
+            fetch.assert_not_called()
+
     def setUp(self):
         self.temp=tempfile.TemporaryDirectory(); self.addCleanup(self.temp.cleanup)
         self.lib=ReferenceLibrary(Path(self.temp.name)/"refs.json")

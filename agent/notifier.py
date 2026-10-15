@@ -251,7 +251,8 @@ class MasterNotifier:
                 topic_hint=topic_hint,
                 include_image=True,
             )
-            scene_desc = generator.determine_image_scene(post_text, context, hint=topic_hint)
+            scene_desc = generator.determine_image_scene(post_text, context, hint=topic_hint,
+                                                        image_kind=directive.get("image_kind","unspecified"))
             print("[Operator] Private draft generated.")
             print("[Operator] Private scene redacted.")
 
