@@ -1,20 +1,10 @@
 {
   "current_day": "2026-10-15",
   "current_month": "2026-10",
-  "daily_spend_usd": 0.8097,
-  "monthly_spend_usd": 5.5025,
+  "daily_spend_usd": 0.8515,
+  "monthly_spend_usd": 5.5443,
   "daily_images_count": 0,
   "history": [
-    {
-      "ts": "2026-10-14T03:17:46.151569+00:00",
-      "cost_usd": 0.02756,
-      "action_type": "llm_generation",
-      "model": "anthropic/claude-sonnet-5.5",
-      "prompt_tokens": 11970,
-      "completion_tokens": 362,
-      "total_tokens": 12332,
-      "details": "provider usage"
-    },
     {
       "ts": "2026-10-14T03:47:32.646185+00:00",
       "cost_usd": 0.003512,
@@ -1004,9 +994,19 @@
       "completion_tokens": 109,
       "total_tokens": 1280,
       "details": "provider usage"
+    },
+    {
+      "ts": "2026-10-15T02:47:37.366121+00:00",
+      "cost_usd": 0.041792,
+      "action_type": "llm_generation",
+      "model": "anthropic/claude-sonnet-5.5",
+      "prompt_tokens": 17396,
+      "completion_tokens": 700,
+      "total_tokens": 18096,
+      "details": "provider usage"
     }
   ],
-  "daily_tokens": 410992,
+  "daily_tokens": 429088,
   "active_reservations": {
     "res_c92b56856eb0": {
       "reservation_id": "res_c92b56856eb0",
@@ -1030,19 +1030,19 @@
       "timestamp": "2026-10-13T15:17:49.587743+00:00",
       "request_id": ""
     },
-    "res_61fb2b30e024": {
-      "reservation_id": "res_61fb2b30e024",
-      "amount_usd": 0.167333,
+    "res_a403cd6c29e2": {
+      "reservation_id": "res_a403cd6c29e2",
+      "amount_usd": 0.007441,
       "action_type": "llm_generation",
       "provider": "openrouter",
-      "model": "anthropic/claude-sonnet-5.5",
+      "model": "deepseek-v4.1-flash",
       "details": "",
       "status": "submitted",
-      "timestamp": "2026-10-15T02:47:25.485587+00:00",
-      "request_id": "gen-1792032446-PIHj5Lh7BXiuPKjujqDj"
+      "timestamp": "2026-10-15T02:47:37.369382+00:00",
+      "request_id": ""
     }
   },
-  "monthly_tokens": 2537407,
+  "monthly_tokens": 2555503,
   "reconciled_ids": [
     "res_12f0160984bd",
     "res_1f73b13a18f9",
@@ -1355,6 +1355,7 @@
     "res_e0b94965a0da",
     "res_b52a746362bb",
     "res_0b5d173a1f5e",
-    "res_51240f8ae6e9"
+    "res_51240f8ae6e9",
+    "res_61fb2b30e024"
   ]
 }
