@@ -1,20 +1,10 @@
 {
   "current_day": "2026-10-16",
   "current_month": "2026-10",
-  "daily_spend_usd": 1.6719,
-  "monthly_spend_usd": 8.0522,
+  "daily_spend_usd": 1.6772,
+  "monthly_spend_usd": 8.0575,
   "daily_images_count": 0,
   "history": [
-    {
-      "ts": "2026-10-15T12:47:30.306689+00:00",
-      "cost_usd": 0.003532,
-      "action_type": "llm_generation",
-      "model": "anthropic/claude-sonnet-5.5",
-      "prompt_tokens": 1171,
-      "completion_tokens": 119,
-      "total_tokens": 1290,
-      "details": "provider usage"
-    },
     {
       "ts": "2026-10-15T13:17:27.788366+00:00",
       "cost_usd": 0.003402,
@@ -1004,9 +994,19 @@
       "completion_tokens": 147,
       "total_tokens": 2627,
       "details": "provider usage"
+    },
+    {
+      "ts": "2026-10-16T09:47:23.533943+00:00",
+      "cost_usd": 0.00526,
+      "action_type": "llm_generation",
+      "model": "anthropic/claude-sonnet-5.5",
+      "prompt_tokens": 2480,
+      "completion_tokens": 30,
+      "total_tokens": 2510,
+      "details": "provider usage"
     }
   ],
-  "daily_tokens": 816363,
+  "daily_tokens": 818873,
   "active_reservations": {
     "res_c92b56856eb0": {
       "reservation_id": "res_c92b56856eb0",
@@ -1029,20 +1029,9 @@
       "status": "submitted",
       "timestamp": "2026-10-13T15:17:49.587743+00:00",
       "request_id": ""
-    },
-    "res_aeedf23bdb63": {
-      "reservation_id": "res_aeedf23bdb63",
-      "amount_usd": 0.037699,
-      "action_type": "llm_generation",
-      "provider": "openrouter",
-      "model": "anthropic/claude-sonnet-5.5",
-      "details": "",
-      "status": "submitted",
-      "timestamp": "2026-10-16T09:47:18.034905+00:00",
-      "request_id": "gen-1792144040-TEKej8NPINaWzlFtEro7"
     }
   },
-  "monthly_tokens": 3784799,
+  "monthly_tokens": 3787309,
   "reconciled_ids": [
     "res_12f0160984bd",
     "res_1f73b13a18f9",
@@ -1513,6 +1502,7 @@
     "res_74a95a18ed53",
     "res_a67e17fc789a",
     "res_a985c43d1639",
-    "res_5577d0f01ff6"
+    "res_5577d0f01ff6",
+    "res_aeedf23bdb63"
   ]
 }
