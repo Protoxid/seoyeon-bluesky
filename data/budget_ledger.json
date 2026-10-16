@@ -1,20 +1,10 @@
 {
   "current_day": "2026-10-16",
   "current_month": "2026-10",
-  "daily_spend_usd": 1.1669,
-  "monthly_spend_usd": 7.5472,
+  "daily_spend_usd": 1.2263,
+  "monthly_spend_usd": 7.6066,
   "daily_images_count": 0,
   "history": [
-    {
-      "ts": "2026-10-15T06:47:56.898128+00:00",
-      "cost_usd": 0.021434,
-      "action_type": "llm_generation",
-      "model": "anthropic/claude-sonnet-5.5",
-      "prompt_tokens": 10632,
-      "completion_tokens": 17,
-      "total_tokens": 10649,
-      "details": "provider usage"
-    },
     {
       "ts": "2026-10-15T06:48:07.554697+00:00",
       "cost_usd": 0.004578,
@@ -1004,9 +994,19 @@
       "completion_tokens": 30,
       "total_tokens": 2510,
       "details": "provider usage"
+    },
+    {
+      "ts": "2026-10-16T04:17:44.280249+00:00",
+      "cost_usd": 0.059364,
+      "action_type": "llm_generation",
+      "model": "anthropic/claude-sonnet-5.5",
+      "prompt_tokens": 26182,
+      "completion_tokens": 700,
+      "total_tokens": 26882,
+      "details": "provider usage"
     }
   ],
-  "daily_tokens": 562996,
+  "daily_tokens": 589878,
   "active_reservations": {
     "res_c92b56856eb0": {
       "reservation_id": "res_c92b56856eb0",
@@ -1030,19 +1030,19 @@
       "timestamp": "2026-10-13T15:17:49.587743+00:00",
       "request_id": ""
     },
-    "res_636df958bf33": {
-      "reservation_id": "res_636df958bf33",
-      "amount_usd": 0.243765,
+    "res_827666a8eccd": {
+      "reservation_id": "res_827666a8eccd",
+      "amount_usd": 0.011008,
       "action_type": "llm_generation",
       "provider": "openrouter",
-      "model": "anthropic/claude-sonnet-5.5",
+      "model": "deepseek-v4.1-flash",
       "details": "",
       "status": "submitted",
-      "timestamp": "2026-10-16T04:17:30.567325+00:00",
-      "request_id": "gen-1792124252-gZNK0sgA49uGPYBgnRkq"
+      "timestamp": "2026-10-16T04:17:44.283344+00:00",
+      "request_id": ""
     }
   },
-  "monthly_tokens": 3531432,
+  "monthly_tokens": 3558314,
   "reconciled_ids": [
     "res_12f0160984bd",
     "res_1f73b13a18f9",
@@ -1488,6 +1488,7 @@
     "res_79bf24adae64",
     "res_66a68c3fa02c",
     "res_8578b6272caa",
-    "res_276eaa4f5c5c"
+    "res_276eaa4f5c5c",
+    "res_636df958bf33"
   ]
 }
