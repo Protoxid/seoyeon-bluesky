@@ -1,20 +1,10 @@
 {
   "current_day": "2026-10-17",
   "current_month": "2026-10",
-  "daily_spend_usd": 0.5069,
-  "monthly_spend_usd": 8.5908,
+  "daily_spend_usd": 0.5083,
+  "monthly_spend_usd": 8.5922,
   "daily_images_count": 0,
   "history": [
-    {
-      "ts": "2026-10-16T01:17:46.792559+00:00",
-      "cost_usd": 0.00228503,
-      "action_type": "llm_generation",
-      "model": "deepseek-v4.1-flash",
-      "prompt_tokens": 6365,
-      "completion_tokens": 700,
-      "total_tokens": 7065,
-      "details": "provider usage"
-    },
     {
       "ts": "2026-10-16T01:17:52.736350+00:00",
       "cost_usd": 0.015516,
@@ -1004,9 +994,19 @@
       "completion_tokens": 700,
       "total_tokens": 10451,
       "details": "provider usage"
+    },
+    {
+      "ts": "2026-10-17T03:18:03.423081+00:00",
+      "cost_usd": 0.0014476,
+      "action_type": "llm_generation",
+      "model": "deepseek-v4.1-flash",
+      "prompt_tokens": 6131,
+      "completion_tokens": 1403,
+      "total_tokens": 7534,
+      "details": "provider usage"
     }
   ],
-  "daily_tokens": 414380,
+  "daily_tokens": 421914,
   "active_reservations": {
     "res_c92b56856eb0": {
       "reservation_id": "res_c92b56856eb0",
@@ -1029,20 +1029,9 @@
       "status": "submitted",
       "timestamp": "2026-10-13T15:17:49.587743+00:00",
       "request_id": ""
-    },
-    "res_0eae771c98b0": {
-      "reservation_id": "res_0eae771c98b0",
-      "amount_usd": 0.004092,
-      "action_type": "llm_generation",
-      "provider": "openrouter",
-      "model": "deepseek-v4.1-flash",
-      "details": "",
-      "status": "submitted",
-      "timestamp": "2026-10-17T03:17:45.964756+00:00",
-      "request_id": "gen-1792207067-B6MikHZS1nCUO5bIwipa"
     }
   },
-  "monthly_tokens": 4214237,
+  "monthly_tokens": 4221771,
   "reconciled_ids": [
     "res_12f0160984bd",
     "res_1f73b13a18f9",
@@ -1565,6 +1554,7 @@
     "res_2d32053583b5",
     "res_250c31d9ce7b",
     "res_e1b74a574ab3",
-    "res_51a3b25fdf30"
+    "res_51a3b25fdf30",
+    "res_0eae771c98b0"
   ]
 }
