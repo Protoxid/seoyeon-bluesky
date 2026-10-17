@@ -1,8 +1,8 @@
 {
-  "temperature_c": 17.9,
-  "description": "partly cloudy",
+  "temperature_c": 17.6,
+  "description": "mainly clear",
   "is_raining": false,
   "is_snowing": false,
-  "windspeed_kmh": 9.2,
-  "retrieved_at": "2026-10-17T13:17:13.491975+00:00"
+  "windspeed_kmh": 10.3,
+  "retrieved_at": "2026-10-17T14:47:14.008349+00:00"
 }
