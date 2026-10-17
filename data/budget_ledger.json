@@ -1,20 +1,10 @@
 {
   "current_day": "2026-10-17",
   "current_month": "2026-10",
-  "daily_spend_usd": 0.5027,
-  "monthly_spend_usd": 8.5866,
+  "daily_spend_usd": 0.5052,
+  "monthly_spend_usd": 8.5891,
   "daily_images_count": 0,
   "history": [
-    {
-      "ts": "2026-10-16T00:47:39.818281+00:00",
-      "cost_usd": 0.015788,
-      "action_type": "llm_generation",
-      "model": "anthropic/claude-sonnet-5.5",
-      "prompt_tokens": 7459,
-      "completion_tokens": 87,
-      "total_tokens": 7546,
-      "details": "provider usage"
-    },
     {
       "ts": "2026-10-16T01:17:25.105211+00:00",
       "cost_usd": 0.00524,
@@ -1004,9 +994,19 @@
       "completion_tokens": 700,
       "total_tokens": 11161,
       "details": "provider usage"
+    },
+    {
+      "ts": "2026-10-17T02:47:48.668104+00:00",
+      "cost_usd": 0.002452125,
+      "action_type": "llm_generation",
+      "model": "deepseek-v4.1-flash",
+      "prompt_tokens": 6175,
+      "completion_tokens": 1600,
+      "total_tokens": 7775,
+      "details": "provider usage"
     }
   ],
-  "daily_tokens": 393850,
+  "daily_tokens": 401625,
   "active_reservations": {
     "res_c92b56856eb0": {
       "reservation_id": "res_c92b56856eb0",
@@ -1029,20 +1029,9 @@
       "status": "submitted",
       "timestamp": "2026-10-13T15:17:49.587743+00:00",
       "request_id": ""
-    },
-    "res_250c31d9ce7b": {
-      "reservation_id": "res_250c31d9ce7b",
-      "amount_usd": 0.00408,
-      "action_type": "llm_generation",
-      "provider": "openrouter",
-      "model": "deepseek-v4.1-flash",
-      "details": "",
-      "status": "submitted",
-      "timestamp": "2026-10-17T02:47:40.627256+00:00",
-      "request_id": "gen-1792205261-xaz9g1R9nuwEZGuEgfz7"
     }
   },
-  "monthly_tokens": 4193707,
+  "monthly_tokens": 4201482,
   "reconciled_ids": [
     "res_12f0160984bd",
     "res_1f73b13a18f9",
@@ -1562,6 +1551,7 @@
     "res_7ef6416f9f38",
     "res_84ca73e268ad",
     "res_15517e2ac139",
-    "res_2d32053583b5"
+    "res_2d32053583b5",
+    "res_250c31d9ce7b"
   ]
 }
