@@ -1029,17 +1029,6 @@
       "status": "submitted",
       "timestamp": "2026-10-13T15:17:49.587743+00:00",
       "request_id": ""
-    },
-    "res_bf5a546e53ab": {
-      "reservation_id": "res_bf5a546e53ab",
-      "amount_usd": 0.004136,
-      "action_type": "llm_generation",
-      "provider": "openrouter",
-      "model": "deepseek-v4.1-flash",
-      "details": "",
-      "status": "submitted",
-      "timestamp": "2026-10-17T04:17:32.643385+00:00",
-      "request_id": ""
     }
   },
   "monthly_tokens": 4242958,
