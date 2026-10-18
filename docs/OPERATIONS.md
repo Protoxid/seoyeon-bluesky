@@ -4,7 +4,7 @@
 
 The root CLI establishes mode and a whole-process state lock. Offline commands copy public state to a temporary directory, omit the vault and key files, disable credentials and block socket connections. Preview permits paid model calls in temporary state and blocks publishing. Preview spend is not added to production budgets; use sparingly and inspect the provider dashboard.
 
-Live mode loads the encrypted vault and halts on decryption failure. It authenticates Bluesky and recovers pending deliveries before new actions. It reads environment/observations, builds eligible candidates, requests model judgment, generates and validates content, delivers and records confirmed results. Empty or invalid generation remains silent. Model confidence below ACTION_THRESHOLD selects NO_ACTION.
+Live mode loads the encrypted vault and halts on decryption failure. It authenticates Bluesky and recovers pending deliveries before new actions. It reads environment/observations, builds eligible candidates, requests model judgment, generates and validates content, delivers and records confirmed results. Empty or invalid generation remains silent. Model confidence below ACTION_THRESHOLD selects NO_ACTION. When model selection itself is unavailable (`selection=model_unavailable`), the tick defaults to NO_ACTION, skips the reflection LLM call, and emits a deduplicated `model_unavailable` operational alert after three consecutive live occurrences.
 
 The decision engine retains heuristic scores for diagnostics and legacy simulation. The live chooser does not use these scores as action instructions. Cadence caps, budget limits, authentication, privacy and idempotency remain explicit operational rules.
 
@@ -50,9 +50,9 @@ These tools do not send messages or generate content. Do not put tokens or priva
 
 ## Images and billing
 
-POV routes to Kie's documented text-to-image model; selfies use image-to-image with two references. The generation fee is recorded at provider completion, even if download/upload/review fails. Current image tariff is an estimate, not a provider price guarantee. A timeout retains the task ID and hold for manual verification; it does not start a duplicate generation automatically.
+POV routes to Kie's documented text-to-image model; selfies use image-to-image with two references. Vision review downscales and JPEG-compresses generated images and canonical face references so multi-megabyte reference PNGs stay within provider per-image limits. If Bluesky blob upload fails after review, `publish_image_post` fails closed (`{}`) rather than publishing an image-intended caption as a text-only post. The generation fee is recorded at provider completion, even if download/upload/review fails. Current image tariff is an estimate, not a provider price guarantee. A timeout retains the task ID and hold for manual verification; it does not start a duplicate generation automatically.
 
-Every OpenRouter attempt has its own reservation and reconciliation, including billed empty/truncated output before fallback. Unknown requests retain their hold. Usage-reported cost takes precedence over token estimates. Locks prevent concurrent reservation races; they cannot guarantee that an external provider's unknown charge will equal a tariff estimate.
+Every OpenRouter attempt has its own reservation and reconciliation, including billed empty/truncated output before fallback. Reconciled ledger history entries preserve the reservation ID and provider request ID without a second pre-reconciliation checkpoint commit; unknown requests retain their hold. Usage-reported cost takes precedence over token estimates. Locks prevent concurrent reservation races; they cannot guarantee that an external provider's unknown charge will equal a tariff estimate.
 
 ## Scheduling and health
 

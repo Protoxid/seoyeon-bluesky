@@ -46,12 +46,12 @@ class TestRepositoryIntegrity(unittest.TestCase):
                 mod = importlib.import_module(mod_name)
                 self.assertIsNotNone(mod, f"Failed to import {mod_name}")
 
-    def test_model_configuration_is_openrouter_sonnet_5_5(self):
-        """Verifies text generation model is strictly Claude Sonnet 5.5 via OpenRouter."""
+    def test_model_configuration_is_openrouter_haiku_5_5(self):
+        """Verifies text generation model defaults to Claude Haiku 5.5 via OpenRouter."""
         from agent.config import config
         from agent.generator import OPENROUTER_URL
 
-        self.assertEqual(config.primary_text_model, "anthropic/claude-sonnet-5.5")
+        self.assertEqual(config.primary_text_model, "anthropic/claude-haiku-5.5")
         self.assertIn("openrouter.ai", OPENROUTER_URL)
 
     def test_master_and_human_designation_rules(self):

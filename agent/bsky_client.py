@@ -535,9 +535,8 @@ class BlueskyClient:
         """Publishes an image post with text."""
         blob = self.upload_image_blob(image_bytes)
         if not blob:
-            # Fall back to text post if blob upload failed
-            print("[BlueskyClient] Blob upload failed, falling back to text post.")
-            return self.publish_text_post(text, langs=langs)
+            print("[BlueskyClient] Blob upload failed; aborting image post without text fallback.")
+            return {}
 
         if not self.ensure_session():
             return {}

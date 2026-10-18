@@ -204,3 +204,64 @@ class TestOperatorChannel(unittest.TestCase):
         with patch.object(generator,"_call_llm",return_value=("i'll look for a conversation", "mock")) as call:
             generator.generate_master_reply(message,self.context,{"is_order":True,"action_type":"BROWSE_AND_REPLY"})
         self.assertIn("browsing Bluesky notifications and the feed",call.call_args.args[0])
+
+    def test_fenced_json_and_null_image_kind_in_directive(self):
+        message="Please post an image on Bluesky"
+        fenced="```json\n"+json.dumps({
+            "mode":"execute",
+            "action_type":"PUBLISH_IMAGE_POST",
+            "confidence":0.99,
+            "authorization_quote":"post an image on bluesky",
+            "image_kind":None,
+        })+"\n```"
+        with patch.object(generator,"_call_llm",return_value=(fenced,"mock")):
+            directive=generator.parse_master_directive(message)
+        self.assertTrue(directive["is_order"])
+        self.assertEqual(directive["action_type"],"PUBLISH_IMAGE_POST")
+        self.assertEqual(directive["image_kind"],"unspecified")
+
+    def test_clarification_preserves_pending_image_action_for_confirmation(self):
+        first_msg="can you post a selfie?"
+        clarify_raw=json.dumps({
+            "mode":"execute",
+            "action_type":"PUBLISH_IMAGE_POST",
+            "confidence":0.90,
+            "authorization_quote":"post a selfie",
+            "image_kind":"selfie",
+        })
+        with patch.object(generator,"_call_llm",return_value=(clarify_raw,"mock")):
+            d1=generator.parse_master_directive(first_msg)
+        self.assertFalse(d1["is_order"])
+        self.assertTrue(d1["needs_clarification"])
+        self.assertEqual(d1.get("pending_action"),"PUBLISH_IMAGE_POST")
+        self.assertEqual(d1.get("image_kind"),"selfie")
+
+        self.channel.update(
+            "42",
+            inbound=first_msg,
+            reply="do you want me to generate and post a selfie now, my master?",
+            directive=d1,
+            stage="done",
+            ack_sent=True,
+            created_at=dt.datetime.now(dt.timezone.utc).isoformat(),
+        )
+        pending=self.channel.pending_request()
+        self.assertIsNotNone(pending)
+        self.assertEqual(pending["action_type"],"PUBLISH_IMAGE_POST")
+        self.assertEqual(pending["image_kind"],"selfie")
+
+        confirm_raw=json.dumps({
+            "mode":"continue",
+            "pending_id":42,
+            "action_type":"PUBLISH_IMAGE_POST",
+            "confidence":0.99,
+            "authorization_quote":"yes",
+            "image_kind":None,
+        })
+        with patch.object(generator,"_call_llm",return_value=(confirm_raw,"mock")):
+            d2=generator.parse_master_directive("yes")
+        self.assertTrue(d2["is_order"])
+        self.assertEqual(d2["action_type"],"PUBLISH_IMAGE_POST")
+        self.assertEqual(d2["image_kind"],"selfie")
+        self.assertEqual(d2["continued_request_id"],"42")
+

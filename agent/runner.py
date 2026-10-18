@@ -60,6 +60,22 @@ def log_tick(entry: Dict[str, Any]) -> None:
         f.write(json.dumps(entry, ensure_ascii=False) + "\n")
 
 
+def _has_consecutive_model_unavailable(min_streak: int = 3) -> bool:
+    if not TICK_LOG_FILE.exists():
+        return False
+    try:
+        selections = []
+        for line in TICK_LOG_FILE.read_text(encoding="utf-8").splitlines()[-40:]:
+            if not line.strip():
+                continue
+            row = json.loads(line)
+            if row.get("event") == "discussion_selection" and not row.get("dry_run"):
+                selections.append((row.get("diagnostics") or {}).get("selection"))
+        return len(selections) >= min_streak and all(s == "model_unavailable" for s in selections[-min_streak:])
+    except Exception:
+        return False
+
+
 def print_header(title: str) -> None:
     print("\n" + "=" * 65)
     print(f"  {title}")
@@ -226,9 +242,15 @@ def run_tick(
     result_details: Dict[str, Any] = {}
 
     if outcome.selected_action == ActionType.NO_ACTION:
-        print("\n[Outcome] Decision is NO_ACTION. Seo-yeon remains quietly offline. Restraint preserved.")
+        selection_status = (getattr(outcome, "discussion_diagnostics", None) or {}).get("selection")
+        if selection_status == "model_unavailable":
+            print("\n[Outcome] Decision is NO_ACTION (model choice unavailable).")
+            if not is_dry and _has_consecutive_model_unavailable(3):
+                notifier.operational_alert("model_unavailable", dry_run=is_dry)
+        else:
+            print("\n[Outcome] Decision is NO_ACTION. Seo-yeon remains quietly offline. Restraint preserved.")
         executed = True
-        if not is_dry:
+        if not is_dry and selection_status != "model_unavailable":
             from .continuity import reflect
             reflect(context)
         result_details = {"action": "NO_ACTION", "reason": outcome.reason}
@@ -254,8 +276,9 @@ def run_tick(
 
     elif outcome.selected_action == ActionType.PUBLISH_IMAGE_POST:
         post_text, model_used = generator.generate_post(outcome.intent, context, topic_hint=outcome.target_data.get("topic_hint"), include_image=True)
-        scene_desc = generator.determine_image_scene(post_text, context)
+        scene_desc = generator.determine_image_scene(post_text, context, hint=outcome.target_data.get("topic_hint"))
         if not post_text or not scene_desc:
+            log_tick({"ts": dt.datetime.now(dt.timezone.utc).isoformat(), "action": "NO_ACTION", "executed": False, "status": "image_scene_unavailable" if post_text else "draft_unavailable", "dry_run": is_dry})
             return 0  # No justified draft/scene, no fabricated fallback.
         from .budget_manager import IMAGE_GEN_COST
         img_res_id = budget_manager.reserve(IMAGE_GEN_COST, action_type="image_generation", provider="kie.ai")
@@ -719,6 +742,8 @@ def run_tick(
     print("\n[Budget & Resource Status]")
     summary = budget_manager.get_summary()
     print(f"  Daily Spend:   ${summary['daily_spend_usd']:.3f} / ${summary['daily_budget_usd']:.2f}")
+    if summary.get("active_reservations_usd", 0.0) > 0:
+        print(f"  Active Holds:  ${summary['active_reservations_usd']:.4f}")
     print(f"  Images Today:  {summary['daily_images_count']} / {summary['max_daily_images']}")
 
     # 9. End-of-Day Evening Check-in & Catch-up to My Master
@@ -753,8 +778,10 @@ def show_status() -> int:
 
     print("\n[Budget Ledger]")
     summary = budget_manager.get_summary()
+    active_res = budget_manager.get_active_reservations()
     print(f"  Daily Spend:    ${summary['daily_spend_usd']:.3f} / ${summary['daily_budget_usd']:.2f}")
     print(f"  Monthly Spend:  ${summary['monthly_spend_usd']:.3f} / ${summary['monthly_budget_usd']:.2f}")
+    print(f"  Active Holds:   ${summary['active_reservations_usd']:.4f} ({len(active_res)} open reservation(s))")
     print(f"  Images Today:   {summary['daily_images_count']} / {summary['max_daily_images']}")
 
     print("\n[Cognitive State & Energy]")

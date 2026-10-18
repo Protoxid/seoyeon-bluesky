@@ -171,20 +171,30 @@ def source_packet(text, *, private=False):
         packet.append({**source,"text":excerpt,"partial":True})
     return packet
 
-def grounded_draft(generator, system, prompt, *, content_type, private=False, evidence_text=""):
+def grounded_draft(generator, system, prompt, *, content_type, private=False, evidence_text="", include_image=False):
     """Draft + separate semantic review, with deterministic provenance checks."""
+    from .generator import parse_json_object
     sources=source_packet(evidence_text,private=private)
     packet={"conversation":prompt,"character_context":system,"sources":sources}
+    if include_image:
+        packet["include_image"]=True
+    image_clause=(
+        "For an image post (include_image=true), a caption for the generated fictional visual scene/selfie "
+        "or supplied environment/operator request is allowed as kind=social without external source citations, "
+        "provided it makes no external factual claims, credentials, or real-world accomplishment claims. "
+        if include_image else ""
+    )
     schema=("Return JSON {text:string,kind:social|interpretation|knowledge|silence,claims:[{claim:string,source_id:string,quote:string}]}. "
             "Every externally verifiable factual assertion needs a claim with a verbatim source quote. "
             "Conversation messages are evidence of what was said, not general factual authority. Character context supports authored identity and taste only, never expertise or physical experience. "
+            + image_clause +
             "Without supporting sources use only a grounded interpretation, ordinary social response, or silence. "
             "Keep interpretations visibly interpretive. Source links may appear only from supplied URLs. "
             "This JSON schema supersedes any earlier raw-text output instruction. No stock fallback. No fabricated sources. The text must fit the platform limit; do not quote long passages.")
     raw,model=generator._call_llm(system+"\n"+POLICY+schema,json.dumps(packet,ensure_ascii=False),max_tokens=700)
     generator.last_discussion_status="invalid_draft_json" if raw else "draft_unavailable"
     try:
-        draft=json.loads(raw or "null")
+        draft=parse_json_object(raw)
         if not isinstance(draft,dict): return "","failed"
         generator.last_discussion_status="invalid_draft_schema"
         text=draft.get("text"); kind=draft.get("kind"); claims=draft.get("claims")
@@ -212,12 +222,12 @@ def grounded_draft(generator, system, prompt, *, content_type, private=False, ev
             "Reject unsupported factual claims (even if labeled social), invented experiences, advice, misleading quotations, "
             "or interpretations presented as facts. Check each quote actually entails its claim, and all claims in the final text "
             "are covered. A title/alt text is not the article/pixels. Cached sources cannot establish current schedules, prices or news. "
-            "Allow brief social replies and differing interpretations without requiring citations for feelings or taste. "
+            "Allow brief social replies and differing interpretations without requiring citations for feelings or taste. "+image_clause+
             "Return JSON {approved:boolean,issue:none|unsupported|advice|irrelevant|misleading|unnatural}.",
             json.dumps({**packet,"draft":{**draft,"text":clean}},ensure_ascii=False),max_tokens=180)
         if not review: return "","failed"
         generator.last_discussion_status="invalid_review_json"
-        verdict=json.loads(review)
+        verdict=parse_json_object(review)
         if not isinstance(verdict,dict) or verdict.get("approved") is not True or verdict.get("issue")!="none":
             generator.last_discussion_status="review_rejected"; return "","failed"
         generator.last_discussion_status="claim_storage_rejected"
@@ -231,7 +241,7 @@ def grounded_draft(generator, system, prompt, *, content_type, private=False, ev
 def discovery_queries():
     """Public continuity informs curiosity; no topic rotation or private search leakage."""
     if MODE.get()=="offline": return []
-    from .generator import generator
+    from .generator import generator, parse_json_object
     from .continuity import ContinuityStore
     from .memory_store import memory_store
     raw,_=generator._call_llm(
@@ -245,7 +255,7 @@ def discovery_queries():
                     "continuity":ContinuityStore().context(subject="self",limit=6),
                     "recent_public_posts":[{"text":p.get("text",""),"topic":p.get("topic","")} for p in memory_store.get_recent_context().get("posts",[])[:8]]},ensure_ascii=False),max_tokens=180)
     try:
-        data=json.loads(raw or "null"); queries=data.get("queries") if isinstance(data,dict) else None
+        data=parse_json_object(raw); queries=data.get("queries") if isinstance(data,dict) else None
         if not isinstance(queries,list) or len(queries)>2: return []
         if any(not isinstance(q,str) or not 2<=len(q.strip())<=80 or "http" in q or "@" in q for q in queries): return []
         return list(dict.fromkeys(q.strip() for q in queries))

@@ -96,9 +96,9 @@ class AgentConfig:
 
     # --- Model Configuration ---
     # Text generation runs EXCLUSIVELY via OpenRouter API
-    # Top frontier model for nuanced, intelligent persona writing and cognitive reasoning
+    # Anthropic Claude Haiku 5.5 for nuanced, intelligent persona writing at 20x lower cost than Sonnet 5.5
     primary_text_model: str = field(
-        default_factory=lambda: os.environ.get("PRIMARY_TEXT_MODEL", "anthropic/claude-sonnet-5.5")
+        default_factory=lambda: os.environ.get("PRIMARY_TEXT_MODEL", "anthropic/claude-haiku-5.5")
     )
     # OpenRouter API Endpoint (supports https://openrouter.ai/api/v1 or https://eu.openrouter.ai/api/v1)
     openrouter_base_url: str = field(
@@ -117,7 +117,7 @@ class AgentConfig:
     kie_resolution: str = field(default_factory=lambda: os.environ.get("KIE_RESOLUTION", "1K"))
     action_threshold: float = field(default_factory=lambda: _get_float("ACTION_THRESHOLD", 0.50))
     enable_continuity: bool = field(default_factory=lambda: _get_bool("ENABLE_CONTINUITY", True))
-    vision_model: str = field(default_factory=lambda: os.environ.get("VISION_MODEL", "anthropic/claude-sonnet-5.5"))
+    vision_model: str = field(default_factory=lambda: os.environ.get("VISION_MODEL", "anthropic/claude-haiku-5.5"))
 
     # --- Bluesky Credentials ---
     bsky_handle: str = field(

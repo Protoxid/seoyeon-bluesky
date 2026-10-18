@@ -117,3 +117,55 @@ class TestRuntimeGuards(unittest.TestCase):
         self.assertEqual(packet["identity"], memory_store.format_identity_prompt())
         self.assertIn(memory_store.get_identity()["current_vocation"], packet["identity"])
         self.assertEqual(result.selected_action, ActionType.NO_ACTION)
+        self.assertIn("invalid or below threshold", result.reason)
+
+    def test_reconciled_llm_call_marks_submitted_once_and_records_request_id(self):
+        generator = ContentGenerator()
+        def query(model, *args):
+            generator.last_usage = {"cost": .001, "prompt_tokens": 100, "completion_tokens": 20, "request_id": "gen-req-123"}
+            return "hello"
+        with patch("agent.generator.budget_manager", self.budget), \
+             patch.object( self.budget, "mark_submitted", wraps=self.budget.mark_submitted) as mark_sub, \
+             patch.object(generator, "_query_openrouter", side_effect=query):
+            text, used_model = generator._call_llm("system", "user")
+        self.assertEqual(text, "hello")
+        self.assertEqual(used_model, config.primary_text_model)
+        self.assertEqual(mark_sub.call_count, 1)
+        history = self.budget._load_ledger()["history"]
+        self.assertEqual(len(history), 1)
+        self.assertEqual(history[0].get("request_id"), "gen-req-123")
+        self.assertTrue(history[0].get("reservation_id", "").startswith("res_"))
+
+    def test_choice_distinguishes_model_unavailable_from_chosen_silence(self):
+        from agent.choice import choose
+        from agent.decision_engine import ActionCandidate, ActionType, DecisionOutcome
+        from agent.context_engine import build_environment_context
+        quiet = ActionCandidate(ActionType.NO_ACTION, .4, .9, "quiet")
+        outcome_unavail = DecisionOutcome(quiet.action, "", {}, "", {}, [quiet])
+        with execution_mode("live"), patch("agent.generator.generator._call_llm", return_value=(None, "failed")):
+            res_unavail = choose(outcome_unavail, build_environment_context())
+        self.assertEqual(res_unavail.discussion_diagnostics["selection"], "model_unavailable")
+        self.assertIn("Model choice unavailable", res_unavail.reason)
+
+        outcome_silent = DecisionOutcome(quiet.action, "", {}, "", {}, [quiet])
+        with execution_mode("live"), patch("agent.generator.generator._call_llm", return_value=('{"candidate_id":0,"confidence":0.9,"reason":"quiet","contribution":""}', "mock")):
+            res_silent = choose(outcome_silent, build_environment_context())
+        self.assertEqual(res_silent.discussion_diagnostics["selection"], "chosen_silence")
+        self.assertEqual(res_silent.reason, "No sufficiently grounded motivation to act.")
+
+    def test_consecutive_model_unavailable_detection_and_alert(self):
+        import agent.runner as runner_mod
+        from agent.notifier import notifier
+        log_file = Path(self.temp.name) / "tick_history.jsonl"
+        rows = [
+            {"event": "discussion_selection", "dry_run": False, "diagnostics": {"selection": "model_unavailable"}},
+            {"event": "discussion_selection", "dry_run": False, "diagnostics": {"selection": "model_unavailable"}},
+            {"event": "discussion_selection", "dry_run": False, "diagnostics": {"selection": "model_unavailable"}},
+        ]
+        log_file.write_text("\n".join(json.dumps(r) for r in rows) + "\n", encoding="utf-8")
+        with patch.object(runner_mod, "TICK_LOG_FILE", log_file):
+            self.assertTrue(runner_mod._has_consecutive_model_unavailable(3))
+        with patch.object(notifier, "send_telegram_message", return_value=True) as send:
+            self.assertTrue(notifier.operational_alert("model_unavailable", dry_run=True))
+            send.assert_called_once()
+            self.assertIn("Language model selection failed repeatedly", send.call_args.args[0])

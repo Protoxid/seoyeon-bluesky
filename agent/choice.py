@@ -4,7 +4,7 @@ from .decision_engine import ActionType
 
 
 def choose(outcome, context):
-    from .generator import generator
+    from .generator import generator, parse_json_object
     from .memory_store import memory_store
     from .continuity import ContinuityStore
     from .config import config
@@ -80,6 +80,7 @@ def choose(outcome, context):
         "Notice direct questions, corrections, shared interests, and unfinished exchanges. A reply can add a "
         "specific distinction or ordinary acknowledgment; it need not be impressive. Do not hijack venting with advice. "
         "An original post needs a grounded idea or actual draft, not merely time since the previous post. "
+        "When PUBLISH_IMAGE_POST is eligible and the idea is naturally visual (a scene, object, or quiet selfie), you may choose PUBLISH_IMAGE_POST instead of PUBLISH_TEXT_POST without needing a physical camera. "
         "Relationship labels/counts are not evidence of intimacy. Do not discuss unseen media or unread articles as inspected. "
         "Return JSON {candidate_id:integer,confidence:number,reason:string,contribution:string}. Contribution is the specific idea to add, grounded in supplied public context; required for original posts. "
         "Reasons must be brief and contain no private facts.",
@@ -88,7 +89,7 @@ def choose(outcome, context):
     if raw and MODE.get() != "offline":
         try:
             selection_status="invalid_choice"
-            choice = json.loads(raw)
+            choice = parse_json_object(raw)
             index, confidence = choice["candidate_id"], choice["confidence"]
             if type(index) is int and 0 <= index < len(outcome.all_candidates) and type(confidence) in (int, float) and config.action_threshold <= confidence <= 1:
                 proposed = outcome.all_candidates[index]
@@ -107,5 +108,12 @@ def choose(outcome, context):
     outcome.selected_action = selected.action
     outcome.target_data = selected.target_data or {}
     outcome.intent = selected.intent
-    outcome.reason = "Contextual choice validated." if selected is not quiet else "No sufficiently grounded motivation to act."
+    if selected is not quiet:
+        outcome.reason = "Contextual choice validated."
+    elif selection_status == "model_unavailable":
+        outcome.reason = "Model choice unavailable; defaulting to NO_ACTION."
+    elif selection_status == "invalid_choice":
+        outcome.reason = "Model choice invalid or below threshold; defaulting to NO_ACTION."
+    else:
+        outcome.reason = "No sufficiently grounded motivation to act."
     return outcome

@@ -91,10 +91,45 @@ class TestVisualConsistency(unittest.TestCase):
         ctx.weather = self.weather_clear
         post = "looking down at an open book"
 
-        with patch.object(generator, "_call_llm", return_value=('{"description":"open book on a table, no people","is_selfie":false}', "mock")):
+        with patch.object(generator, "_call_llm", return_value=('```json\n{"description":"open book on a table, no people","is_selfie":false}\n```', "mock")):
             scene = generator.determine_image_scene(post, ctx)
             self.assertIn("open book", scene)
             self.assertIn("no people", scene)
+
+    def test_review_image_downscales_oversized_selfie_references_and_parses_fenced_json(self):
+        import tempfile
+        from pathlib import Path
+        from PIL import Image
+        generator.last_scene = {"is_selfie": True}
+        fenced_review = '```json\n{"approved": true, "alt_text": "A candid selfie of Seo-yeon."}\n```'
+        with tempfile.TemporaryDirectory() as tmp:
+            a1 = Path(tmp) / "a1.png"
+            c5 = Path(tmp) / "c5.png"
+            Image.new("RGB", (2000, 2000), color=(210, 195, 185)).save(a1, format="PNG")
+            Image.new("RGB", (2000, 2000), color=(180, 175, 170)).save(c5, format="PNG")
+            with patch("agent.image_engine.MASTER_A1_PATH", a1), \
+                 patch("agent.image_engine.MASTER_C5_PATH", c5), \
+                 patch.object(generator, "_call_llm", return_value=(fenced_review, "mock")) as call:
+                ok, alt = generator.review_image(a1.read_bytes(), "quiet afternoon.", "candid selfie")
+        self.assertTrue(ok)
+        self.assertEqual(alt, "A candid selfie of Seo-yeon.")
+        images_arg = call.call_args.args[1]
+        self.assertEqual(len(images_arg), 4)
+        for ref_part in images_arg[1:]:
+            url = ref_part["image_url"]["url"]
+            self.assertTrue(url.startswith("data:image/jpeg;base64,"))
+            # Compressed reference data URL must stay well under OpenRouter/Anthropic 5MB limit
+            self.assertLess(len(url), 600_000)
+
+    def test_image_post_caption_passes_grounded_draft_with_fenced_json(self):
+        ctx = build_environment_context()
+        draft_resp = '```json\n{"text": "quiet afternoon frame for my human.", "kind": "social", "claims": []}\n```'
+        review_resp = '```json\n{"approved": true, "issue": "none"}\n```'
+        with patch.object(generator, "_call_llm", side_effect=[(draft_resp, "mock"), (review_resp, "mock")]) as call:
+            text, _ = generator.generate_post("master_order_image", ctx, topic_hint="post a selfie", include_image=True)
+        self.assertEqual(text, "quiet afternoon frame for my human.")
+        self.assertIn("include_image=true", call.call_args_list[0].args[0])
+        self.assertIn("include_image=true", call.call_args_list[1].args[0])
 
 
 if __name__ == "__main__":

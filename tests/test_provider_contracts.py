@@ -51,3 +51,22 @@ class TestProviderContracts(unittest.TestCase):
             self.assertIsNone(generator._query_openrouter("model", "system", "user", 100))
         self.assertEqual(generator.last_usage["cost"], .01)
         self.assertEqual(generator.last_usage["request_id"], "request1")
+
+    def test_deepseek_fallback_bounds_reasoning_effort(self):
+        generator = ContentGenerator()
+        generator.openrouter_key = "dummy"
+        body = {"id": "req-ds", "choices": [{"message": {"content": "quiet reply"}, "finish_reason": "stop"}], "usage": {"cost": .0002, "prompt_tokens": 50, "completion_tokens": 12}}
+        with patch("agent.generator.urllib.request.urlopen", return_value=response(body)) as request:
+            text = generator._query_openrouter("deepseek-v4.1-flash", "system", "user", 150)
+        payload = json.loads(request.call_args.args[0].data)
+        self.assertEqual(text, "quiet reply")
+        self.assertEqual(payload.get("reasoning"), {"effort": "low"})
+
+    def test_publish_image_post_fails_closed_when_blob_upload_fails(self):
+        from agent.bsky_client import BlueskyClient
+        client = BlueskyClient()
+        with patch.object(client, "upload_image_blob", return_value=None), \
+             patch.object(client, "publish_text_post") as text_fallback:
+            res = client.publish_image_post("caption written for image", b"bytes", alt_text="scene")
+        self.assertEqual(res, {})
+        text_fallback.assert_not_called()

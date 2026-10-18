@@ -62,10 +62,22 @@ def get_or_upload_master_reference(path: pathlib.Path, api_key: str) -> Optional
         except Exception:
             pass
 
-    # Upload base64 to Kie
+    # Upload base64 to Kie (downscale/compress oversized >3.5MB PNGs to avoid HTTP 413 / timeouts)
+    raw_bytes = path.read_bytes()
     ext = path.suffix.lower().lstrip(".") or "png"
     mime = "jpeg" if ext == "jpg" else ext
-    b64_content = base64.b64encode(path.read_bytes()).decode("utf-8")
+    if len(raw_bytes) > 3_500_000:
+        try:
+            with Image.open(io.BytesIO(raw_bytes)) as im:
+                im = im.convert("RGB")
+                im.thumbnail((1536, 1536))
+                buf = io.BytesIO()
+                im.save(buf, format="JPEG", quality=92, optimize=True)
+                raw_bytes = buf.getvalue()
+                ext, mime = "jpg", "jpeg"
+        except Exception:
+            pass
+    b64_content = base64.b64encode(raw_bytes).decode("utf-8")
     payload = {
         "base64Data": f"data:image/{mime};base64,{b64_content}",
         "uploadPath": "images/persona",

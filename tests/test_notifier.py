@@ -89,9 +89,9 @@ class TestTelegramNotifier(unittest.TestCase):
         self.assertIn("my master", prompt)
         self.assertIn("my human", prompt)
 
-    def test_config_model_is_sonnet_5_5(self):
-        """Config primary text model must default to Claude Sonnet 5.5 on OpenRouter."""
-        self.assertEqual(config.primary_text_model, "anthropic/claude-sonnet-5.5")
+    def test_config_model_is_haiku_5_5(self):
+        """Config primary text model must default to Claude Haiku 5.5 on OpenRouter."""
+        self.assertEqual(config.primary_text_model, "anthropic/claude-haiku-5.5")
 
     def test_send_daily_summary(self):
         """send_daily_summary must deliver formatted message to master and record episodic memory."""

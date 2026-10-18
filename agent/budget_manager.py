@@ -27,12 +27,15 @@ BUDGET_LEDGER_FILE = DATA_DIR / "budget_ledger.json"
 # OpenRouter model pricing per 1,000,000 tokens (USD)
 # Ref: https://openrouter.ai/models
 MODEL_PRICING: Dict[str, Dict[str, float]] = {
-    # Anthropic Claude 3.5 / 5.5 Sonnet
+    # Anthropic Claude 5.5 / 3.5 family
+    "anthropic/claude-haiku-5.5": {"input_per_m": 0.10, "output_per_m": 0.50},
     "anthropic/claude-sonnet-5.5": {"input_per_m": 3.00, "output_per_m": 15.00},
     "anthropic/claude-3.5-sonnet": {"input_per_m": 3.00, "output_per_m": 15.00},
     # DeepSeek V3 / V4.1 / Flash
     "deepseek/deepseek-chat": {"input_per_m": 0.14, "output_per_m": 0.28},
     "deepseek-v4.1-flash": {"input_per_m": 0.14, "output_per_m": 0.28},
+    "deepseek/deepseek-v4.1-flash": {"input_per_m": 0.14, "output_per_m": 0.28},
+    "deepseek/deepseek-v4.1-flash-1017": {"input_per_m": 0.15, "output_per_m": 0.60},
     "deepseek/deepseek-r1": {"input_per_m": 0.55, "output_per_m": 2.19},
     # Default fallback rate for other LLMs
     "_default": {"input_per_m": 1.00, "output_per_m": 3.00},
@@ -262,6 +265,7 @@ class BudgetManager:
         completion_tokens: int = 0,
         action_type: str = "llm_generation",
         details: str = "",
+        request_id: str = "",
     ) -> float:
         """
         Reconciles an active reservation with actual incurred cost, releasing the reserve
@@ -272,6 +276,8 @@ class BudgetManager:
         data = self._load_ledger()
         if reservation_id in data.get("reconciled_ids", []):
             return 0.0
+        prior_res = (data.get("active_reservations") or {}).get(reservation_id, {}) if reservation_id else {}
+        effective_request_id = request_id or prior_res.get("request_id", "")
         if reservation_id:
             data.setdefault("reconciled_ids", []).append(reservation_id)
         if reservation_id and "active_reservations" in data and reservation_id in data["active_reservations"]:
@@ -298,6 +304,10 @@ class BudgetManager:
             "total_tokens": total_tokens,
             "details": details,
         }
+        if reservation_id:
+            entry["reservation_id"] = reservation_id
+        if effective_request_id:
+            entry["request_id"] = effective_request_id
         hist = data.get("history", [])
         hist.append(entry)
         data["history"] = hist[-100:]
