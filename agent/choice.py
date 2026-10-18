@@ -96,15 +96,19 @@ def choose(outcome, context):
             selection_status="invalid_choice"
             choice = parse_json_object(raw)
             index, confidence = choice["candidate_id"], choice["confidence"]
-            if type(index) is int and 0 <= index < len(outcome.all_candidates) and type(confidence) in (int, float) and config.action_threshold <= confidence <= 1:
+            if type(index) is int and 0 <= index < len(outcome.all_candidates) and type(confidence) in (int, float) and 0 <= confidence <= 1:
                 proposed = outcome.all_candidates[index]
-                contribution = choice.get("contribution", "")
-                original = proposed.action in {ActionType.PUBLISH_TEXT_POST, ActionType.PUBLISH_IMAGE_POST}
-                if not original or (isinstance(contribution, str) and 8 <= len(contribution.strip()) <= 500):
-                    selected = proposed
-                    selection_status="chosen_silence" if proposed is quiet else "validated_choice"
-                    if original:
-                        selected.target_data = {**(selected.target_data or {}), "topic_hint": contribution.strip()}
+                if proposed is quiet:
+                    selected = quiet
+                    selection_status = "chosen_silence"
+                elif confidence >= config.action_threshold:
+                    contribution = choice.get("contribution", "")
+                    original = proposed.action in {ActionType.PUBLISH_TEXT_POST, ActionType.PUBLISH_IMAGE_POST}
+                    if not original or (isinstance(contribution, str) and 8 <= len(contribution.strip()) <= 500):
+                        selected = proposed
+                        selection_status = "validated_choice"
+                        if original:
+                            selected.target_data = {**(selected.target_data or {}), "topic_hint": contribution.strip()}
         except (ValueError, TypeError, KeyError):
             pass
     from collections import Counter

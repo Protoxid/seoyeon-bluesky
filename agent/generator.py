@@ -495,19 +495,19 @@ class ContentGenerator:
             "cancellations, and negated requests must not execute. Chat or cancellation ends the pending clarification. "
             "Return JSON {mode:chat|clarify|execute|continue, action_type:string, confidence:number, "
             "authorization_quote:string, pending_id:string, image_kind:selfie|pov|unspecified}. "
-            "execute requires an explicit current request with a verbatim authorization span. "
-            "Use the supplied runtime capabilities, not fictional physical limitations. An explicit request to post a selfie "
-            "authorizes generating and publishing a fictional image; it does not require a phone or an existing photo. "
-            "Missing optional outfit, pose, caption or scenery delegates those choices; do not ask for them as prerequisites. "
-            "Classify authorization, not whether you feel like acting. For an image request preserve selfie versus POV in image_kind. "
+            "execute requires an explicit current request with a verbatim authorization span (at least 8 characters from message) and confidence between 0.95 and 1.0 (use 0.99 or 1.0 for clear requests; values below 0.95 are rejected as needing clarification). "
+            "Use the supplied runtime capabilities, not fictional physical limitations. An explicit request to post a picture, photo, image, or selfie "
+            "authorizes generating and publishing a fictional image immediately (mode=execute, action_type=PUBLISH_IMAGE_POST, confidence=0.99); it does not require a phone or an existing photo. "
+            "Missing optional subject, selfie-vs-POV choice, outfit, pose, caption or scenery delegates those choices to you; do NOT choose clarify or ask what kind of picture to post when the operator simply asks you to post a picture/photo/selfie. "
+            "Classify authorization, not whether you feel like acting. For an image request set image_kind to selfie, pov, or unspecified (when the operator did not specify selfie vs POV). "
             "BROWSE_AND_REPLY can inspect notifications and the feed and choose a suitable post itself; "
             "a request to reply to someone else's post does not require a supplied link. "
-            "For an unresolved action choose clarify with its action_type and a verbatim request span. "
-            "continue requires the current message to explicitly confirm or delegate the choice for the supplied "
-            "pending request, referencing its exact pending_id and same action_type. Never revive completed tasks. "
+            "For an unresolved ambiguous action choose clarify with its action_type and a verbatim request span. "
+            "When pending_request is non-null and the current message confirms, answers the clarification, or delegates the choice, "
+            "use mode=continue, set pending_id to the exact pending_request.id string, set action_type to pending_request.action_type, set authorization_quote to the verbatim span from message, and set confidence between 0.95 and 1.0. Never revive completed tasks. "
             "If there is no pending request, a bare confirmation or 'your choice' needs clarification. "
-                "Allowed actions: PUBLISH_IMAGE_POST,PUBLISH_TEXT_POST,ANSWER_DM,BROWSE_AND_REPLY,BROWSE_AND_LIKE,CONSOLIDATE. "
-                "Output ONLY the raw JSON object, with no preamble or markdown fences.",
+            "Allowed actions: PUBLISH_IMAGE_POST,PUBLISH_TEXT_POST,ANSWER_DM,BROWSE_AND_REPLY,BROWSE_AND_LIKE,CONSOLIDATE. "
+            "Output ONLY the raw JSON object, with no preamble or markdown fences.",
             json.dumps({"message":master_text,"pending_request":pending,"capabilities":CAPABILITIES},ensure_ascii=False),max_tokens=300)
         try:
             result=parse_json_object(raw)
@@ -522,7 +522,11 @@ class ContentGenerator:
                       and (quote in master_text or quote.strip().lower() in master_text.lower()))
             valid=(action in set(commands.values()) and type(confidence) in (int,float) and .95<=confidence<=1
                    and quote_ok)
-            if valid and mode=="continue" and pending and str(result.get("pending_id"))==str(pending["id"]) and action==pending["action_type"]:
+            raw_pid=result.get("pending_id")
+            pid_matches=bool(pending and (raw_pid in (None,"","null") or str(raw_pid)==str(pending["id"])))
+            if valid and pending and action==pending["action_type"] and (
+                (mode=="continue" and pid_matches) or (mode=="execute" and len(quote.strip())<8 and pid_matches)
+            ):
                 return {"is_order":True,"action_type":action,"topic_hint":pending["request"]+"\nOperator clarification: "+master_text,
                         "continued_request_id":pending["id"],"image_kind":image_kind if image_kind!="unspecified" else pending.get("image_kind","unspecified")}
             if valid and len(quote.strip())>=8:
@@ -530,7 +534,7 @@ class ContentGenerator:
                     return {"is_order":True,"action_type":action,"topic_hint":master_text,"image_kind":image_kind}
                 if mode=="clarify":
                     return {**quiet,"needs_clarification":True,"pending_action":action,"image_kind":image_kind}
-            if mode in {"clarify","execute"} and action in set(commands.values()) and quote_ok:
+            if mode in {"clarify","execute","continue"} and action in set(commands.values()) and quote_ok:
                 return {**quiet,"needs_clarification":True,"pending_action":action,"image_kind":image_kind}
         except (ValueError,TypeError): pass
         return {**quiet,"needs_clarification":True}
