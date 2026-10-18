@@ -183,8 +183,8 @@ def grounded_draft(generator, system, prompt, *, content_type, private=False, ev
         packet["attached_images_inspected"]=len(inspected_images)
     image_clause=(
         "For an image post (include_image=true), a caption describing the generated fictional visual scene/selfie, "
-        "time-of-day moment (e.g. in bed late at night, or observing a Seoul street, stray cat, cup, book, or studio corner during the day), "
-        "or supplied environment/operator request is allowed as kind=social without external source citations and is NOT an unsupported claim or forbidden invented experience, "
+        "current time-of-day moment, surroundings, or supplied environment/operator request is allowed as kind=social "
+        "without external source citations and is NOT an unsupported claim or forbidden invented experience, "
         "provided it makes no external factual claims, credentials, or real-world accomplishment claims. "
         if include_image else ""
     )

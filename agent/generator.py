@@ -271,17 +271,19 @@ class ContentGenerator:
         if include_image:
             if image_kind == "selfie":
                 img_instruction = (
-                    "This post will be accompanied by a candid smartphone selfie of you right now, "
-                    "coherent with the current Seoul time, circadian phase, and weather."
+                    "This post will be accompanied by a candid smartphone photo of you right now, "
+                    "matching your operator's request and coherent with your current Seoul time, circadian phase, weather, and continuity."
                 )
             elif image_kind == "pov":
                 img_instruction = (
-                    "This post will be accompanied by a first-person POV photograph of something around you right now "
-                    "(e.g. a Seongsu-dong street, stray cat, cup, book, studio corner, or transit window), "
-                    "coherent with the current Seoul time, circadian phase, weather, and your day."
+                    "This post will be accompanied by a first-person POV photograph of what is around you or what your operator requested, "
+                    "coherent with your current Seoul time, circadian phase, weather, and continuity."
                 )
             else:
-                img_instruction = "This post will be accompanied by a candid photo of your surroundings or moment."
+                img_instruction = (
+                    "This post will be accompanied by a candid photograph matching your operator's request and coherent with "
+                    "your current Seoul time, circadian phase, weather, and continuity."
+                )
         else:
             img_instruction = "This is a text-only post."
 
@@ -291,12 +293,12 @@ class ContentGenerator:
                 f"\"{topic_hint}\"\n\n"
                 f"Draft a post for this authenticated operator request. Publication has not happened yet.\n"
                 f"{img_instruction}\n"
-                "If an image is requested, it is a generated fictional depiction using available image tools. "
-                "Write a fitting, realistic human caption coherent with the current Seoul time and circadian phase "
-                "(for example, in bed in your Seongsu flat late at night / deep_night, or observing a street, stray cat, cup, book, or studio detail during daytime/evening); "
+                "If an image is requested, it is a generated fictional depiction using available image tools; "
                 "lack of a physical phone or existing photo is not an obstacle to generation.\n"
+                "Fulfill whatever your master asked for directly, and infer any unspecified setting, mood, or surroundings naturally "
+                "from your current Seoul time, circadian phase, weather, internal state, and continuity/intentions.\n"
                 f"CRITICAL RULES:\n"
-                f"1. Fulfill your master's directive directly: match the requested subject (e.g. a photo of yourself right now vs. something around you) and current Seoul hour.\n"
+                f"1. Obey your master's directive directly: match the requested subject, framing, or topic while staying coherent with your current Seoul moment.\n"
                 f"2. Current Seoul Environment: {context.seoul_time_display} ({context.circadian_phase}), {context.weather.summary()}.\n"
                 f"3. Style: Dry, perceptive, lowercase only, natural punctuation and concise fragments. Absolutely ZERO exclamation marks (!).\n"
                 f"4. Only refer to your operator as 'my master' or 'my human' if the directive asks to mention him or it fits naturally.\n"
@@ -518,9 +520,9 @@ class ContentGenerator:
             "authorizes generating and publishing a fictional image immediately (mode=execute, action_type=PUBLISH_IMAGE_POST, confidence=0.99); it does not require a phone or an existing photo. "
             "Missing optional subject, selfie-vs-POV choice, outfit, pose, caption or scenery delegates those choices to you; NEVER ask for confirmation or ask what kind of picture to post when the operator asks you to post a picture/photo/selfie. "
             "Classify authorization, not whether you feel like acting. For an image request: "
-            "set image_kind='selfie' when the operator asks for a picture/photo of you, yourself, a selfie, or how you look right now; "
-            "set image_kind='pov' when the operator asks for a picture/photo of something around you, your surroundings, what you see, a street, a cat, or an object; "
-            "set image_kind='unspecified' only when the operator did not specify selfie vs surroundings. "
+            "set image_kind='selfie' when the operator asks for a picture/photo of you, yourself, a selfie, or how you look; "
+            "set image_kind='pov' when the operator asks for a first-person picture/photo of your surroundings, view, or an external subject without you in frame; "
+            "set image_kind='unspecified' when the operator did not specify whether you are in frame. "
             "BROWSE_AND_REPLY can inspect notifications and the feed and choose a suitable post itself; "
             "a request to reply to someone else's post does not require a supplied link. "
             "When pending_request is non-null and the current message confirms, answers the clarification, or delegates the choice, "
@@ -652,13 +654,12 @@ class ContentGenerator:
         from .weekly_planner import weekly_planner
         intentions = weekly_planner.get_or_create_schedule(force=False).get("intentions", [])
         raw, _ = self._call_llm(
-            "Describe a realistic, candid photograph for this persona's post coherent with her current Seoul time, circadian phase, weather, caption, and supplied continuity/intentions. "
-            "Match human circadian reality in Seoul: "
-            "1. When is_selfie=true (or requested_image_kind='selfie'): "
-            "During deep_night or late night (roughly 01:00–05:30 KST), depict her naturally in bed in her dim Seongsu flat (lying in bed under a soft duvet/blanket, head on pillow, slightly messy hair, dim bedside or ambient streetlight, sleepy unposed expression). "
-            "During daytime or evening (dawn, morning, midday, afternoon, evening), depict a candid smartphone selfie in a setting that fits that hour, weather, and her current day/intentions (e.g., Seongsu red-brick street, café table, Pilates studio corner, transit window, or quiet flat). "
-            "2. When is_selfie=false (or requested_image_kind='pov'): "
-            "Depict a first-person 35mm or smartphone point-of-view shot of what is around her at that moment without showing her face (include 'no people' in the description): e.g., a Seongsu-dong street, a stray cat, a cup of tea/coffee, an open book, architecture, or a studio detail matching the current Seoul hour, weather, and her day/intentions. "
+            "Synthesize a realistic, candid photographic scene description for this persona's post. "
+            "1. Prioritize any specific subject, action, or framing requested in hint and caption. "
+            "2. For any details left unspecified, infer where she would naturally be and what is around her from the supplied "
+            "environment (Seoul clock time, circadian phase, weather, season, internal state), weekly_intentions, and continuity, "
+            "so the lighting, setting, clothing, and surroundings are 100% coherent with her current moment in Seoul. "
+            "3. Set is_selfie=true when she is in the frame, or is_selfie=false (and include 'no people' in description) for a first-person POV shot of her surroundings or an object. "
             "If requested_image_kind is 'selfie' or 'pov', strictly preserve that operator-requested image type (is_selfie=true for selfie, is_selfie=false for pov). "
             "A generated fictional depiction needs no physical phone, camera, completed real-world event, or existing image. "
             "Return JSON {description:string,is_selfie:boolean}, or {} when no justified image exists. "

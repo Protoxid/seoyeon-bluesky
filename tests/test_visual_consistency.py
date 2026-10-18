@@ -152,7 +152,8 @@ class TestVisualConsistency(unittest.TestCase):
                 hint="post a picture of you right now",
                 image_kind="selfie",
             )
-        self.assertIn("in bed", call_night.call_args.args[0])
+        self.assertIn("infer where she would naturally be", call_night.call_args.args[0])
+        self.assertNotIn("stray cat", call_night.call_args.args[0])
         packet_night = json.loads(call_night.call_args.args[1])
         self.assertEqual(packet_night["requested_image_kind"], "selfie")
         self.assertIn("02:49 KST", packet_night["environment"])
