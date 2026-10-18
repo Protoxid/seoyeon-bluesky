@@ -1030,15 +1030,15 @@
       "timestamp": "2026-10-13T15:17:49.587743+00:00",
       "request_id": ""
     },
-    "res_043467c05c77": {
-      "reservation_id": "res_043467c05c77",
-      "amount_usd": 0.10617,
+    "res_d200ba8f6713": {
+      "reservation_id": "res_d200ba8f6713",
+      "amount_usd": 0.004115,
       "action_type": "llm_generation",
       "provider": "openrouter",
-      "model": "anthropic/claude-sonnet-5.5",
+      "model": "deepseek-v4.1-flash",
       "details": "",
       "status": "submitted",
-      "timestamp": "2026-10-18T07:47:32.986419+00:00",
+      "timestamp": "2026-10-18T07:47:34.931661+00:00",
       "request_id": ""
     }
   },
