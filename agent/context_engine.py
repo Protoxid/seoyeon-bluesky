@@ -238,10 +238,11 @@ def build_environment_context(
 
     city_texture = ""
     from .state_manager import state_manager
+    from .weekly_planner import weekly_planner
     state_desc = state_manager.format_prompt_state()
-    scheduled_activity = ""
-    scheduled_area = ""
-    # Observation is read-only. Fictional activity is labeled, never invented here.
+    cur_act = weekly_planner.get_current_activity(now_kst) or {}
+    scheduled_activity = str(cur_act.get("activity") or "")
+    scheduled_area = str(cur_act.get("area") or "")
 
     return EnvironmentContext(
         seoul_time_iso=now_kst.isoformat(),

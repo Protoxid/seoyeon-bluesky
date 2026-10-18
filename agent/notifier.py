@@ -245,14 +245,16 @@ class MasterNotifier:
             from .image_engine import image_engine
 
             print(f"[Master Directive: Image Post] Generating image post coherent with {context.seoul_time_display}...")
+            req_image_kind = directive.get("image_kind", "unspecified")
             post_text, model_used = generator.generate_post(
                 intent="master_order_image",
                 context=context,
                 topic_hint=topic_hint,
                 include_image=True,
+                image_kind=req_image_kind,
             )
             scene_desc = generator.determine_image_scene(post_text, context, hint=topic_hint,
-                                                        image_kind=directive.get("image_kind","unspecified"))
+                                                        image_kind=req_image_kind)
             print("[Operator] Private draft generated.")
             print("[Operator] Private scene redacted.")
 

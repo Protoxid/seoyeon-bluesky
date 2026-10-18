@@ -131,6 +131,65 @@ class TestVisualConsistency(unittest.TestCase):
         self.assertIn("include_image=true", call.call_args_list[0].args[0])
         self.assertIn("include_image=true", call.call_args_list[1].args[0])
 
+    def test_circadian_selfie_in_bed_at_249am_and_pov_surroundings_at_11am(self):
+        import json
+        engine = ImageEngine(api_key="test_dummy_key")
+
+        # Scenario 1: 02:49 AM (deep_night) -> "post a picture of you right now" -> selfie in bed
+        ctx_night = build_environment_context()
+        ctx_night.seoul_time_display = "02:49 KST"
+        ctx_night.circadian_phase = "deep_night"
+        ctx_night.weather = self.weather_clear
+
+        night_scene_json = json.dumps({
+            "description": "lying in bed under a white duvet in her dim Seongsu flat at 2:49 am, head on pillow, messy hair, sleepy unposed expression",
+            "is_selfie": True,
+        })
+        with patch.object(generator, "_call_llm", return_value=(night_scene_json, "mock")) as call_night:
+            scene_night = generator.determine_image_scene(
+                "still awake in bed at 2:49 am.",
+                ctx_night,
+                hint="post a picture of you right now",
+                image_kind="selfie",
+            )
+        self.assertIn("in bed", call_night.call_args.args[0])
+        packet_night = json.loads(call_night.call_args.args[1])
+        self.assertEqual(packet_night["requested_image_kind"], "selfie")
+        self.assertIn("02:49 KST", packet_night["environment"])
+        self.assertIn("deep_night", packet_night["environment"])
+        self.assertTrue(generator.last_scene["is_selfie"])
+        _, prompt_night, _ = engine.generate_image(scene_night, is_selfie=generator.last_scene["is_selfie"], dry_run=True)
+        self.assertIn("Candid everyday smartphone selfie of Seo-yeon", prompt_night)
+        self.assertIn("in bed", prompt_night)
+
+        # Scenario 2: 11:00 AM (morning) -> "post a picture of something around you" -> POV street/cat/surroundings
+        ctx_day = build_environment_context()
+        ctx_day.seoul_time_display = "11:00 KST"
+        ctx_day.circadian_phase = "morning"
+        ctx_day.weather = self.weather_clear
+
+        day_scene_json = json.dumps({
+            "description": "sunlit red-brick alley in Seongsu-dong with a stray cat sitting on concrete steps, 35mm point-of-view, no people",
+            "is_selfie": False,
+        })
+        with patch.object(generator, "_call_llm", return_value=(day_scene_json, "mock")) as call_day:
+            scene_day = generator.determine_image_scene(
+                "the brick alley outside the studio is quiet at eleven. one stray cat on the steps.",
+                ctx_day,
+                hint="post a picture of something around you",
+                image_kind="pov",
+            )
+        packet_day = json.loads(call_day.call_args.args[1])
+        self.assertEqual(packet_day["requested_image_kind"], "pov")
+        self.assertIn("11:00 KST", packet_day["environment"])
+        self.assertIn("morning", packet_day["environment"])
+        self.assertIn("weekly_intentions", packet_day)
+        self.assertFalse(generator.last_scene["is_selfie"])
+        _, prompt_day, _ = engine.generate_image(scene_day, is_selfie=generator.last_scene["is_selfie"], dry_run=True)
+        self.assertIn("35mm film photograph", prompt_day)
+        self.assertIn("stray cat", prompt_day)
+        self.assertIn("no people", prompt_day)
+
 
 if __name__ == "__main__":
     unittest.main()
