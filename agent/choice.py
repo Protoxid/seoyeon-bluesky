@@ -45,6 +45,7 @@ def choose(outcome, context):
                     "author": p.get("author"),
                     "text": p.get("text", "")[:1200],
                     "media_alt_texts": p.get("media_alt_texts", []),
+                    "has_images": bool(p.get("media_urls")),
                 }
                 for p in ctx.get("chain", [])[-4:]
             ]
@@ -59,6 +60,8 @@ def choose(outcome, context):
         if author_id and author_id not in public_memories:
             public_memories[author_id] = store.context(subject=author_id, limit=3)
         post_alt_texts = bsky_client.extract_image_alt_texts(post)
+        thread_items = threads.get(post.get("uri"), [])
+        image_urls_available = bool(bsky_client.has_attached_images(post) or any(t.get("has_images") for t in thread_items))
         options.append({
             "id": i,
             "action": candidate.action.value,
@@ -66,8 +69,9 @@ def choose(outcome, context):
             "public_author": author.get("handle", ""),
             "author_id": author_id,
             "pending_private_message": candidate.action == ActionType.ANSWER_DM,
-            "thread": threads.get(post.get("uri"), []),
-            "media_not_inspected": bool(post.get("embed")),
+            "thread": thread_items,
+            "image_urls_available": image_urls_available,
+            "media_not_inspected": bool(post.get("embed") and not image_urls_available),
             "media_alt_texts": post_alt_texts,
         })
     raw, _ = generator._call_llm(
@@ -81,7 +85,8 @@ def choose(outcome, context):
         "specific distinction or ordinary acknowledgment; it need not be impressive. Do not hijack venting with advice. "
         "An original post needs a grounded idea or actual draft, not merely time since the previous post. "
         "When PUBLISH_IMAGE_POST is eligible and the idea is naturally visual (a scene, object, or quiet selfie), you may choose PUBLISH_IMAGE_POST instead of PUBLISH_TEXT_POST without needing a physical camera. "
-        "Relationship labels/counts are not evidence of intimacy. Do not discuss unseen media or unread articles as inspected. "
+        "When an option has image_urls_available=true, its attached image(s) will be visually inspected during reply or quote drafting; otherwise do not discuss unseen media or unread articles as inspected. "
+        "Relationship labels/counts are not evidence of intimacy. "
         "Return JSON {candidate_id:integer,confidence:number,reason:string,contribution:string}. Contribution is the specific idea to add, grounded in supplied public context; required for original posts. "
         "Reasons must be brief and contain no private facts. Output ONLY the raw JSON object, with no preamble or markdown fences.",
         json.dumps({"identity": memory_store.format_identity_prompt(), "context": context.to_prompt_context(), "options": options,

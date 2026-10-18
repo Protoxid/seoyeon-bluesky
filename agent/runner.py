@@ -661,10 +661,19 @@ def run_tick(
         print(f"\n[Quote-Posting Thought by @{target_author}...]")
         print(f"  Quoted Post: \"{user_text}\"")
 
-        linked_material = json.dumps({"links":[f.get("uri") for facet in post.get("record",{}).get("facets",[])
-            for f in facet.get("features",[]) if f.get("$type")=="app.bsky.richtext.facet#link"],
-            "media_present_not_inspected":bool(post.get("embed"))})
-        quote_comment, model_used = generator.generate_quote_post(target_author, user_text, context, source_context=linked_material)
+        post_media_urls = bsky_client.extract_image_urls(post)
+        if not post_media_urls and bsky_client.has_attached_images(post) and target_uri:
+            quote_ctx = bsky_client.get_thread_context(target_uri, depth=0)
+            post_media_urls = (quote_ctx.get("current") or {}).get("media_urls", [])
+        linked_material = json.dumps({
+            "links": [f.get("uri") for facet in post.get("record", {}).get("facets", [])
+                      for f in facet.get("features", []) if f.get("$type") == "app.bsky.richtext.facet#link"],
+            "media_present_not_inspected": bool(post.get("embed") and not post_media_urls),
+            "media_alt_texts": bsky_client.extract_image_alt_texts(post),
+        })
+        quote_comment, model_used = generator.generate_quote_post(
+            target_author, user_text, context, source_context=linked_material, media_urls=post_media_urls
+        )
         print(f"  Draft Quote ({model_used}): \"{quote_comment}\"")
 
         if not quote_comment or model_used in ("failed", "fallback"):

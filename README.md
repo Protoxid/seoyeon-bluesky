@@ -27,7 +27,7 @@ The project explores **personality through continuity**: what she notices, remem
 | Capability | What she can do |
 | --- | --- |
 | Original posts | Share text or generated photographs when there is a reason to contribute. |
-| Conversations | Respond to comments and mentions, read thread context, and join discussions discovered in her feed. |
+| Conversations | Respond to comments and mentions, read thread context, visually inspect attached post images, and join discussions discovered in her feed. |
 | Curation | Like, repost, quote a post with her own response, and follow accounts. |
 | Direct messages | Continue private Bluesky conversations using their own context and memory. |
 | Discovery | Explore her timeline and search for topics suggested by her developing interests. |

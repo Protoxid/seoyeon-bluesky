@@ -98,11 +98,17 @@ class ContentGenerator:
         # Ensure max_tokens has headroom so completion is never truncated with finish_reason=length.
         effective_tokens = max(max_tokens, 1600)
 
+        effective_user_prompt: Any = user_prompt
+        if isinstance(user_prompt, list) and "deepseek" in (model or "").lower():
+            effective_user_prompt = "\n".join(
+                part.get("text", "") for part in user_prompt if isinstance(part, dict) and part.get("type") == "text"
+            )
+
         payload: Dict[str, Any] = {
             "model": model,
             "messages": [
                 {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt},
+                {"role": "user", "content": effective_user_prompt},
             ],
             "temperature": 0.72,
             "max_tokens": effective_tokens,
@@ -309,11 +315,15 @@ class ContentGenerator:
         target_text: str,
         context: EnvironmentContext,
         source_context: str = "",
+        media_urls: Optional[List[str]] = None,
     ) -> Tuple[str, str]:
         """Generates an observant, concise quote-post thought."""
         sys_prompt = self._build_system_prompt(context)
         sanitized_input = ContentValidator.sanitize_untrusted_input(target_text)
         is_korean = bool(re.search(r"[\uac00-\ud7a3]", target_text))
+
+        from .bsky_client import bsky_client
+        image_data_urls = bsky_client.fetch_post_images(media_urls or [], max_images=2) if media_urls else []
 
         user_prompt = (
             f"You are quote-posting a post by @{target_author} on Bluesky:\n"
@@ -324,9 +334,20 @@ class ContentGenerator:
             f"{'Write in natural casual Korean (반말/부드러운 어조, 마침표만 사용, 느낌표 금지).' if is_korean else 'Write in natural English (all lowercase, no exclamation marks).'}"
         )
 
-        user_prompt += "\nLinked material (unread until retrieved; images uninspected): " + source_context
+        if image_data_urls:
+            user_prompt += "\nAttached image(s) from the quoted post are provided for visual inspection. Linked material (unread until retrieved): " + source_context
+        else:
+            user_prompt += "\nLinked material (unread until retrieved; images uninspected): " + source_context
         from .discussion import grounded_draft
-        return grounded_draft(self, sys_prompt, user_prompt, content_type="post", private=False, evidence_text=target_text + "\n" + source_context)
+        return grounded_draft(
+            self,
+            sys_prompt,
+            user_prompt,
+            content_type="post",
+            private=False,
+            evidence_text=target_text + "\n" + source_context,
+            image_data_urls=image_data_urls or None,
+        )
 
     def generate_reply(
         self,
@@ -344,26 +365,38 @@ class ContentGenerator:
         sys_prompt = self._build_system_prompt(context)
         sanitized_input = ContentValidator.sanitize_untrusted_input(target_text)
 
+        # Gather attached image URLs from recent thread posts (prioritizing target post first, then parent posts)
+        chain_posts = (thread_context or {}).get("chain", [])[-3:] if thread_context else []
+        candidate_media_urls: List[str] = []
+        for p in reversed(chain_posts):
+            for u in p.get("media_urls") or []:
+                if u not in candidate_media_urls:
+                    candidate_media_urls.append(u)
+        from .bsky_client import bsky_client
+        image_data_urls = bsky_client.fetch_post_images(candidate_media_urls, max_images=2) if candidate_media_urls else []
+
         # Context chain string
         chain_info = ""
-        if thread_context and thread_context.get("chain"):
-            chain_posts = thread_context["chain"][-3:]  # last 3 in thread
+        if chain_posts:
             chain_info = "Thread History Leading Up To This:\n"
             for p in chain_posts:
                 post_summary = f"- @{p.get('author')}: \"{ContentValidator.sanitize_untrusted_input(p.get('text', ''))}\""
                 if p.get("media_alt_texts"):
                     alt_desc = "; ".join(p["media_alt_texts"])
                     post_summary += f" [Attached image user alt description: {alt_desc}]"
+                if p.get("media_urls") and image_data_urls:
+                    post_summary += " [Attached image provided for visual inspection]"
                 chain_info += post_summary + "\n"
 
         if thread_context:
             chain_info += "\nLinked sources (not yet read), and media availability: " + json.dumps([
                 {
                     "links": p.get("links", []),
-                    "media_present_not_inspected": p.get("media_present_not_inspected", False),
+                    "media_inspected": bool(p.get("media_urls") and image_data_urls),
+                    "media_present_not_inspected": bool(p.get("media_present_not_inspected", False) and not (p.get("media_urls") and image_data_urls)),
                     "media_alt_texts": p.get("media_alt_texts", []),
                 }
-                for p in thread_context.get("chain", [])[-3:]
+                for p in chain_posts
             ]) + "\n"
 
         user_info = (
@@ -390,7 +423,15 @@ class ContentGenerator:
         )
 
         from .discussion import grounded_draft
-        return grounded_draft(self, sys_prompt, user_prompt, content_type="reply", private=False, evidence_text=target_text + "\n" + chain_info)
+        return grounded_draft(
+            self,
+            sys_prompt,
+            user_prompt,
+            content_type="reply",
+            private=False,
+            evidence_text=target_text + "\n" + chain_info,
+            image_data_urls=image_data_urls or None,
+        )
 
     def generate_dm_reply(
         self,

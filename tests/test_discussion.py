@@ -223,3 +223,86 @@ class TestDiscussion(unittest.TestCase):
         }
         alts_rec = BlueskyClient.extract_image_alt_texts(post_rec)
         self.assertEqual(alts_rec, ["A quiet street in Seongsu"])
+
+    def test_bsky_image_url_extraction_and_safe_fetch_boundary(self):
+        from agent.bsky_client import BlueskyClient
+        post = {
+            "uri": "at://did:plc:123/app.bsky.feed.post/1",
+            "embed": {
+                "$type": "app.bsky.embed.images#view",
+                "images": [
+                    {
+                        "thumb": "https://cdn.bsky.app/img/feed_thumbnail/plain/did:plc:123/bafkrei1@jpeg",
+                        "fullsize": "https://cdn.bsky.app/img/feed_fullsize/plain/did:plc:123/bafkrei1@jpeg",
+                        "alt": "A reformer carriage in morning light.",
+                    },
+                    {
+                        "thumb": "https://evil.example/tracker.jpg",
+                        "alt": "Untrusted host must be ignored",
+                    },
+                ],
+            },
+        }
+        urls = BlueskyClient.extract_image_urls(post)
+        self.assertEqual(urls, ["https://cdn.bsky.app/img/feed_thumbnail/plain/did:plc:123/bafkrei1@jpeg"])
+        self.assertTrue(BlueskyClient.has_attached_images(post))
+
+        client = BlueskyClient()
+        with execution_mode("offline"), patch("requests.get") as req_get:
+            self.assertEqual(client.fetch_post_images(urls), [])
+            req_get.assert_not_called()
+
+        resp = Mock(status_code=200, headers={"Content-Type": "image/jpeg"})
+        resp.iter_content.return_value = [b"\xff\xd8\xff\xe0JFIF"]
+        resp.__enter__ = Mock(return_value=resp)
+        resp.__exit__ = Mock(return_value=False)
+        with execution_mode("live"), patch("requests.get", return_value=resp) as req_get:
+            data_urls = client.fetch_post_images(urls + ["https://evil.example/tracker.jpg"])
+            self.assertEqual(len(data_urls), 1)
+            self.assertTrue(data_urls[0].startswith("data:image/"))
+            req_get.assert_called_once()
+
+    def test_reply_with_attached_image_passes_multimodal_payload_to_draft_and_review(self):
+        from agent.context_engine import build_environment_context
+        from agent.memory_store import UserProfile
+        gen = ContentGenerator()
+        data_url = "data:image/jpeg;base64,dGVzdA=="
+        thread_ctx = {
+            "chain": [
+                {
+                    "author": "alice.bsky.social",
+                    "text": "look at the spacing on this poster",
+                    "links": [],
+                    "media_present_not_inspected": True,
+                    "media_alt_texts": ["Hangul exhibition poster"],
+                    "media_urls": ["https://cdn.bsky.app/img/feed_thumbnail/plain/did:plc:123/bafkrei1@jpeg"],
+                }
+            ]
+        }
+        side_effect = [
+            (json.dumps({"text": "the tight kerning between the title blocks stands out.", "kind": "social", "claims": []}), "mock"),
+            (json.dumps({"approved": True, "issue": "none"}), "mock"),
+        ]
+        with execution_mode("live"), \
+             patch("agent.bsky_client.bsky_client.fetch_post_images", return_value=[data_url]) as fetch_imgs, \
+             patch("agent.discussion.source_packet", return_value=[]), \
+             patch("agent.discussion.ReferenceLibrary", return_value=self.lib), \
+             patch.object(gen, "check_sensitive_escalation"), \
+             patch.object(gen, "_call_llm", side_effect=side_effect) as call:
+            reply_text, _ = gen.generate_reply(
+                "alice.bsky.social",
+                "look at the spacing on this poster",
+                thread_ctx,
+                UserProfile(handle="alice.bsky.social"),
+                build_environment_context(),
+            )
+        self.assertEqual(reply_text, "the tight kerning between the title blocks stands out.")
+        fetch_imgs.assert_called_once()
+        self.assertEqual(call.call_count, 2)
+        for call_item in call.call_args_list:
+            user_arg = call_item.args[1]
+            self.assertIsInstance(user_arg, list)
+            self.assertEqual(user_arg[0]["type"], "text")
+            self.assertIn('"attached_images_inspected": 1', user_arg[0]["text"])
+            self.assertEqual(user_arg[1], {"type": "image_url", "image_url": {"url": data_url}})
+

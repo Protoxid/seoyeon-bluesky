@@ -233,6 +233,122 @@ class BlueskyClient:
         return [item for row in zip_longest(*groups.values()) for item in row if item is not None][:limit]
 
     @staticmethod
+    def _is_safe_bsky_image_url(url: str) -> bool:
+        """Allows only HTTPS image URLs served from official Bluesky CDN hosts."""
+        if not isinstance(url, str) or not url.strip():
+            return False
+        try:
+            p = urllib.parse.urlsplit(url.strip())
+            return (
+                p.scheme == "https"
+                and p.hostname in {"cdn.bsky.app", "av-cdn.bsky.app"}
+                and not p.username
+                and not p.password
+                and p.port in (None, 443)
+            )
+        except (ValueError, TypeError):
+            return False
+
+    @classmethod
+    def extract_image_urls(cls, post_dict: Dict[str, Any]) -> List[str]:
+        """
+        Safely extracts hydrated Bluesky CDN image URLs (preferring thumb over fullsize)
+        from a post view or quoted embed view.
+        """
+        if not isinstance(post_dict, dict):
+            return []
+        embed = post_dict.get("embed") or {}
+        if not isinstance(embed, dict):
+            return []
+
+        image_lists: List[Any] = []
+        if isinstance(embed.get("images"), list):
+            image_lists.append(embed["images"])
+        if isinstance(embed.get("media", {}).get("images"), list):
+            image_lists.append(embed["media"]["images"])
+
+        rec_view = embed.get("record", {})
+        if isinstance(rec_view, dict):
+            nested_rec = rec_view.get("record") if isinstance(rec_view.get("record"), dict) else rec_view
+            for sub_embed in (nested_rec.get("embeds") or []) if isinstance(nested_rec, dict) else []:
+                if isinstance(sub_embed, dict):
+                    if isinstance(sub_embed.get("images"), list):
+                        image_lists.append(sub_embed["images"])
+                    if isinstance(sub_embed.get("media", {}).get("images"), list):
+                        image_lists.append(sub_embed["media"]["images"])
+
+        urls: List[str] = []
+        for images in image_lists:
+            for img in images:
+                if not isinstance(img, dict):
+                    continue
+                candidate = str(img.get("thumb") or img.get("fullsize") or "").strip()
+                if cls._is_safe_bsky_image_url(candidate) and candidate not in urls:
+                    urls.append(candidate)
+                    if len(urls) >= 4:
+                        return urls
+        return urls
+
+    @classmethod
+    def has_attached_images(cls, post_dict: Dict[str, Any]) -> bool:
+        """Returns True if a post view or raw notification record contains image embeds."""
+        if not isinstance(post_dict, dict):
+            return False
+        if cls.extract_image_urls(post_dict):
+            return True
+        record_embed = post_dict.get("record", {}).get("embed") or {}
+        if isinstance(record_embed, dict):
+            imgs = record_embed.get("images") or record_embed.get("media", {}).get("images") or []
+            if isinstance(imgs, list) and imgs:
+                return True
+        return False
+
+    def fetch_post_images(self, urls: List[str], max_images: int = 2) -> List[str]:
+        """
+        Downloads up to max_images safe Bluesky CDN images and converts them into
+        compact data:image/jpeg;base64 URLs for multimodal vision inspection.
+        Never fetches in offline mode.
+        """
+        from .runtime import MODE
+        if MODE.get() == "offline" or not urls or max_images <= 0:
+            return []
+        from .generator import _encode_review_image_data_url
+        import requests
+
+        data_urls: List[str] = []
+        for url in dict.fromkeys(urls):
+            if len(data_urls) >= max_images:
+                break
+            if not self._is_safe_bsky_image_url(url):
+                continue
+            try:
+                with requests.get(
+                    url,
+                    timeout=(4, 8),
+                    stream=True,
+                    allow_redirects=False,
+                    headers={"User-Agent": "SeoyeonVision/1.0"},
+                ) as resp:
+                    if resp.status_code != 200:
+                        continue
+                    ctype = resp.headers.get("Content-Type", "").lower()
+                    if not ctype.startswith("image/"):
+                        continue
+                    body = bytearray()
+                    too_large = False
+                    for chunk in resp.iter_content(8192):
+                        body.extend(chunk)
+                        if len(body) > 5_000_000:
+                            too_large = True
+                            break
+                    if too_large or not body:
+                        continue
+                    data_urls.append(_encode_review_image_data_url(bytes(body)))
+            except Exception:
+                continue
+        return data_urls
+
+    @staticmethod
     def extract_image_alt_texts(post_dict: Dict[str, Any]) -> List[str]:
         """
         Safely extracts user-provided accessibility alt text from image embeds.
@@ -282,6 +398,7 @@ class BlueskyClient:
                               for f in facet.get("features", []) if f.get("$type") == "app.bsky.richtext.facet#link"],
                     "media_present_not_inspected": bool(p.get("embed")),
                     "media_alt_texts": self.extract_image_alt_texts(p),
+                    "media_urls": self.extract_image_urls(p),
                 })
             parent_node = curr.get("parent")
             if parent_node and parent_node.get("$type") == "app.bsky.feed.defs#threadViewPost":

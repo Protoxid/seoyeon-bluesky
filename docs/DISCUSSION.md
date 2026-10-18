@@ -16,7 +16,7 @@ Discovery can request up to two Bluesky search phrases based only on public cont
 
 The existing lexical/platform validator runs before a second model call reviews the actual final text. The reviewer checks support, missing claims, interpretation versus fact, conversational relevance, unsolicited advice, invented experiences, and natural proportion. A false/invalid/unavailable review blocks the draft. Both calls use the existing OpenRouter budget reservations and billing; there are no free or unaccounted review calls. The reviewer may share the writer's model, so correlated mistakes remain possible.
 
-The biography is authored fiction, not evidence of expertise. A headline, alt text or excerpt does not establish that she read the whole work or saw an image. This change does not add vision inspection of other users' images; such media are labeled uninspected. High-consequence personalized advice is outside the intended behavior.
+The biography is authored fiction, not evidence of expertise. A headline, alt text or excerpt does not establish that she read the whole work or saw an image unless the actual image pixels are supplied. When replying to or quote-posting a Bluesky post with attached images on `cdn.bsky.app`, up to two thumbnails are safely fetched, downscaled, and passed as multimodal inputs to both the drafter and the independent semantic reviewer; non-image embeds or unretrieved media remain labeled uninspected. High-consequence personalized advice is outside the intended behavior.
 
 ## Reference library
 
