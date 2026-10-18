@@ -221,12 +221,27 @@ class TestOperatorChannel(unittest.TestCase):
         self.assertEqual(directive["image_kind"],"unspecified")
 
     def test_clarification_preserves_pending_image_action_for_confirmation(self):
-        first_msg="can you post a selfie?"
+        # When the operator asks 'post a picture', even if confidence is 0.90 or mode is clarify, she acts directly.
+        for mode_val, conf_val in (("execute", 0.90), ("clarify", 0.90)):
+            direct_raw = json.dumps({
+                "mode": mode_val,
+                "action_type": "PUBLISH_IMAGE_POST",
+                "confidence": conf_val,
+                "authorization_quote": "post a picture",
+                "image_kind": "unspecified",
+            })
+            with patch.object(generator, "_call_llm", return_value=(direct_raw, "mock")):
+                direct_res = generator.parse_master_directive("post a picture")
+            self.assertTrue(direct_res["is_order"])
+            self.assertEqual(direct_res["action_type"], "PUBLISH_IMAGE_POST")
+
+        # Only low-confidence (< 0.85) ambiguous requests hold as pending clarification.
+        first_msg="maybe a selfie?"
         clarify_raw=json.dumps({
-            "mode":"execute",
+            "mode":"clarify",
             "action_type":"PUBLISH_IMAGE_POST",
-            "confidence":0.90,
-            "authorization_quote":"post a selfie",
+            "confidence":0.80,
+            "authorization_quote":"a selfie",
             "image_kind":"selfie",
         })
         with patch.object(generator,"_call_llm",return_value=(clarify_raw,"mock")):

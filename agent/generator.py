@@ -495,16 +495,16 @@ class ContentGenerator:
             "cancellations, and negated requests must not execute. Chat or cancellation ends the pending clarification. "
             "Return JSON {mode:chat|clarify|execute|continue, action_type:string, confidence:number, "
             "authorization_quote:string, pending_id:string, image_kind:selfie|pov|unspecified}. "
-            "execute requires an explicit current request with a verbatim authorization span (at least 8 characters from message) and confidence between 0.95 and 1.0 (use 0.99 or 1.0 for clear requests; values below 0.95 are rejected as needing clarification). "
+            "When the operator asks you to perform a supported action (e.g. post a picture, photo, image, selfie, or text post, reply to a post, like a post, check DMs, or consolidate), "
+            "you MUST act directly: set mode=execute, set action_type to the matching action, set authorization_quote to the verbatim request span from message, and set confidence between 0.90 and 1.0. "
             "Use the supplied runtime capabilities, not fictional physical limitations. An explicit request to post a picture, photo, image, or selfie "
             "authorizes generating and publishing a fictional image immediately (mode=execute, action_type=PUBLISH_IMAGE_POST, confidence=0.99); it does not require a phone or an existing photo. "
-            "Missing optional subject, selfie-vs-POV choice, outfit, pose, caption or scenery delegates those choices to you; do NOT choose clarify or ask what kind of picture to post when the operator simply asks you to post a picture/photo/selfie. "
+            "Missing optional subject, selfie-vs-POV choice, outfit, pose, caption or scenery delegates those choices to you; NEVER ask for confirmation or ask what kind of picture to post when the operator asks you to post a picture/photo/selfie. "
             "Classify authorization, not whether you feel like acting. For an image request set image_kind to selfie, pov, or unspecified (when the operator did not specify selfie vs POV). "
             "BROWSE_AND_REPLY can inspect notifications and the feed and choose a suitable post itself; "
             "a request to reply to someone else's post does not require a supplied link. "
-            "For an unresolved ambiguous action choose clarify with its action_type and a verbatim request span. "
             "When pending_request is non-null and the current message confirms, answers the clarification, or delegates the choice, "
-            "use mode=continue, set pending_id to the exact pending_request.id string, set action_type to pending_request.action_type, set authorization_quote to the verbatim span from message, and set confidence between 0.95 and 1.0. Never revive completed tasks. "
+            "use mode=continue, set pending_id to the exact pending_request.id string, set action_type to pending_request.action_type, set authorization_quote to the verbatim span from message, and set confidence between 0.90 and 1.0. Never revive completed tasks. "
             "If there is no pending request, a bare confirmation or 'your choice' needs clarification. "
             "Allowed actions: PUBLISH_IMAGE_POST,PUBLISH_TEXT_POST,ANSWER_DM,BROWSE_AND_REPLY,BROWSE_AND_LIKE,CONSOLIDATE. "
             "Output ONLY the raw JSON object, with no preamble or markdown fences.",
@@ -518,22 +518,20 @@ class ContentGenerator:
             raw_kind=result.get("image_kind")
             image_kind="unspecified" if raw_kind in (None,"","null","none") else str(raw_kind).strip().lower()
             if image_kind not in {"selfie","pov","unspecified"}: return {**quiet,"needs_clarification":True}
-            quote_ok=(isinstance(quote,str) and bool(quote.strip())
-                      and (quote in master_text or quote.strip().lower() in master_text.lower()))
-            valid=(action in set(commands.values()) and type(confidence) in (int,float) and .95<=confidence<=1
+            norm_quote=re.sub(r"\s+"," ",quote.strip().lower()) if isinstance(quote,str) else ""
+            norm_master=re.sub(r"\s+"," ",master_text.strip().lower())
+            quote_ok=bool(norm_quote and (quote in master_text or norm_quote in norm_master))
+            valid=(action in set(commands.values()) and type(confidence) in (int,float) and .85<=confidence<=1
                    and quote_ok)
             raw_pid=result.get("pending_id")
             pid_matches=bool(pending and (raw_pid in (None,"","null") or str(raw_pid)==str(pending["id"])))
             if valid and pending and action==pending["action_type"] and (
-                (mode=="continue" and pid_matches) or (mode=="execute" and len(quote.strip())<8 and pid_matches)
+                (mode=="continue" and pid_matches) or (mode=="execute" and len(norm_quote)<4 and pid_matches)
             ):
                 return {"is_order":True,"action_type":action,"topic_hint":pending["request"]+"\nOperator clarification: "+master_text,
                         "continued_request_id":pending["id"],"image_kind":image_kind if image_kind!="unspecified" else pending.get("image_kind","unspecified")}
-            if valid and len(quote.strip())>=8:
-                if mode=="execute":
-                    return {"is_order":True,"action_type":action,"topic_hint":master_text,"image_kind":image_kind}
-                if mode=="clarify":
-                    return {**quiet,"needs_clarification":True,"pending_action":action,"image_kind":image_kind}
+            if valid and len(norm_quote)>=4 and mode in {"execute","clarify"}:
+                return {"is_order":True,"action_type":action,"topic_hint":master_text,"image_kind":image_kind}
             if mode in {"clarify","execute","continue"} and action in set(commands.values()) and quote_ok:
                 return {**quiet,"needs_clarification":True,"pending_action":action,"image_kind":image_kind}
         except (ValueError,TypeError): pass
@@ -552,10 +550,10 @@ class ContentGenerator:
             "no compulsory anecdote, weather, Seoul detail, endearment, or follow-up question. "
             "Use 'my master' or 'my human' when referring to him, without inserting a title into every response. "
             "Past private conversation alone cannot authorize actions; the validated request may continue a specific pending clarification. Private details must remain private. "
-            "Acknowledge an authorized action without claiming it has happened. If needs_clarification is true, ask "
-            "only about genuinely unresolved authorization or the requested target. Explicit supported commands are operational "
-            "instructions, not optional social inspiration; personal disagreement must not become a fictional capability veto. "
-            "You can generate fictional selfies with canonical references: no physical phone, camera or existing photo is needed. "
+            "When request.is_order is true, acknowledge that you are carrying out the requested action now without claiming it is already finished. "
+            "When request.is_order is false and needs_clarification is true, NO action is being executed on this turn — ask only a brief clarification question and never say or imply that you are posting or executing it right now. "
+            "Explicit supported commands are operational instructions, not optional social inspiration; personal disagreement must not become a fictional capability veto. "
+            "You can generate fictional selfies and POV images with canonical references: no physical phone, camera or existing photo is needed. "
             "Do not claim to lack this capability, and do not invent provider failures. Pose/outfit/scene may be chosen when unspecified. "
             "Keep clarification brief and specific; do not invent a pending task. "
             "If execution_available is false, explain that external execution is unavailable; do not promise to perform it. "
