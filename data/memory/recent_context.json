@@ -1,6 +1,13 @@
 {
   "posts": [
     {
+      "post_id": "at://did:plc:qmzkrqxywyhq4ar4k3nxdbvg/app.bsky.feed.post/3my6aahusxz6o",
+      "text": "3:24 am. the kettle clicked off a while ago and the mug is still in my hand anyway. hands like having something to hold. clear sky through the window, and the street below has gone quiet enough that the fridge sounds loud.",
+      "topic": "master_ordered_image",
+      "created_at": "2026-10-18T18:27:37.103842+00:00",
+      "has_image": true
+    },
+    {
       "post_id": "at://did:plc:qmzkrqxywyhq4ar4k3nxdbvg/app.bsky.feed.post/3mxefomqe5w2d",
       "text": "the 90s film i'm watching holds a shot of a woman waiting for a landline to ring for a full twenty seconds. nobody cuts away, and i keep reaching for my phone on her behalf.",
       "topic": "general_thought",
@@ -167,13 +174,6 @@
       "topic": "image_post",
       "created_at": "2026-10-03T04:49:11.914616+00:00",
       "has_image": true
-    },
-    {
-      "post_id": "at://did:plc:simulated/app.bsky.feed.post/simulated",
-      "text": "the laundromat near my place has one machine that always takes an extra 15 minutes. no one else seems to notice but i plan my saturdays around it now.",
-      "topic": "general_thought",
-      "created_at": "2026-10-03T04:49:01.548698+00:00",
-      "has_image": false
     }
   ],
   "replies": [
