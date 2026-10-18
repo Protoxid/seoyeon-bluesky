@@ -290,13 +290,15 @@ def learn_interaction(source_id, inbound, outgoing, subject, *, scope="public"):
         "Use opinion for Seo-yeon's own expressed taste, citing her outgoing statement. Do not classify her taste as a user preference. "
         "Existing IDs may only be revised "
         "with explicit evidence and a reason. Openness or familiarity does not authorize actions. "
-        "Do not invent achievements, physical experiences, intimacy, or operational permissions.",
+        "Do not invent achievements, physical experiences, intimacy, or operational permissions. "
+        "Output ONLY the raw JSON object, with no preamble or markdown fences.",
         json.dumps(prompt, ensure_ascii=False), max_tokens=900)
     if not raw:
         print("[Continuity] learning_status=model_unavailable")
         return
     try:
-        proposal = json.loads(raw.strip().removeprefix("```json").removesuffix("```").strip())
+        from .generator import parse_json_object
+        proposal = parse_json_object(raw)
         if not isinstance(proposal, dict): raise ValueError("Expected structured memory proposal")
         disputes = proposal.pop("disputed_claims", [])
         if not isinstance(disputes, list) or len(disputes)>6:
@@ -321,7 +323,7 @@ def learn_interaction(source_id, inbound, outgoing, subject, *, scope="public"):
 def reflect(context):
     """Optionally develop actual digital work from public evidence; never publish it here."""
     from .config import config
-    from .generator import generator
+    from .generator import generator, parse_json_object
     from .runtime import MODE
     from .memory_store import memory_store
     if not config.enable_continuity or MODE.get() != "live":
@@ -347,7 +349,8 @@ def reflect(context):
         "draft={id?,text,status:kept|discarded,source_ids,reason}, "
         "world={activity,area,belongings,status:intended|in_progress|paused|abandoned,source_ids,reason}. "
         "Every entry must cite supplied source_ids. Preserve existing continuity and explain revisions. "
-        "Completed pursuits need supplied artifact evidence; a fictional plan is never an accomplished real event.",
+        "Completed pursuits need supplied artifact evidence; a fictional plan is never an accomplished real event. "
+        "Output ONLY the raw JSON object, with no preamble or markdown fences.",
         json.dumps({"identity":memory_store.format_identity_prompt(),"environment": context.to_prompt_context(), "evidence": events,
                     "existing": store.review_context("public", "self"),
                     "world": data.get("world") if data.get("world", {}).get("scope") == "public" else {},
@@ -355,7 +358,7 @@ def reflect(context):
         max_tokens=1600)
     if raw:
         try:
-            proposal = json.loads(raw.strip().removeprefix("```json").removesuffix("```").strip())
+            proposal = parse_json_object(raw)
             store.apply(proposal_id, proposal, [e["id"] for e in events], scope="public", subject="self")
         except (ValueError, TypeError, KeyError):
             print("[Continuity] Reflection did not pass provenance checks; no state changed.")

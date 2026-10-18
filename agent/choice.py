@@ -83,7 +83,7 @@ def choose(outcome, context):
         "When PUBLISH_IMAGE_POST is eligible and the idea is naturally visual (a scene, object, or quiet selfie), you may choose PUBLISH_IMAGE_POST instead of PUBLISH_TEXT_POST without needing a physical camera. "
         "Relationship labels/counts are not evidence of intimacy. Do not discuss unseen media or unread articles as inspected. "
         "Return JSON {candidate_id:integer,confidence:number,reason:string,contribution:string}. Contribution is the specific idea to add, grounded in supplied public context; required for original posts. "
-        "Reasons must be brief and contain no private facts.",
+        "Reasons must be brief and contain no private facts. Output ONLY the raw JSON object, with no preamble or markdown fences.",
         json.dumps({"identity": memory_store.format_identity_prompt(), "context": context.to_prompt_context(), "options": options,
                     "continuity": store.context(subject="self"), "public_relationships": public_memories}, ensure_ascii=False), max_tokens=350)
     if raw and MODE.get() != "offline":
