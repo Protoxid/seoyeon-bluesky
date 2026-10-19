@@ -694,6 +694,11 @@
   ],
   "likes": [
     {
+      "post_uri": "at://did:plc:qwneutex4skl6dfgmhtfytn6/app.bsky.feed.post/3my776iedfg2o",
+      "target_handle": "lunanova-love.bsky.social",
+      "created_at": "2026-10-19T04:17:44.775244+00:00"
+    },
+    {
       "post_uri": "at://did:plc:aeoswmwxv77mkfgot3ewxuqd/app.bsky.feed.post/3mlpd2ce3rk2u",
       "target_handle": "leilamoon.bsky.social",
       "created_at": "2026-10-16T06:47:40.116905+00:00"
