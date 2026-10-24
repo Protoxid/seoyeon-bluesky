@@ -1,8 +1,8 @@
 {
-  "temperature_c": 14.8,
+  "temperature_c": 16.4,
   "description": "overcast",
   "is_raining": false,
   "is_snowing": false,
-  "windspeed_kmh": 3.3,
-  "retrieved_at": "2026-10-24T00:47:20.120145+00:00"
+  "windspeed_kmh": 3.2,
+  "retrieved_at": "2026-10-24T02:17:17.129082+00:00"
 }
