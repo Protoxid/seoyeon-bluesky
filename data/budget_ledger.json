@@ -1,7 +1,7 @@
 {
-  "current_day": "2026-10-25",
+  "current_day": "2026-10-26",
   "current_month": "2026-10",
-  "daily_spend_usd": 0.194,
+  "daily_spend_usd": 0.0,
   "monthly_spend_usd": 10.1007,
   "daily_images_count": 0,
   "history": [
@@ -1206,7 +1206,7 @@
       "request_id": "gen-1792939655-dDzeTPcEzVGgg1xqgsMS"
     }
   ],
-  "daily_tokens": 1590795,
+  "daily_tokens": 0,
   "active_reservations": {
     "res_c92b56856eb0": {
       "reservation_id": "res_c92b56856eb0",
@@ -1228,6 +1228,17 @@
       "details": "",
       "status": "submitted",
       "timestamp": "2026-10-13T15:17:49.587743+00:00",
+      "request_id": ""
+    },
+    "res_13e191a63deb": {
+      "reservation_id": "res_13e191a63deb",
+      "amount_usd": 0.002,
+      "action_type": "llm_generation",
+      "provider": "openrouter",
+      "model": "anthropic/claude-haiku-5.5",
+      "details": "",
+      "status": "submitted",
+      "timestamp": "2026-10-25T15:17:23.171114+00:00",
       "request_id": ""
     }
   },
