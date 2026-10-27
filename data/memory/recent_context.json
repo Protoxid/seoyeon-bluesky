@@ -839,6 +839,11 @@
   ],
   "likes": [
     {
+      "post_uri": "at://did:plc:igcof2nz5gtmefuzwl3hvi6r/app.bsky.feed.post/3ldrhwgrlz22l",
+      "target_handle": "inspirace.bsky.social",
+      "created_at": "2026-10-27T00:17:41.047111+00:00"
+    },
+    {
       "post_uri": "at://did:plc:xxjhnkmqzfrhbnvwhzm752xq/app.bsky.feed.post/3lefqm4qwt22l",
       "target_handle": "pojya.bsky.social",
       "created_at": "2026-10-25T09:47:48.566898+00:00"
