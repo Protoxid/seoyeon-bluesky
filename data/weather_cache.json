@@ -1,8 +1,8 @@
 {
-  "temperature_c": 9.9,
-  "description": "partly cloudy",
-  "is_raining": false,
+  "temperature_c": 8.6,
+  "description": "light drizzle",
+  "is_raining": true,
   "is_snowing": false,
   "windspeed_kmh": 5.2,
-  "retrieved_at": "2026-10-29T09:17:17.329158+00:00"
+  "retrieved_at": "2026-10-29T10:47:19.407628+00:00"
 }
