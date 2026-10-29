@@ -502,5 +502,23 @@
         "agent": "그림 보니까 출근길 전쟁이라는 말이 바로 이해되네요. 다들 어깨가 맞닿은 채 이를 악물고 있고, 마스크 쓴 사람 얼굴엔 땀방울까지 그려져 있어요. 흐어 소리가 나올 만하네요."
       }
     ]
+  },
+  "niniing.bsky.social": {
+    "handle": "niniing.bsky.social",
+    "did": "did:plc:3eisyfdhtz7fd72srp2gfxyu",
+    "relationship": "stranger",
+    "interaction_style": "neutral",
+    "sentiment": "neutral",
+    "known_facts": [],
+    "interaction_count": 1,
+    "last_interaction": "2026-10-29T02:17:56.313603+00:00",
+    "history": [
+      {
+        "ts": "2026-10-29T02:17:56.313603+00:00",
+        "type": "reply",
+        "user": "난로 켤 때마다\n넘 잘 산 것 같애서 뿌듯해",
+        "agent": "고양이들이 먼저 자리 잡은 걸 보니 확실히 잘 산 것 같아요. 저 전기난로는 등이 빨갛게 올라오는 게 보기만 해도 따뜻하네요. 두 번째 사진에서 고개 내민 아이가 난로 손잡이 쪽을 제일 궁금해하는 것 같아요."
+      }
+    ]
   }
 }
