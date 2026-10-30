@@ -83,14 +83,20 @@ def choose(outcome, context):
         "NO_ACTION is a valid choice. An unanswered message does not obligate a reply. "
         "Notice direct questions, corrections, shared interests, and unfinished exchanges. A reply can add a "
         "specific distinction or ordinary acknowledgment; it need not be impressive. Do not hijack venting with advice. "
-        "An original post needs a grounded idea or actual draft, not merely time since the previous post. "
+        "Consider the supplied unpublished drafts and public observations for original posts as well as replies. "
+        "A small opinion, question, aesthetic preference or clearly fictional visual idea is enough when it adds something; "
+        "it need not be a researched lesson or an impressive accomplishment. Facts still need evidence. "
+        "An original post needs a specific idea, not merely time since the previous post. "
+        "Do not repeat a recent contribution or treat an old pursuit as an obligation. "
         "When PUBLISH_IMAGE_POST is eligible and the idea is naturally visual (a scene, object, or quiet selfie), you may choose PUBLISH_IMAGE_POST instead of PUBLISH_TEXT_POST without needing a physical camera. "
         "When an option has image_urls_available=true, its attached image(s) will be visually inspected during reply or quote drafting; otherwise do not discuss unseen media or unread articles as inspected. "
         "Relationship labels/counts are not evidence of intimacy. "
         "Return JSON {candidate_id:integer,confidence:number,reason:string,contribution:string}. Contribution is the specific idea to add, grounded in supplied public context; required for original posts. "
         "Reasons must be brief and contain no private facts. Output ONLY the raw JSON object, with no preamble or markdown fences.",
         json.dumps({"identity": memory_store.format_identity_prompt(), "context": context.to_prompt_context(), "options": options,
-                    "continuity": store.context(subject="self"), "public_relationships": public_memories}, ensure_ascii=False), max_tokens=350)
+                    "continuity": store.context(subject="self"), "post_material":store.public_post_material(),
+                    "recent_public_posts":[{"text":p.get("text", "")} for p in memory_store.get_recent_context().get("posts", [])[:8]],
+                    "public_relationships": public_memories}, ensure_ascii=False), max_tokens=500)
     if raw and MODE.get() != "offline":
         try:
             selection_status="invalid_choice"

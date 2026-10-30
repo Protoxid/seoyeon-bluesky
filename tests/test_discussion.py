@@ -10,6 +10,22 @@ from agent.generator import ContentGenerator
 from agent.validator import ContentValidator
 
 class TestDiscussion(unittest.TestCase):
+    def test_original_choice_receives_drafts_and_preserves_specific_topic(self):
+        from agent.choice import choose
+        from agent.continuity import ContinuityStore
+        from agent.decision_engine import ActionCandidate, ActionType, DecisionOutcome
+        from agent.context_engine import build_environment_context
+        post=ActionCandidate(ActionType.PUBLISH_TEXT_POST,.5,.9,"")
+        quiet=ActionCandidate(ActionType.NO_ACTION,.5,.9,"")
+        outcome=DecisionOutcome(quiet.action,"",{},"",{},[post,quiet])
+        material={"drafts":[{"text":"a film idea","scope":"public"}],"observations":[]}
+        contribution="a specific interpretation of the film idea"
+        with execution_mode("live"), patch.object(ContinuityStore,"public_post_material",return_value=material), patch("agent.generator.generator._call_llm",return_value=(json.dumps({"candidate_id":0,"confidence":.95,"contribution":contribution}),"mock")) as model:
+            result=choose(outcome,build_environment_context())
+        self.assertEqual(json.loads(model.call_args.args[1])["post_material"],material)
+        self.assertEqual(result.selected_action,ActionType.PUBLISH_TEXT_POST)
+        self.assertEqual(result.target_data["topic_hint"],contribution)
+
     def test_discovery_receives_identity_and_public_activity_not_private_context(self):
         from agent.memory_store import memory_store
         from agent.continuity import ContinuityStore

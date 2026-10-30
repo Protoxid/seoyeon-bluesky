@@ -73,3 +73,7 @@ See [grounded discussion](DISCUSSION.md) for the reference library, source-host 
 ## Telegram conversation and command recovery
 
 See [Telegram behavior](TELEGRAM.md) for encrypted operator history, intent classification, check-in preferences, independent operational alerts, and interrupted command recovery. `pending` includes interrupted operator update IDs. `resolve-operator UPDATE_ID --evidence REVIEW_REFERENCE` closes one after receipt review without re-execution.
+
+## Public material retrieval
+
+The chooser receives bounded kept public drafts and recent external/user observations separately from general continuity. Private/operator records and discarded drafts are excluded. Kept drafts are also available to scoped continuity retrieval. A default retrieval omits paused, abandoned and completed pursuits; explicit topic searches can still find that history. Topic relevance outranks self-ownership, and original writing retrieves against the chosen topic. Reflection uses new public evidence excluding generated artifact events, preventing an artifact from triggering its own next revision. These changes do not remove stored history, compel publication or verify facts in drafts.

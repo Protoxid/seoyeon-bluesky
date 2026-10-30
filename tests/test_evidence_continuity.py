@@ -6,6 +6,45 @@ from agent.continuity import ContinuityStore
 
 
 class TestEvidenceContinuity(unittest.TestCase):
+    def test_own_artifact_does_not_retrigger_reflection(self):
+        from unittest.mock import patch
+        from agent.continuity import reflect
+        from agent.runtime import execution_mode
+        from agent.context_engine import build_environment_context
+        from agent.generator import generator
+        source=self.evidence("an external observation")
+        with execution_mode("live"), patch("agent.continuity.ContinuityStore",return_value=self.store), patch.object(generator,"_call_llm",return_value=('{}','mock')) as model:
+            reflect(build_environment_context())
+            self.store.apply("artifact", {"artifact":{"title":"new work","content":"An original piece of digital work.","source_ids":[source]}}, [source],subject="self")
+            reflect(build_environment_context())
+        model.assert_called_once()
+
+    def test_kept_drafts_retrieved_but_private_and_discarded_drafts_excluded(self):
+        source=self.evidence("a public observation")
+        self.store.apply("draft", {"draft":{"id":"kept","text":"a thought about a film","status":"kept","source_ids":[source]}}, [source], subject="self")
+        self.store.apply("discard", {"draft":{"id":"discarded","text":"discarded words","status":"discarded","source_ids":[source]}}, [source], subject="self")
+        private=self.evidence("private words",scope="operator",source="private")
+        self.store.apply("private", {"draft":{"id":"private","text":"secret proposal","status":"kept","source_ids":[private]}}, [private], scope="operator",subject="self")
+        for result in (self.store.context(subject="self"),json.dumps(self.store.public_post_material())):
+            self.assertIn("a thought about a film",result)
+            self.assertNotIn("secret proposal",result)
+            self.assertNotIn("discarded words",result)
+        packet=self.store.public_post_material()
+        self.assertEqual([r['id'] for r in packet['observations']],[source])
+
+    def test_paused_pursuit_is_not_default_material_but_remains_searchable(self):
+        source=self.evidence("lettering study")
+        self.store.apply("paused", {"pursuits":[{"id":"study","title":"lettering study","status":"paused","source_ids":[source]}]}, [source],subject="self")
+        self.assertNotIn("lettering study", self.store.context(subject="self"))
+        self.assertIn("lettering study", self.store.context("lettering",subject="self"))
+
+    def test_current_topic_outranks_unrelated_self_project(self):
+        source=self.evidence("a film observation")
+        self.store.apply("film", {"artifact":{"id":"film","title":"film observation","content":"A considered film observation with concrete detail.","source_ids":[source]}}, [source],subject="other")
+        self.store.apply("study", {"pursuits":[{"id":"study","title":"lettering study","status":"active","source_ids":[source]}]}, [source],subject="self")
+        result=json.loads(self.store.context("film",subject="self",limit=1))
+        self.assertEqual(result[0]['id'],'film')
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)

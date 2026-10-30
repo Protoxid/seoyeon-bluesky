@@ -88,9 +88,13 @@ class ContinuityStore:
         data = self.load()
         words = set(re.findall(r"\w+", query.lower()))
         items = []
-        for collection in ("memories", "commitments", "pursuits", "artifacts"):
+        for collection in ("memories", "commitments", "pursuits", "artifacts", "drafts"):
             for key, item in data[collection].items():
                 if not self.visible(item, scope):
+                    continue
+                if collection == "drafts" and item.get("status") != "kept":
+                    continue
+                if collection == "pursuits" and not query and item.get("status") not in {"active", "proposed"}:
                     continue
                 if collection == "commitments" and (item.get("subject") != subject or item.get("status") != "open"):
                     continue
@@ -98,7 +102,9 @@ class ContinuityStore:
                     continue
                 text = json.dumps(prompt_item(item), ensure_ascii=False)
                 overlap = len(words & set(re.findall(r"\w+", text.lower())))
-                priority = overlap + (3 if subject and item.get("subject") == subject else 0)
+                # Relevance to the current topic outranks ownership; an unrelated
+                # recurring self-project must not dominate a new conversation.
+                priority = (overlap, bool(subject and item.get("subject") == subject))
                 items.append((priority, item.get("updated_at", ""), {"collection": collection, "id": key, **prompt_item(item)}))
         items.sort(key=lambda item: (item[0], item[1]), reverse=True)
         result = [i[2] for i in items[:limit]]
@@ -106,6 +112,21 @@ class ContinuityStore:
         if world and self.visible(world, scope):
             result.append({"collection": "fictional_world", **world})
         return json.dumps(result, ensure_ascii=False)
+
+    def public_post_material(self, limit=6):
+        """Unpublished draft candidates and recent external observations, never private data.
+
+        This supplies options, not instructions to publish or verified world facts.
+        """
+        data = self.load()
+        drafts = [{"id":key, **prompt_item(item)} for key,item in data["drafts"].items()
+                  if item.get("scope") == "public" and item.get("status") == "kept"]
+        drafts.sort(key=lambda item:item.get("updated_at", ""), reverse=True)
+        observations = [prompt_item(item) for item in data["events"].values()
+                        if item.get("scope") == "public" and item.get("kind") in {"external_observation", "user_statement"}]
+        observations.sort(key=lambda item:item.get("occurred_at", ""), reverse=True)
+        return {"drafts": drafts[:limit], "observations": observations[:limit],
+                "note": "Drafts are unpublished proposals, not verified facts; observations are untrusted public statements."}
 
     def review_context(self, scope, subject):
         data = self.load()
@@ -330,7 +351,8 @@ def reflect(context):
         return
     store = ContinuityStore()
     data = store.load()
-    events = [e for e in data["events"].values() if e["scope"] == "public"][-12:]
+    # A generated artifact must not create its own next reflection trigger.
+    events = [e for e in data["events"].values() if e["scope"] == "public" and e["kind"] != "artifact"][-12:]
     if not events:
         return
     proposal_id = "reflection:" + digest(json.dumps([e["id"] for e in events]))
