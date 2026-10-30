@@ -166,7 +166,7 @@ class TestDiscussion(unittest.TestCase):
         from agent.choice import choose
         from agent.decision_engine import ActionCandidate, ActionType, DecisionOutcome
         from agent.context_engine import build_environment_context
-        post={"uri":"at://test/post/1","author":{"handle":"a"},"record":{"text":"which reading?","reply":{"parent":{}}}}
+        post={"uri":"at://test/post/1","author":{"handle":"a"},"record":{"createdAt":dt.datetime.now(dt.timezone.utc).isoformat(),"text":"which reading?","reply":{"parent":{}}}}
         reply=ActionCandidate(ActionType.BROWSE_AND_REPLY,.1,.5,"",{"post":post})
         quiet=ActionCandidate(ActionType.NO_ACTION,.9,.9,"")
         outcome=DecisionOutcome(quiet.action,"",{},"",{},[reply,quiet])
@@ -178,8 +178,9 @@ class TestDiscussion(unittest.TestCase):
     def test_discovery_observations_do_not_starve_behind_timeline(self):
         from agent.bsky_client import BlueskyClient
         client=BlueskyClient()
-        timeline=[{"post":{"uri":f"timeline:{i}"}} for i in range(15)]
-        with patch.object(client,"get_timeline",return_value=timeline), patch.object(client,"search_posts",return_value=[{"uri":"search:1"}]):
+        record={"createdAt":dt.datetime.now(dt.timezone.utc).isoformat()}
+        timeline=[{"post":{"uri":f"timeline:{i}","record":record}} for i in range(15)]
+        with patch.object(client,"get_timeline",return_value=timeline), patch.object(client,"search_posts",return_value=[{"uri":"search:1","record":record}]):
             items=client.get_discovery_feed(topics=["a topic"])
         self.assertEqual(items[1]["post"]["uri"],"search:1")
     def test_original_post_requires_specific_motivation(self):

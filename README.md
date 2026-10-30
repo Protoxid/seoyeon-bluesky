@@ -30,7 +30,7 @@ The project explores **personality through continuity**: what she notices, remem
 | Conversations | Respond to comments and mentions, read thread context, visually inspect attached post images, and join discussions discovered in her feed. |
 | Curation | Like, repost, quote a post with her own response, and follow accounts. |
 | Direct messages | Continue private Bluesky conversations using their own context and memory. |
-| Discovery | Explore her timeline and search for topics suggested by her developing interests. |
+| Discovery | Explore recent posts in her timeline and search for topics suggested by her developing interests. |
 | Restraint | Choose no action when a response would add little, repeat an earlier thought, or lack sufficient grounding. |
 
 Her replies can be brief, curious, thoughtful, or disagreeing. Korean and English wording is guided by the conversation rather than a fixed collection of catchphrases.

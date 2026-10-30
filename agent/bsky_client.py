@@ -192,7 +192,9 @@ class BlueskyClient:
 
     def search_posts(self, query: str, limit: int = 15) -> List[Dict[str, Any]]:
         """Searches posts across Bluesky."""
-        res = self.xrpc_get("app.bsky.feed.searchPosts", {"q": query, "limit": limit})
+        from .recency import MAX_POST_AGE
+        since = (dt.datetime.now(dt.timezone.utc) - MAX_POST_AGE).isoformat().replace("+00:00", "Z")
+        res = self.xrpc_get("app.bsky.feed.searchPosts", {"q": query, "limit": limit, "sort":"latest", "since":since})
         return res.get("posts", [])
 
     def get_discovery_feed(self, limit: int = 25, topics: Optional[List[str]] = None) -> List[Dict[str, Any]]:
@@ -204,13 +206,14 @@ class BlueskyClient:
         """
         items: List[Dict[str, Any]] = []
         seen_uris: Set[str] = set()
+        from .recency import post_recency
 
         # 1. Timeline posts from followed accounts
         timeline = self.get_timeline(limit=15)
         for t in timeline:
             p = t.get("post", t) if isinstance(t, dict) else {}
             u = p.get("uri")
-            if u and u not in seen_uris:
+            if u and u not in seen_uris and post_recency(p) == "recent":
                 seen_uris.add(u)
                 items.append({"post": p, "source": "timeline"})
 
@@ -221,7 +224,7 @@ class BlueskyClient:
             search_res = self.search_posts(topic, limit=8)
             for p in search_res:
                 u = p.get("uri")
-                if u and u not in seen_uris:
+                if u and u not in seen_uris and post_recency(p) == "recent":
                     seen_uris.add(u)
                     items.append({"post": p, "source": f"search:{topic}"})
 

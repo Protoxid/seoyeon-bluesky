@@ -223,6 +223,13 @@ def run_tick(
     if not force_action:
         from .choice import choose
         outcome = choose(outcome, context)
+    from .recency import candidate_recency
+    from .decision_engine import ActionCandidate
+    date_status = candidate_recency(ActionCandidate(outcome.selected_action, 0, 0, "", outcome.target_data))
+    if date_status != "recent":
+        outcome.selected_action = ActionType.NO_ACTION
+        outcome.reason = "Public target failed the recency check: " + date_status
+        outcome.target_data = {}
     log_tick({"ts": dt.datetime.now(dt.timezone.utc).isoformat(), "event":"discussion_selection",
               "dry_run":is_dry, "observed":{"notifications":len(notifications),"feed":len(feed_items)},
               "diagnostics":getattr(outcome,"discussion_diagnostics",{}), "action":outcome.selected_action.value})

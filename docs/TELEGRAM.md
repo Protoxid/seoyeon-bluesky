@@ -39,3 +39,5 @@ On a Bluesky authentication/recovery failure, the runner can still process priva
 ## Verification
 
 Regression coverage includes casual versus explicit intent, invalid authorization, frozen acknowledgments, command restart handling, operator memory scope, private log redaction, check-in preferences and deduplication, and receipt-based success. Tests do not send live messages or prove conversational naturalness. Evaluate actual private exchanges for memory relevance, room for disagreement, conversational proportion and accurate reporting.
+
+Operator-directed public replies and likes use the same 72-hour target-age rule as autonomous discovery. A fresh reply in an older thread is eligible; an old repost or recently indexed old post is not. If no suitable recent target exists, the command reports that no action was confirmed. Private conversations are outside this public-post age rule.

@@ -404,6 +404,9 @@ class MasterNotifier:
             for n in notifs:
                 reason = n.get("reason")
                 if reason in ("mention", "reply"):
+                    from .recency import post_recency
+                    if post_recency(n) != "recent":
+                        continue
                     t_uri = n.get("uri", "")
                     t_cid = n.get("cid", "")
                     t_author = n.get("author", {}).get("handle", "user")
@@ -451,6 +454,9 @@ class MasterNotifier:
                 feed_items = bsky_client.get_discovery_feed(limit=15)
                 for item in feed_items:
                     p = item.get("post", {})
+                    from .recency import post_recency
+                    if post_recency(p) != "recent":
+                        continue
                     p_uri = p.get("uri", "")
                     p_cid = p.get("cid", "")
                     p_author = p.get("author", {}).get("handle", "user")
@@ -504,7 +510,8 @@ class MasterNotifier:
                 ActionCandidate(ActionType.BROWSE_AND_LIKE, 0, 0, "", item)
                 for item in feed_items
             ])
-            feed_items = [candidate.target_data for candidate in candidates]
+            from .recency import candidate_recency
+            feed_items = [candidate.target_data for candidate in candidates if candidate_recency(candidate) == "recent"]
             if feed_items:
                 p = feed_items[0].get("post", {})
                 receipt = bsky_client.like_post(p.get("uri", ""), p.get("cid", ""))

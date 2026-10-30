@@ -14,6 +14,11 @@ def choose(outcome, context):
     outcome.all_candidates=exclude_completed_candidates(outcome.all_candidates,
         [row.get("post_uri") for row in memory_store.get_recent_context().get("likes",[])])
     completed_count=before-len(outcome.all_candidates)
+    from .recency import candidate_recency
+    from collections import Counter
+    dated_candidates = [(c, candidate_recency(c)) for c in outcome.all_candidates]
+    excluded_dates = Counter(status for _, status in dated_candidates if status != "recent")
+    outcome.all_candidates = [c for c, status in dated_candidates if status == "recent"]
     post_actions = {ActionType.PUBLISH_TEXT_POST, ActionType.PUBLISH_IMAGE_POST, ActionType.QUOTE_POST}
     reply_actions = {ActionType.REPLY_COMMENT, ActionType.ANSWER_MENTION, ActionType.BROWSE_AND_REPLY}
     outcome.all_candidates = [c for c in outcome.all_candidates if
@@ -66,6 +71,7 @@ def choose(outcome, context):
             "id": i,
             "action": candidate.action.value,
             "public_text": post.get("record", {}).get("text", ""),
+            "created_at": post.get("record", {}).get("createdAt"),
             "public_author": author.get("handle", ""),
             "author_id": author_id,
             "pending_private_message": candidate.action == ActionType.ANSWER_DM,
@@ -88,6 +94,8 @@ def choose(outcome, context):
         "it need not be a researched lesson or an impressive accomplishment. Facts still need evidence. "
         "An original post needs a specific idea, not merely time since the previous post. "
         "Do not repeat a recent contribution or treat an old pursuit as an obligation. "
+        "Respect the target post's date: a recent repost or indexing date does not make an old event current. "
+        "A fresh answer in an older thread is a new conversational turn; respond to that answer rather than repeating yourself to the root. "
         "When PUBLISH_IMAGE_POST is eligible and the idea is naturally visual (a scene, object, or quiet selfie), you may choose PUBLISH_IMAGE_POST instead of PUBLISH_TEXT_POST without needing a physical camera. "
         "When an option has image_urls_available=true, its attached image(s) will be visually inspected during reply or quote drafting; otherwise do not discuss unseen media or unread articles as inspected. "
         "Relationship labels/counts are not evidence of intimacy. "
@@ -119,7 +127,8 @@ def choose(outcome, context):
             pass
     from collections import Counter
     outcome.discussion_diagnostics = {"eligible_actions": dict(Counter(c.action.value for c in outcome.all_candidates)),
-        "threads_read": len(threads), "feed_filtering":getattr(outcome,"feed_diagnostics",{}), "selection": selection_status, "closed_social_candidates_removed":completed_count}
+        "threads_read": len(threads), "feed_filtering":getattr(outcome,"feed_diagnostics",{}), "selection": selection_status,
+        "recency_exclusions":dict(excluded_dates), "closed_social_candidates_removed":completed_count}
     outcome.selected_action = selected.action
     outcome.target_data = selected.target_data or {}
     outcome.intent = selected.intent

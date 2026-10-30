@@ -155,7 +155,7 @@ class TestOperatorChannel(unittest.TestCase):
             report.assert_not_called(); send.assert_called_once()
     def test_no_like_success_without_receipt(self):
         from agent.bsky_client import bsky_client
-        with patch.object(bsky_client,"ensure_session"),patch.object(bsky_client,"get_discovery_feed",return_value=[{"post":{"uri":"at://test","cid":"cid"}}]),patch.object(bsky_client,"like_post",return_value={}),patch.object(self.notifier,"send_telegram_message") as send:
+        with patch.object(bsky_client,"ensure_session"),patch.object(bsky_client,"get_discovery_feed",return_value=[{"post":{"uri":"at://test","cid":"cid","record":{"createdAt":dt.datetime.now(dt.timezone.utc).isoformat()}}}]),patch.object(bsky_client,"like_post",return_value={}),patch.object(self.notifier,"send_telegram_message") as send:
             result=self.notifier.execute_master_directive({"action_type":"BROWSE_AND_LIKE"},self.context,dry_run=True)
         self.assertFalse(result["success"]); send.assert_not_called()
 
