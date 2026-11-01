@@ -1,8 +1,8 @@
 {
-  "temperature_c": 9.7,
-  "description": "moderate drizzle",
+  "temperature_c": 9.3,
+  "description": "light drizzle",
   "is_raining": true,
   "is_snowing": false,
-  "windspeed_kmh": 5.0,
-  "retrieved_at": "2026-11-01T07:17:16.191518+00:00"
+  "windspeed_kmh": 5.7,
+  "retrieved_at": "2026-11-01T08:17:18.514066+00:00"
 }
