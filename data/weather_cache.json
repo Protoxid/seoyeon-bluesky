@@ -1,8 +1,8 @@
 {
-  "temperature_c": 14.9,
-  "description": "partly cloudy",
+  "temperature_c": 15.6,
+  "description": "overcast",
   "is_raining": false,
   "is_snowing": false,
-  "windspeed_kmh": 5.7,
-  "retrieved_at": "2026-11-03T05:17:19.786272+00:00"
+  "windspeed_kmh": 3.5,
+  "retrieved_at": "2026-11-03T06:47:17.704463+00:00"
 }
