@@ -1,22 +1,10 @@
 {
   "current_day": "2026-11-04",
   "current_month": "2026-11",
-  "daily_spend_usd": 0.1136,
-  "monthly_spend_usd": 0.9346,
+  "daily_spend_usd": 0.1175,
+  "monthly_spend_usd": 0.9385,
   "daily_images_count": 0,
   "history": [
-    {
-      "ts": "2026-11-03T06:48:17.491910+00:00",
-      "cost_usd": 0.0009887,
-      "action_type": "llm_generation",
-      "model": "anthropic/claude-haiku-5.5",
-      "prompt_tokens": 4517,
-      "completion_tokens": 1074,
-      "total_tokens": 5591,
-      "details": "provider usage",
-      "reservation_id": "res_10c49c8943c6",
-      "request_id": "gen-1793688491-pZmH8RKx8QKdCwsB4Mof"
-    },
     {
       "ts": "2026-11-03T06:48:22.105087+00:00",
       "cost_usd": 0.0003349,
@@ -1204,9 +1192,21 @@
       "details": "provider usage",
       "reservation_id": "res_47ad8ebb308e",
       "request_id": "gen-1793760450-9ITZYXDFihC1fImx6wAu"
+    },
+    {
+      "ts": "2026-11-04T02:47:42.998696+00:00",
+      "cost_usd": 0.0039347,
+      "action_type": "llm_generation",
+      "model": "anthropic/claude-haiku-5.5",
+      "prompt_tokens": 34547,
+      "completion_tokens": 960,
+      "total_tokens": 35507,
+      "details": "provider usage",
+      "reservation_id": "res_2ad5e3b7cdf3",
+      "request_id": "gen-1793760457-VDUgiM1jiXKxpspviu7V"
     }
   ],
-  "daily_tokens": 993803,
+  "daily_tokens": 1029310,
   "active_reservations": {
     "res_c92b56856eb0": {
       "reservation_id": "res_c92b56856eb0",
@@ -1229,20 +1229,9 @@
       "status": "submitted",
       "timestamp": "2026-10-13T15:17:49.587743+00:00",
       "request_id": ""
-    },
-    "res_2ad5e3b7cdf3": {
-      "reservation_id": "res_2ad5e3b7cdf3",
-      "amount_usd": 0.0127,
-      "action_type": "llm_generation",
-      "provider": "openrouter",
-      "model": "anthropic/claude-haiku-5.5",
-      "details": "",
-      "status": "submitted",
-      "timestamp": "2026-11-04T02:47:35.190542+00:00",
-      "request_id": ""
     }
   },
-  "monthly_tokens": 8330850,
+  "monthly_tokens": 8366357,
   "reconciled_ids": [
     "res_12f0160984bd",
     "res_1f73b13a18f9",
@@ -3835,6 +3824,7 @@
     "res_73fd79734942",
     "res_40eba56e1ad6",
     "res_1dcd7e2e5240",
-    "res_47ad8ebb308e"
+    "res_47ad8ebb308e",
+    "res_2ad5e3b7cdf3"
   ]
 }
