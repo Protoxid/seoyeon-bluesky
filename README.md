@@ -106,3 +106,5 @@ The project is actively developed. Automated checks cover conversation privacy, 
 ---
 
 For sponsorship or support with model credits, contact [the maintainer](https://github.com/Protoxid).
+
+Public messages cannot authorize actions or change her operating rules. Recognized instruction-override attempts are quarantined before public generation and memory learning; separate content review remains required. These safeguards reduce risk without promising perfect detection.

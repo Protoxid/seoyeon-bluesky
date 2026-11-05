@@ -26,3 +26,5 @@ Telegram behavior is documented in `docs/TELEGRAM.md`. Keep operator conversatio
 Checkpoint push failures use bounded retry and exact remote-commit verification. Check the categorized diagnostic; do not bypass persistence or force push to make a run green. Final workflow persistence must attempt already-created commits even with a clean index. Remote divergence requires state review, never blind encrypted-vault replacement.
 
 For stale social targets, inspect recency_exclusions. New public interactions require a target authored within 72 hours; indexing/repost time is not freshness. A fresh answer in an older thread remains eligible. Preserve fail-closed handling for absent or invalid dates and the separate durable delivery recovery path.
+
+For persistent silence, inspect original_idea_status and choice_rejection before changing cadence or thresholds. The optional original-idea call is billed through normal reservations; unavailable ideas must not compel posting. Public instruction attempts are quarantined in model inputs and excluded from preference learning; raw evidence is retained.
