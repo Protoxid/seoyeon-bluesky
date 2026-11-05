@@ -28,3 +28,5 @@ Checkpoint push failures use bounded retry and exact remote-commit verification.
 For stale social targets, inspect recency_exclusions. New public interactions require a target authored within 72 hours; indexing/repost time is not freshness. A fresh answer in an older thread remains eligible. Preserve fail-closed handling for absent or invalid dates and the separate durable delivery recovery path.
 
 For persistent silence, inspect original_idea_status and choice_rejection before changing cadence or thresholds. The optional original-idea call is billed through normal reservations; unavailable ideas must not compel posting. Public instruction attempts are quarantined in model inputs and excluded from preference learning; raw evidence is retained.
+
+Public web reading uses agent/reading.py with at most two observed allowlisted links; source_url must remain exact into drafting. Preserve offline fetch isolation, correction quarantine and the distinction between partial excerpts and unread reference leads.

@@ -68,7 +68,17 @@ def write_json(path: Path, value):
                 json.dump(value, handle, ensure_ascii=False, indent=2, allow_nan=False)
                 handle.flush()
                 os.fsync(handle.fileno())
-            os.replace(temporary, path)
+            # Windows scanners may briefly hold an existing destination open.
+            # Keep the complete temp file and atomic replacement; never fall back to truncation.
+            import time
+            for attempt in range(5):
+                try:
+                    os.replace(temporary, path)
+                    break
+                except PermissionError as error:
+                    if getattr(error, "winerror", None) not in {5, 32, 33} or attempt == 4:
+                        raise
+                    time.sleep(.01 * (attempt + 1))
         finally:
             if os.path.exists(temporary):
                 os.unlink(temporary)

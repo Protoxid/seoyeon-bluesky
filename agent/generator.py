@@ -208,6 +208,7 @@ class ContentGenerator:
         return None, "failed"
 
     def _build_system_prompt(self, context: EnvironmentContext, topic_hint="") -> str:
+        from .voice import VOICE
         ident_prompt = memory_store.format_identity_prompt()
         from .continuity import ContinuityStore
         goals_prompt = ContinuityStore().context(topic_hint, scope="public", subject="self")
@@ -223,7 +224,7 @@ class ContentGenerator:
         extra_context_str = f"\n\n{chr(10).join(extra_sections)}" if extra_sections else ""
 
         return (
-            f"{ident_prompt}\n\n"
+            f"{ident_prompt}\n\n{VOICE}\n\n"
             "ENVIRONMENT CONTEXT:\n"
             f"{context.to_prompt_context()}"
             f"{extra_context_str}\n\n"
@@ -318,12 +319,12 @@ class ContentGenerator:
                 "graphic design and Hangul typography, Seoul architecture (Line 2 elevated bridges, red brick conversions, brutalist stairs), "
                 "quiet kitchen experiments, and subtle everyday human habits.\n"
                 "CRITICAL HUMAN REALISM RULES:\n"
-                "- Write a single authentic, perceptive micro-thought (1-2 sentences) worth posting.\n"
+                "- Choose the shape the idea needs: a brief thought, question, useful distinction, reading recommendation with its real link, or caption.\n"
                 "- Share only something supported by your context and worth saying; a simple thought is enough.\n"
                 "- Avoid generic filler and repeated anecdotes across all topics. Pilates is welcome when relevant; "
                 "there is no required topic mix or posting routine.\n"
                 "- Tone: Dry, perceptive, lowercase, natural punctuation and concise fragments. Absolutely ZERO exclamation marks (!).\n"
-                "- Output in natural English (all lowercase) or casual natural Korean (반말/부드러운 어조, 마침표만 사용).\n"
+                "- Output in natural English (generally lowercase) or conversational Korean, with natural punctuation and register.\n"
                 "- Output ONLY the final post text."
             )
 
@@ -352,7 +353,7 @@ class ContentGenerator:
             "Write a single perceptive, dry, or relatable commentary (1-2 sentences) adding your own angle or reflection. "
             "If the post asks a question or presents a dilemma/choice (e.g. 'do you prefer X or Y?', 'which one?'), answer the actual question with a supported distinction or clearly personal interpretation. "
             "Never mock or insult. Never be sycophantic. No obligatory personal anecdote, joke, or Seoul connection.\n"
-            f"{'Write in natural casual Korean (반말/부드러운 어조, 마침표만 사용, 느낌표 금지).' if is_korean else 'Write in natural English (all lowercase, no exclamation marks).'}"
+            f"{'Write in conversational Korean, matching the relationship; natural punctuation, no exclamation marks.' if is_korean else 'Write in natural English (all lowercase, no exclamation marks).'}"
         )
 
         if image_data_urls:
@@ -440,7 +441,7 @@ class ContentGenerator:
             f"Intention: {intent}\n"
             "Reply specifically, at the length and register this exchange warrants. No obligatory joke or question. "
             "If they asked a question or sought an opinion, answer the actual point. Distinguish your taste, textual interpretation, and sourced knowledge; do not invent experience. "
-            f"{'Write in natural casual Korean (마침표만 사용, 느낌표 금지).' if is_korean else 'Write in natural English (all lowercase, no exclamation marks).'}"
+            f"{'Write in relaxed conversational Korean (해요체 with strangers), natural punctuation, no exclamation marks.' if is_korean else 'Write in natural English (all lowercase, no exclamation marks).'}"
         )
 
         from .discussion import grounded_draft
@@ -489,7 +490,7 @@ class ContentGenerator:
             "Respond naturally as Seo-yeon in direct messaging. "
             "Be direct, candid, and relaxed. You are NOT a customer service assistant or corporate chatbot — never say 'how can I help you?'. "
             "If asked directly whether you are an AI or virtual persona, answer plainly, calmly, and truthfully per your identity disclosure policy. "
-            f"{'Use natural Korean dialogue (마침표만 사용, 느낌표 금지).' if is_korean else 'Use natural English (all lowercase, no exclamation marks).'}"
+            f"{'Use natural Korean dialogue with register appropriate to the relationship and natural punctuation, no exclamation marks.' if is_korean else 'Use natural English (all lowercase, no exclamation marks).'}"
         )
 
         from .discussion import grounded_draft

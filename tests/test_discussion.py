@@ -22,7 +22,10 @@ class TestDiscussion(unittest.TestCase):
         contribution="a specific interpretation of the film idea"
         with execution_mode("live"), patch.object(ContinuityStore,"public_post_material",return_value=material), patch("agent.generator.generator._call_llm",return_value=(json.dumps({"candidate_id":0,"confidence":.95,"contribution":contribution}),"mock")) as model:
             result=choose(outcome,build_environment_context())
-        self.assertEqual(json.loads(model.call_args.args[1])["post_material"],material)
+        supplied = json.loads(model.call_args.args[1])["post_material"]
+        self.assertEqual(supplied["drafts"], material["drafts"])
+        self.assertEqual(supplied["observations"], material["observations"])
+        self.assertTrue(supplied["reference_topics"])
         self.assertEqual(result.selected_action,ActionType.PUBLISH_TEXT_POST)
         self.assertEqual(result.target_data["topic_hint"],contribution)
 

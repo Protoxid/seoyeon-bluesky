@@ -175,6 +175,8 @@ def grounded_draft(generator, system, prompt, *, content_type, private=False, ev
     """Draft + separate semantic review, with deterministic provenance checks."""
     from .generator import parse_json_object
     from .public_boundary import BOUNDARY, public_data
+    from .voice import VOICE
+    system += "\n" + VOICE
     if not private:
         prompt = public_data(prompt)
         evidence_text = public_data(evidence_text)
@@ -244,7 +246,9 @@ def grounded_draft(generator, system, prompt, *, content_type, private=False, ev
             "Reject unsupported factual claims (even if labeled social), invented experiences, advice, misleading quotations, "
             "or interpretations presented as facts. Check each quote actually entails its claim, and all claims in the final text "
             "are covered. A title/alt text is not the article/pixels unless attached_images_inspected > 0. Cached sources cannot establish current schedules, prices or news. "
-            "Allow brief social replies and differing interpretations without requiring citations for feelings or taste. "+image_clause+
+            "Allow brief social replies, ordinary opinions, personal taste, open questions and differing interpretations without citations for feelings or taste. "
+            "A concise link recommendation based on the supplied excerpt is valid; do not demand a researched essay. "
+            "Do not require stock uncertainty disclaimers when the text does not imply unseen evidence. "+VOICE+image_clause+
             "Return JSON {approved:boolean,issue:none|unsupported|advice|irrelevant|misleading|unnatural}. Output ONLY the raw JSON object, with no preamble or markdown fences.",
             review_input,max_tokens=180)
         if not review: return "","failed"

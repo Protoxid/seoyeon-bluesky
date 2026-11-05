@@ -65,12 +65,17 @@ def choose(outcome, context):
     allowed_formats = [original_formats[c.action] for c in outcome.all_candidates if c.action in original_formats]
     original_status = "ineligible"
     if allowed_formats and MODE.get() != "offline":
+        from .reading import public_reading
+        from .discussion import CATALOG
+        material = {**material, "web_reading": public_reading([
+            c.target_data for c in outcome.all_candidates if (c.target_data or {}).get("post")]),
+            "reference_topics": [{"url": s["url"], "topics": s["topics"], "not_yet_read": True} for s in CATALOG]}
         from .original_ideas import propose
         proposal, original_status = propose(generator, identity, context.to_prompt_context(), material, recent_posts, allowed_formats)
         if proposal:
             for candidate in outcome.all_candidates:
                 if original_formats.get(candidate.action) == proposal["format"]:
-                    candidate.target_data = {**(candidate.target_data or {}), "topic_hint": proposal["idea"]}
+                    candidate.target_data = {**(candidate.target_data or {}), "topic_hint": proposal["idea"], "source_url": proposal.get("source_url", "")}
     for i, candidate in enumerate(outcome.all_candidates):
         data = candidate.target_data or {}
         post = data.get("post") or data.get("notification") or {}
@@ -137,6 +142,9 @@ def choose(outcome, context):
                 elif confidence >= config.action_threshold:
                     contribution = choice.get("contribution") or (proposed.target_data or {}).get("topic_hint", "")
                     original = proposed.action in {ActionType.PUBLISH_TEXT_POST, ActionType.PUBLISH_IMAGE_POST}
+                    source_url = (proposed.target_data or {}).get("source_url") if original else None
+                    if source_url and isinstance(contribution, str) and source_url not in contribution:
+                        contribution += "\n" + source_url
                     rejection = "missing_original_idea" if original else None
                     if not original or (isinstance(contribution, str) and 8 <= len(contribution.strip()) <= 500):
                         selected = proposed
