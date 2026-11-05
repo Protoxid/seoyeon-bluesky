@@ -1240,6 +1240,17 @@
       "status": "submitted",
       "timestamp": "2026-11-04T10:18:01.192956+00:00",
       "request_id": ""
+    },
+    "res_08180f37d52b": {
+      "reservation_id": "res_08180f37d52b",
+      "amount_usd": 0.002,
+      "action_type": "llm_generation",
+      "provider": "openrouter",
+      "model": "anthropic/claude-haiku-5.5",
+      "details": "",
+      "status": "submitted",
+      "timestamp": "2026-11-05T23:47:23.866782+00:00",
+      "request_id": ""
     }
   },
   "monthly_tokens": 13358510,
