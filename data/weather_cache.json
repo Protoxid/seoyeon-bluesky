@@ -3,6 +3,6 @@
   "description": "mainly clear",
   "is_raining": false,
   "is_snowing": false,
-  "windspeed_kmh": 6.5,
-  "retrieved_at": "2026-11-05T11:47:17.341446+00:00"
+  "windspeed_kmh": 6.9,
+  "retrieved_at": "2026-11-05T12:47:17.395878+00:00"
 }
