@@ -1,22 +1,10 @@
 {
   "current_day": "2026-11-06",
   "current_month": "2026-11",
-  "daily_spend_usd": 0.3316,
-  "monthly_spend_usd": 1.7865,
+  "daily_spend_usd": 0.3339,
+  "monthly_spend_usd": 1.7888,
   "daily_images_count": 0,
   "history": [
-    {
-      "ts": "2026-11-06T04:17:31.299196+00:00",
-      "cost_usd": 0.0006763,
-      "action_type": "llm_generation",
-      "model": "anthropic/claude-haiku-5.5",
-      "prompt_tokens": 4508,
-      "completion_tokens": 451,
-      "total_tokens": 4959,
-      "details": "provider usage",
-      "reservation_id": "res_2a21215dd99b",
-      "request_id": "gen-1793938648-VwCclygBb89IhMgvJDti"
-    },
     {
       "ts": "2026-11-06T04:17:42.949885+00:00",
       "cost_usd": 0.0010236,
@@ -1204,9 +1192,21 @@
       "details": "provider usage",
       "reservation_id": "res_8edf3a10678a",
       "request_id": "gen-1793974660-wZ21POzcIcejpqMa1LNb"
+    },
+    {
+      "ts": "2026-11-06T14:17:52.895523+00:00",
+      "cost_usd": 0.0022898,
+      "action_type": "llm_generation",
+      "model": "anthropic/claude-haiku-5.5",
+      "prompt_tokens": 21718,
+      "completion_tokens": 236,
+      "total_tokens": 21954,
+      "details": "provider usage",
+      "reservation_id": "res_0fac0602b9ae",
+      "request_id": "gen-1793974670-hdwp90NmVMFSR7wJUaLb"
     }
   ],
-  "daily_tokens": 2903814,
+  "daily_tokens": 2925768,
   "active_reservations": {
     "res_c92b56856eb0": {
       "reservation_id": "res_c92b56856eb0",
@@ -1240,20 +1240,9 @@
       "status": "submitted",
       "timestamp": "2026-11-04T10:18:01.192956+00:00",
       "request_id": ""
-    },
-    "res_0fac0602b9ae": {
-      "reservation_id": "res_0fac0602b9ae",
-      "amount_usd": 0.008151,
-      "action_type": "llm_generation",
-      "provider": "openrouter",
-      "model": "anthropic/claude-haiku-5.5",
-      "details": "",
-      "status": "submitted",
-      "timestamp": "2026-11-06T14:17:48.064585+00:00",
-      "request_id": ""
     }
   },
-  "monthly_tokens": 15673566,
+  "monthly_tokens": 15695520,
   "reconciled_ids": [
     "res_12f0160984bd",
     "res_1f73b13a18f9",
@@ -4226,6 +4215,7 @@
     "res_e3cc69557900",
     "res_e2c7af65a3a6",
     "res_ef36adf4228d",
-    "res_8edf3a10678a"
+    "res_8edf3a10678a",
+    "res_0fac0602b9ae"
   ]
 }
