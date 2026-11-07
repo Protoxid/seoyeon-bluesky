@@ -1,22 +1,10 @@
 {
   "current_day": "2026-11-08",
   "current_month": "2026-11",
-  "daily_spend_usd": 0.0547,
-  "monthly_spend_usd": 2.1675,
+  "daily_spend_usd": 0.0556,
+  "monthly_spend_usd": 2.1684,
   "daily_images_count": 0,
   "history": [
-    {
-      "ts": "2026-11-07T05:47:47.603889+00:00",
-      "cost_usd": 0.00262,
-      "action_type": "llm_generation",
-      "model": "anthropic/claude-haiku-5.5",
-      "prompt_tokens": 23905,
-      "completion_tokens": 459,
-      "total_tokens": 24364,
-      "details": "provider usage",
-      "reservation_id": "res_cd6d15c38818",
-      "request_id": "gen-1794030464-tt85W2BAzReRPIG6gzDy"
-    },
     {
       "ts": "2026-11-07T05:47:52.832844+00:00",
       "cost_usd": 0.0041333,
@@ -1204,9 +1192,21 @@
       "details": "provider usage",
       "reservation_id": "res_d91447189486",
       "request_id": "gen-1794093444-IA3g6BKQSUYkscsHdFaz"
+    },
+    {
+      "ts": "2026-11-07T23:17:40.898317+00:00",
+      "cost_usd": 0.0009397,
+      "action_type": "llm_generation",
+      "model": "anthropic/claude-haiku-5.5",
+      "prompt_tokens": 6077,
+      "completion_tokens": 664,
+      "total_tokens": 6741,
+      "details": "provider usage",
+      "reservation_id": "res_82e0c3b8f763",
+      "request_id": "gen-1794093455-UlBseZUDR28nH7XMA5Tv"
     }
   ],
-  "daily_tokens": 484398,
+  "daily_tokens": 491139,
   "active_reservations": {
     "res_c92b56856eb0": {
       "reservation_id": "res_c92b56856eb0",
@@ -1241,19 +1241,19 @@
       "timestamp": "2026-11-04T10:18:01.192956+00:00",
       "request_id": ""
     },
-    "res_82e0c3b8f763": {
-      "reservation_id": "res_82e0c3b8f763",
-      "amount_usd": 0.002443,
+    "res_9cde54e03fcc": {
+      "reservation_id": "res_9cde54e03fcc",
+      "amount_usd": 0.007967,
       "action_type": "llm_generation",
       "provider": "openrouter",
       "model": "anthropic/claude-haiku-5.5",
       "details": "",
       "status": "submitted",
-      "timestamp": "2026-11-07T23:17:33.201692+00:00",
+      "timestamp": "2026-11-07T23:17:41.151023+00:00",
       "request_id": ""
     }
   },
-  "monthly_tokens": 19054572,
+  "monthly_tokens": 19061313,
   "reconciled_ids": [
     "res_12f0160984bd",
     "res_1f73b13a18f9",
@@ -4413,6 +4413,7 @@
     "res_2cb68400776a",
     "res_eb2afb79aafe",
     "res_b04d7f0df839",
-    "res_d91447189486"
+    "res_d91447189486",
+    "res_82e0c3b8f763"
   ]
 }
