@@ -1,8 +1,8 @@
 {
-  "temperature_c": 2.0,
+  "temperature_c": 3.5,
   "description": "clear sky",
   "is_raining": false,
   "is_snowing": false,
-  "windspeed_kmh": 6.4,
-  "retrieved_at": "2026-11-07T00:47:14.151467+00:00"
+  "windspeed_kmh": 7.1,
+  "retrieved_at": "2026-11-07T01:47:20.598263+00:00"
 }
