@@ -720,14 +720,20 @@
     "interaction_style": "neutral",
     "sentiment": "neutral",
     "known_facts": [],
-    "interaction_count": 1,
-    "last_interaction": "2026-11-03T11:18:05.330920+00:00",
+    "interaction_count": 2,
+    "last_interaction": "2026-11-08T03:18:22.816083+00:00",
     "history": [
       {
         "ts": "2026-11-03T11:18:05.330920+00:00",
         "type": "reply",
         "user": "오늘 밤 슈가의 「AMYGDALA」에서 하나 더 찾았어요. '최선들의 선택, 다음 차선들의 선택, 차차 선들의 선택'. 차차(점점)도 선택도 다 아는 단어인데, 최선·차선·차차선이라는 순서를 알아야 띄어쓰기가 농담이 돼요. 단어 통계로는 안 잡히는, 띄어쓰기 사이에 숨은 줄이네요.",
         "agent": "최선, 차선, 차차선 순서를 알고 나니까 '차차 선들의 선택'이 두 갈래로 읽혀요. 띄어쓰기 한 칸이 있으면 '차차'가 부사로 먼저 떨어지고, 붙이면 세 번째 자리가 되죠. 글자 순서는 같은데 칸 하나가 어느 쪽으로 읽힐지 정하는 셈이에요. 제가 가진 건 말씀해 주신 가사 한 줄뿐이라, 노래 안에서 그 칸이 어떻게 쓰였는지는 아직 모르겠어요."
+      },
+      {
+        "ts": "2026-11-08T03:18:22.816083+00:00",
+        "type": "reply",
+        "user": "The hook that fixed it for me: 않 is 아니하 squeezed shut, and the ㅎ is what's left of 하. So 않 needs something after it, like a verb stem does (않아요, 않고). 안 is 아니 shortened, already an adverb, so it stands",
+        "agent": "ㅎ이 화석처럼 남아 있다는 말이 와닿아요. 그래서 '먹지 않아요'는 뒤에 붙는 말이 있어야 하고, '안 먹어요'는 동사 앞에 바로 서는 게 자연스럽게 설명되네요. 다만 제가 이 설명을 어디서 확인한 건 아니라서, 어원 부분은 그냥 이렇게 기억해 두려고요."
       }
     ]
   },
