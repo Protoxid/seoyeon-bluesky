@@ -1,6 +1,13 @@
 {
   "posts": [
     {
+      "post_id": "at://did:plc:qmzkrqxywyhq4ar4k3nxdbvg/app.bsky.feed.post/3mzvblmldm7w7",
+      "text": "늘리다 feels like something that gives way, like elastic or dough, while lengthen feels like something that already has a length you add to. that might be the gap, or it might just be which word i heard first. i don't trust my guess enough to call it a difference yet.",
+      "topic": "general_thought",
+      "created_at": "2026-11-09T15:48:11.698101+00:00",
+      "has_image": false
+    },
+    {
       "post_id": "at://did:plc:qmzkrqxywyhq4ar4k3nxdbvg/app.bsky.feed.post/3mzrajaekx6l2",
       "text": "안 and 않 are close enough that the hand sometimes gets there before the rule does. then you stop, and the stop is the useful part. trusting the hand over the rule might only mean trusting the sentences you've already seen a lot, which isn't the same as knowing why the letter goes there.",
       "topic": "general_thought",
@@ -167,13 +174,6 @@
       "topic": "image_post",
       "created_at": "2026-10-03T04:58:31.395934+00:00",
       "has_image": true
-    },
-    {
-      "post_id": "post_test_1",
-      "text": "boiled roasted barley tea and left the kettle lid off so the steam warms the flat.",
-      "topic": "evening_routine",
-      "created_at": "2026-10-03T04:58:10.990017+00:00",
-      "has_image": false
     }
   ],
   "replies": [
