@@ -64,7 +64,9 @@ jobs:
             git rev-parse origin/state > data/.state_base
           elif [ "$status" -eq 2 ]; then
             git fetch --quiet --depth=200 origin main
-            legacy=$(git log -1 --diff-filter=AM --format=%H FETCH_HEAD -- data/vault.enc)
+            # --first-parent: through the cutover merge, plain path history would follow the feature
+            # branch and find a stale vault instead of the latest state committed on main.
+            legacy=$(git log -1 --first-parent --diff-filter=AM --format=%H FETCH_HEAD -- data/vault.enc)
             if [ -z "$legacy" ]; then echo "No state branch and no legacy state found"; exit 1; fi
             git checkout "$legacy" -- data
             git reset --quiet
