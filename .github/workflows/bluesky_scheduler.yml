@@ -47,6 +47,34 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
+      # Runtime state lives only in the encrypted bundle on the single-commit `state` branch.
+      # Bootstrap (one time): if that branch does not exist yet, take data/ from the last main
+      # commit that still carried state; the first checkpoint then creates the branch.
+      - name: Restore encrypted state
+        if: github.ref == 'refs/heads/main'
+        run: |
+          mkdir -p data
+          set +e
+          git ls-remote --exit-code origin refs/heads/state > /dev/null
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            git fetch --quiet --depth=1 origin refs/heads/state:refs/remotes/origin/state
+            git show origin/state:vault.enc > data/vault.enc
+            git rev-parse origin/state > data/.state_base
+          elif [ "$status" -eq 2 ]; then
+            git fetch --quiet --depth=200 origin main
+            legacy=$(git log -1 --diff-filter=AM --format=%H FETCH_HEAD -- data/vault.enc)
+            if [ -z "$legacy" ]; then echo "No state branch and no legacy state found"; exit 1; fi
+            git checkout "$legacy" -- data
+            git reset --quiet
+            git checkout HEAD -- data/memory/identity_memory.json
+            : > data/.state_base
+            echo "Bootstrapped state from legacy main commit"
+          else
+            echo "Could not read the state branch"; exit 1
+          fi
+
       - name: Execute Autonomous Agent Cognitive Tick
         if: github.ref == 'refs/heads/main'
         env:
@@ -56,13 +84,17 @@ jobs:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          DATA_ENCRYPTION_KEY: ${{ secrets.DATA_ENCRYPTION_KEY || format('{0}:{1}:seoyeon_vault_v2', secrets.BSKY_APP_PASSWORD, secrets.BSKY_HANDLE) }}
+          # Required. No fallback derived from account credentials.
+          DATA_ENCRYPTION_KEY: ${{ secrets.DATA_ENCRYPTION_KEY }}
           ENV: production
           SEOYEON_GIT_CHECKPOINT: "1"
           INPUT_DRY_RUN: ${{ github.event.inputs.dry_run }}
           INPUT_FORCE_ACTION: ${{ github.event.inputs.force_action }}
 
         run: |
+          if [ -z "$DATA_ENCRYPTION_KEY" ]; then
+            echo "DATA_ENCRYPTION_KEY secret is required"; exit 1
+          fi
           FLAGS="--auto"
           if [ "$INPUT_DRY_RUN" = "true" ]; then
             FLAGS="--dry-run"
@@ -73,30 +105,16 @@ jobs:
 
           python agent_runner.py $FLAGS
 
-      - name: Commit updated memory, logs, and audit ledger
+      - name: Publish final encrypted state
         if: ${{ !cancelled() && github.ref == 'refs/heads/main' && github.event.inputs.dry_run != 'true' }}
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          for f in data/memory/identity_memory.json \
-                   data/memory/user_memory.json \
-                   data/memory/opinions_memory.json \
-                   data/memory/episodic_memory.jsonl \
-                   data/memory/recent_context.json \
-                   data/memory/agent_state.json \
-                   data/memory/weekly_schedule.json \
-                   data/memory/active_goals.json \
-                   data/memory/narrative_state.json \
-                   data/vault.enc \
-                   data/logs/tick_history.jsonl \
-                   data/budget_ledger.json \
-                   data/weather_cache.json; do
-            if [ -f "$f" ]; then
-              git add "$f"
-            fi
-          done
-          if ! git diff --staged --quiet; then
-            git commit -m "chore(agent): persist autonomous memory and audit ledger [skip ci]"
-          fi
-          # Also retry commits made before an earlier checkpoint push failed.
-          python -m agent.git_checkpoint
+        run: python -m agent.git_checkpoint
+
+      # Encrypted recovery copies; the state branch itself keeps only the latest commit.
+      - name: Keep recovery copy of encrypted state
+        if: ${{ always() && github.ref == 'refs/heads/main' && github.event.inputs.dry_run != 'true' && hashFiles('data/vault.enc') != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: state-${{ github.run_id }}-${{ github.run_attempt }}
+          path: data/vault.enc
+          retention-days: 7
+          if-no-files-found: ignore

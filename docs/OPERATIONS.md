@@ -33,9 +33,19 @@ Keep a protected copy of the encryption key. The current loader supports the pre
 
 ## Durable delivery
 
-Bluesky createRecord calls freeze payloads and use a stable rkey. Before sending, the outbox is encrypted and, in production, pushed to main. If a response is lost, getRecord can confirm delivery. DMs use a bounded recent-message check with sender, text and timestamp. If delivery cannot be proved, the runtime holds the action. Telegram has no equivalent lookup here, so uncertain Telegram sends require operator resolution.
+Bluesky createRecord calls freeze payloads and use a stable rkey. Before sending, the outbox is encrypted and, in production, pushed to the `state` branch. If a response is lost, getRecord can confirm delivery. DMs use a bounded recent-message check with sender, text and timestamp. If delivery cannot be proved, the runtime holds the action. Telegram has no equivalent lookup here, so uncertain Telegram sends require operator resolution.
 
-A checkpoint failure stops outbound work. The workflow must configure Git identity before the live command. SEOYEON_GIT_CHECKPOINT=1 is only for the production main checkout. It is not appropriate for feature branches or tests. The workflow's final persistence step also runs after failures and pushes even when the index is clean, recovering commits created before an earlier push failed. Both paths use bounded Git commands and at most three push attempts with short backoff. A fresh remote read must match the exact local commit; a lost push acknowledgment can therefore be reconciled without replaying outbound work. Logs expose only command names and categorized failures (network, timeout, authentication, remote policy or remote change), never raw Git stderr or authenticated URLs. A competing remote update fails closed: no force push, automatic rebase or ciphertext conflict resolution. Review and preserve both states before operator recovery. The final step returns nonzero if remote persistence cannot be verified.
+A checkpoint failure stops outbound work.
+
+### Durable state (changed 2026-11-11)
+
+All runtime state is in one encrypted, compressed bundle, `data/vault.enc`: the `.vault` files plus `data/memory/*` (except the authored `identity_memory.json`), `data/historical/*`, `data/logs/tick_history.jsonl` (last 3,000 lines) and `data/budget_ledger.json`. Nothing plaintext from runtime is committed; `main` holds only code, docs and authored identity. The first vault load of a process restores the bundled files to `data/`; later reloads in the same process do not roll them back. A save whose plaintext is unchanged keeps the previous ciphertext, so nothing new is published.
+
+The bundle is published as a single parentless commit on the `state` branch (`agent/git_checkpoint.py`), replacing the previous commit with `--force-with-lease` against the exact state commit the run restored (`data/.state_base`). A competing update therefore fails closed instead of being overwritten; there is no rebase or ciphertext merge. The workflow restores `data/vault.enc` from `state` before the run, publishes again in a final step that also runs after failures, and uploads the ciphertext as a 7-day workflow artifact (`state-<run_id>-<attempt>`) for rollback. Bounded Git commands, at most three push attempts, and a fresh remote read that must equal the new commit: a lost push acknowledgment is reconciled without replaying outbound work. Logs expose only categorized failures, never raw Git stderr or authenticated URLs. SEOYEON_GIT_CHECKPOINT=1 is only for the production workflow, never for feature branches or tests.
+
+`DATA_ENCRYPTION_KEY` is a required repository secret; the workflow has no credential-derived fallback and fails early without it. If the state branch is missing, the workflow bootstraps once from the last `main` commit that still carried `data/vault.enc`.
+
+To roll back, download an artifact, verify it decrypts locally, and publish it with the current `state` commit as the lease (step 6 below).
 
 ## Operator recovery
 
@@ -46,7 +56,7 @@ Bluesky posts, likes, reposts and follows use protocol-compliant timestamp IDs (
 3. For a verified send: `python scripts/maintain.py resolve-delivery ACTION_ID --receipt REMOTE_URI_OR_ID --evidence RECEIPT_REFERENCE`.
 4. To permanently decline retry of an uncertain send: `python scripts/maintain.py resolve-delivery ACTION_ID --abandon --evidence REASON`. This does not assert that the original send failed and does not delete remote content.
 5. For a provider-verified bill: `python scripts/maintain.py reconcile-cost RESERVATION_ID ACTUAL_USD --evidence RECEIPT_REFERENCE`. Submitted holds deliberately do not expire. A verified zero charge can be reconciled as zero.
-6. Preserve/push resulting state from the current main checkout before another cloud run. Never overwrite newer remote state with an older local vault.
+6. Pause the scheduler, fetch the current state (`git fetch origin state`, `git show origin/state:vault.enc > data/vault.enc`, `git rev-parse origin/state > data/.state_base`), run the maintenance command, then publish with `python -m agent.git_checkpoint`. The lease rejects the publish if a cloud run changed state meanwhile. Never overwrite newer remote state with an older local vault.
 
 These tools do not send messages or generate content. Do not put tokens or private transcripts into evidence-reference arguments.
 

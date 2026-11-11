@@ -36,6 +36,16 @@ from .config import DATA_DIR, config
 VAULT_DIR = DATA_DIR / ".vault"
 VAULT_ENC_FILE = DATA_DIR / "vault.enc"
 
+# Runtime state that used to be committed as plaintext. It now travels inside the encrypted bundle
+# under STATE_PREFIX and is restored to data/ on the first load of a process. Authored identity
+# (memory/identity_memory.json) stays in the repository and is never overwritten from the bundle.
+STATE_PREFIX = "__state__/"
+STATE_DIRS = ("memory", "historical")
+STATE_FILES = ("logs/tick_history.jsonl", "budget_ledger.json")
+STATE_EXCLUDE = {"memory/identity_memory.json"}
+TICK_HISTORY_KEEP = 3000
+COMPRESSED_MAGIC = b"zlib1:"
+
 _OVERRIDE_KEY: Optional[str] = None
 
 
@@ -103,9 +113,13 @@ def _get_encryption_key(key_override: Optional[str] = None) -> bytes:
 
 
 class PrivateVault:
-    def __init__(self, vault_dir: pathlib.Path = VAULT_DIR, enc_file: pathlib.Path = VAULT_ENC_FILE):
+    def __init__(self, vault_dir: pathlib.Path = VAULT_DIR, enc_file: pathlib.Path = VAULT_ENC_FILE,
+                 data_dir: Optional[pathlib.Path] = None):
         self.vault_dir = vault_dir
         self.enc_file = enc_file
+        self.data_dir = data_dir or enc_file.parent
+        self.digest_file = self.data_dir / ".vault.digest"
+        self._state_restored = False
         self.vault_dir.mkdir(parents=True, exist_ok=True)
         self._load_failed: bool = False
         self._load_error: Optional[str] = None
@@ -136,9 +150,25 @@ class PrivateVault:
                     decrypted_bytes = Fernet(cred_key).decrypt(encrypted_data)
                 else:
                     raise
+            if decrypted_bytes.startswith(COMPRESSED_MAGIC):
+                import zlib
+                decrypted_bytes = zlib.decompress(decrypted_bytes[len(COMPRESSED_MAGIC):])
             bundle: Dict[str, str] = json.loads(decrypted_bytes.decode("utf-8"))
+            state = {k[len(STATE_PREFIX):]: v for k, v in bundle.items() if k.startswith(STATE_PREFIX)}
+            bundle = {k: v for k, v in bundle.items() if not k.startswith(STATE_PREFIX)}
 
             self.vault_dir.mkdir(parents=True, exist_ok=True)
+            for relative, content in state.items():
+                if self._state_target(relative) is None or not isinstance(content, str):
+                    raise ValueError("Unsafe vault state member")
+            if not self._state_restored:
+                # Only the first load restores runtime state; a later reload in the same process must not
+                # roll back files (e.g. tick history) written since the last save.
+                for relative, content in state.items():
+                    target = self._state_target(relative)
+                    target.parent.mkdir(parents=True, exist_ok=True)
+                    target.write_text(content, encoding="utf-8")
+                self._state_restored = True
             for filename, content in bundle.items():
                 if pathlib.Path(filename).name != filename or "/" in filename or "\\" in filename or filename in {".", ".."}:
                     raise ValueError("Unsafe vault member name")
@@ -176,14 +206,19 @@ class PrivateVault:
             for item in self.vault_dir.iterdir():
                 if item.is_file() and item.suffix not in {".lock", ".tmp"}:
                     bundle[item.name] = item.read_text(encoding="utf-8")
+            bundle.update(self._collect_state())
 
             if not bundle and not self.enc_file.exists():
                 return False
 
-            raw_json = json.dumps(bundle, ensure_ascii=False)
+            import zlib
+            raw_json = json.dumps(bundle, ensure_ascii=False, sort_keys=True).encode("utf-8")
+            digest = hashlib.sha256(raw_json).hexdigest()
+            if self.enc_file.exists() and self.digest_file.exists() and self.digest_file.read_text().strip() == digest:
+                return True  # Unchanged content: keep the existing ciphertext so nothing new is published.
             key = _get_encryption_key(key_override=key_override)
             fernet = Fernet(key)
-            encrypted_bytes = fernet.encrypt(raw_json.encode("utf-8"))
+            encrypted_bytes = fernet.encrypt(COMPRESSED_MAGIC + zlib.compress(raw_json, 9))
 
             self.enc_file.parent.mkdir(parents=True, exist_ok=True)
 
@@ -196,10 +231,40 @@ class PrivateVault:
             tmp_file = self.enc_file.with_suffix(".tmp")
             tmp_file.write_bytes(encrypted_bytes)
             os.replace(tmp_file, self.enc_file)
+            self.digest_file.write_text(digest)
             return True
         except Exception as e:
             print(f"[PrivateVault] Warning: Failed to save/encrypt vault: {e}")
             raise
+
+    def _state_target(self, relative: str) -> Optional[pathlib.Path]:
+        """Map a bundled state path to data/, accepting only the known state locations."""
+        parts = pathlib.PurePosixPath(relative).parts
+        if not parts or any(p in {"", ".", ".."} for p in parts) or "\\" in relative or relative in STATE_EXCLUDE:
+            return None
+        if not (relative in STATE_FILES or (len(parts) == 2 and parts[0] in STATE_DIRS)):
+            return None
+        return self.data_dir.joinpath(*parts)
+
+    def _collect_state(self) -> Dict[str, str]:
+        state: Dict[str, str] = {}
+        candidates = [self.data_dir / f for f in STATE_FILES]
+        for directory in STATE_DIRS:
+            folder = self.data_dir / directory
+            if folder.is_dir():
+                candidates += sorted(p for p in folder.iterdir() if p.is_file())
+        for path in candidates:
+            if not path.is_file() or path.suffix in {".lock", ".tmp", ".bak"}:
+                continue
+            relative = path.relative_to(self.data_dir).as_posix()
+            if self._state_target(relative) is None:
+                continue
+            text = path.read_text(encoding="utf-8")
+            if relative == "logs/tick_history.jsonl":
+                lines = text.splitlines(keepends=True)
+                text = "".join(lines[-TICK_HISTORY_KEEP:])
+            state[STATE_PREFIX + relative] = text
+        return state
 
     def append_journal(self, entry: Dict[str, Any]) -> None:
         """Appends a private journal entry inside the secure vault."""

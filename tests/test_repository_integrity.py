@@ -117,9 +117,14 @@ class TestRepositoryIntegrity(unittest.TestCase):
         self.assertIn("TELEGRAM_BOT_TOKEN", content)
         self.assertIn("TELEGRAM_CHAT_ID", content)
 
-        # Tracked log output
-        self.assertIn("data/logs/tick_history.jsonl", content)
+        # Contract change: runtime state (logs, memory) travels only inside the encrypted bundle on the
+        # `state` branch; main never commits plaintext state, and the key has no credential fallback.
+        self.assertIn("refs/heads/state", content)
+        self.assertIn("python -m agent.git_checkpoint", content)
         self.assertIn("data/memory/identity_memory.json", content)
+        self.assertNotIn("git add", content)
+        self.assertNotIn("seoyeon_vault_v2", content)
+        self.assertIn("DATA_ENCRYPTION_KEY: ${{ secrets.DATA_ENCRYPTION_KEY }}", content)
 
         # Confirm old workflows are gone
         old_ig = PROJECT_ROOT / ".github" / "workflows" / "ig_scheduler.yml"
