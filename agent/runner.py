@@ -61,6 +61,66 @@ def _record_life(context, text, uri, kind):
     except Exception as exc:  # Continuity is best-effort; delivery already succeeded.
         print(f"[Life] Could not record post in life journal: {type(exc).__name__}")
 
+
+THREAD_SEPARATOR = "\n---\n"
+
+
+def _publish_thread(post_text):
+    """Publish a post, plus up to two continuation replies when the draft is split with ---.
+
+    Each part gets its own delivery identity so the outbox does not treat a continuation as a
+    duplicate of the first post. If the run stops between parts, the first post stands alone.
+    """
+    parts = [p.strip() for p in post_text.split(THREAD_SEPARATOR) if p.strip()][:3]
+    if not parts:
+        return {}, []
+    first = bsky_client.publish_text_post(parts[0])
+    uris = [first.get("uri")] if first.get("uri") else []
+    if not uris or len(parts) == 1:
+        return first, uris
+    base_identity = getattr(bsky_client, "action_identity", "")
+    root = parent = first
+    try:
+        for number, part in enumerate(parts[1:], start=2):
+            bsky_client.action_identity = f"{base_identity}:thread{number}"
+            reply = bsky_client.publish_reply(part, parent.get("uri", ""), parent.get("cid", ""), root.get("uri", ""), root.get("cid", ""))
+            if not reply.get("uri"):
+                print(f"  [Thread] Part {number} not confirmed; leaving the thread as is.")
+                break
+            uris.append(reply["uri"])
+            parent = reply
+    finally:
+        bsky_client.action_identity = base_identity
+    return first, uris
+
+
+def _generate_reviewed_photo(post_text, context, hint, index, total, is_dry):
+    """Plan, generate and review one photo. Returns (bytes or None, alt_text, status)."""
+    photo_hint = hint if total == 1 else f"{hint or ''}\n(photo {index + 1} of {total}: a different angle, object or moment of the same scene)"
+    scene_desc = generator.determine_image_scene(post_text, context, hint=photo_hint)
+    scene = getattr(generator, "last_scene", {}) or {}
+    print(f"  Photo plan {index + 1}/{total}: {'selfie' if scene.get('is_selfie') else 'pov'}, location={scene.get('location')}")
+    if not scene_desc:
+        return None, "", "image_scene_unavailable"
+    from .budget_manager import IMAGE_GEN_COST
+    img_res_id = budget_manager.reserve(IMAGE_GEN_COST, action_type="image_generation", provider="kie.ai")
+    if not img_res_id:
+        return None, "", "image_budget_unavailable"
+    image_engine.reservation_id = img_res_id
+    budget_manager.mark_submitted(img_res_id)
+    try:
+        img_bytes, _, _ = image_engine.generate_image(scene_desc, is_selfie=scene.get("is_selfie"),
+                                                      location=scene.get("location"), dry_run=is_dry)
+        if not img_bytes:
+            if getattr(image_engine, "last_outcome", "uncertain") in {"not_sent", "rejected"}:
+                budget_manager.release(img_res_id)
+            return None, "", "image_generation_failed"
+        budget_manager.reconcile(img_res_id, IMAGE_GEN_COST, action_type="image_generation", details="provider completion; estimated tariff")
+        approved, alt_text = generator.review_image(img_bytes, post_text, scene_desc)
+        return (img_bytes, alt_text, "approved") if approved else (None, "", "image_review_rejected")
+    finally:
+        image_engine.reservation_id = None
+
 def log_tick(entry: Dict[str, Any]) -> None:
     entry.setdefault("discussion_status", getattr(generator, "last_discussion_status", "not_attempted"))
     LOGS_DIR.mkdir(parents=True, exist_ok=True)
@@ -272,15 +332,17 @@ def run_tick(
 
     elif outcome.selected_action == ActionType.PUBLISH_TEXT_POST:
         print("\n[Generating Original Text Post...]")
-        post_text, model_used = generator.generate_post(outcome.intent, context, topic_hint=outcome.target_data.get("topic_hint"), post_kind=outcome.target_data.get("post_kind", "thought"))
+        post_text, model_used = generator.generate_post(outcome.intent, context, topic_hint=outcome.target_data.get("topic_hint"),
+                                                        post_kind=outcome.target_data.get("post_kind", "thought"),
+                                                        allow_thread=bool(outcome.target_data.get("thread")))
         print(f"  Draft ({model_used}): \"{post_text}\"")
 
         if not post_text:
             log_tick({"ts": dt.datetime.now(dt.timezone.utc).isoformat(), "action": "NO_ACTION", "executed": False, "status": "draft_unavailable", "dry_run": is_dry})
             return 0
-        res = bsky_client.publish_text_post(post_text)
+        res, part_uris = _publish_thread(post_text)
         if res.get("uri"):
-            print(f"  [SUCCESS] Published: {res.get('uri')}")
+            print(f"  [SUCCESS] Published: {res.get('uri')}" + (f" (+{len(part_uris) - 1} thread replies)" if len(part_uris) > 1 else ""))
             if not is_dry:
                 memory_store.record_recent_post(post_text, topic="general_thought", post_id=res.get("uri", ""))
                 memory_store.log_episode("post", "Published spontaneous thought", {"text": post_text, "uri": res.get("uri")})
@@ -288,43 +350,45 @@ def run_tick(
                 learn_interaction(res["uri"], "", post_text, "self")
                 _record_life(context, post_text, res["uri"], "post")
             executed = True
-            result_details = {"uri": res.get("uri"), "text": post_text, "model": model_used}
+            result_details = {"uri": res.get("uri"), "text": post_text, "model": model_used, "thread_parts": len(part_uris)}
 
     elif outcome.selected_action == ActionType.PUBLISH_IMAGE_POST:
         post_text, model_used = generator.generate_post(outcome.intent, context, topic_hint=outcome.target_data.get("topic_hint"), include_image=True, post_kind=outcome.target_data.get("post_kind", "moment"))
         print(f"  Caption Draft ({model_used}, {getattr(generator, 'last_discussion_status', '')}): \"{post_text}\"")
-        scene_desc = generator.determine_image_scene(post_text, context, hint=outcome.target_data.get("topic_hint"))
-        scene = getattr(generator, "last_scene", {}) or {}
-        print(f"  Photo plan: {'selfie' if scene.get('is_selfie') else 'pov'}, location={scene.get('location')}")
-        if not post_text or not scene_desc:
-            log_tick({"ts": dt.datetime.now(dt.timezone.utc).isoformat(), "action": "NO_ACTION", "executed": False, "status": "image_scene_unavailable" if post_text else "draft_unavailable", "dry_run": is_dry})
-            return 0  # No justified draft/scene, no fabricated fallback.
-        from .budget_manager import IMAGE_GEN_COST
-        img_res_id = budget_manager.reserve(IMAGE_GEN_COST, action_type="image_generation", provider="kie.ai")
-        if not img_res_id:
+        if not post_text:
+            log_tick({"ts": dt.datetime.now(dt.timezone.utc).isoformat(), "action": "NO_ACTION", "executed": False, "status": "draft_unavailable", "dry_run": is_dry})
             return 0
-        image_engine.reservation_id = img_res_id
-        budget_manager.mark_submitted(img_res_id)
-        img_bytes, prompt_used, err = image_engine.generate_image(scene_desc,
-            is_selfie=getattr(generator, "last_scene", {}).get("is_selfie"),
-            location=getattr(generator, "last_scene", {}).get("location"), dry_run=is_dry)
-        if img_bytes:
-            budget_manager.reconcile(img_res_id, IMAGE_GEN_COST, action_type="image_generation", details="provider completion; estimated tariff")
-            approved, alt_text = generator.review_image(img_bytes, post_text, scene_desc)
-            if not approved:
-                result_details = {"status": "image_review_rejected"}
-            else:
-                res = bsky_client.publish_image_post(post_text, img_bytes, alt_text=alt_text)
-                executed = bool(res.get("uri"))
-                if executed and not is_dry:
-                    memory_store.record_recent_post(post_text, topic="image_post", post_id=res["uri"], has_image=True)
-                    _record_life(context, post_text, res["uri"], "photo")
-                result_details = {"uri":res.get("uri"), "text":post_text, "alt_text":alt_text, "status":"delivered" if executed else "delivery_uncertain"}
+        # Occasionally a small photo dump; each extra photo needs its own image budget.
+        try:
+            wanted = max(1, min(int(outcome.target_data.get("photos") or 1), 3))
+        except (TypeError, ValueError):
+            wanted = 1
+        photos, statuses = [], []
+        for index in range(wanted):
+            if index and not budget_manager.can_generate_image()[0]:
+                break
+            img_bytes, alt_text, status = _generate_reviewed_photo(post_text, context, outcome.target_data.get("topic_hint"),
+                                                                   index, wanted, is_dry)
+            statuses.append(status)
+            if img_bytes:
+                photos.append((img_bytes, alt_text))
+            elif index == 0 and status == "image_scene_unavailable":
+                log_tick({"ts": dt.datetime.now(dt.timezone.utc).isoformat(), "action": "NO_ACTION", "executed": False, "status": status, "dry_run": is_dry})
+                return 0  # No justified scene, no fabricated fallback.
+        if not photos:
+            result_details = {"status": statuses[0] if statuses else "image_generation_failed", "request_id": getattr(image_engine, "last_task_id", "")}
         else:
-            if getattr(image_engine, "last_outcome", "uncertain") in {"not_sent", "rejected"}:
-                budget_manager.release(img_res_id)
-            result_details = {"status":"image_generation_failed", "request_id":getattr(image_engine,"last_task_id","")}
-        image_engine.reservation_id = None
+            if len(photos) == 1:
+                res = bsky_client.publish_image_post(post_text, photos[0][0], alt_text=photos[0][1])
+            else:
+                res = bsky_client.publish_image_post(post_text, [b for b, _ in photos], alt_text=[a for _, a in photos])
+            executed = bool(res.get("uri"))
+            if executed and not is_dry:
+                memory_store.record_recent_post(post_text, topic="image_post", post_id=res["uri"], has_image=True)
+                _record_life(context, post_text, res["uri"], "photo")
+            result_details = {"uri": res.get("uri"), "text": post_text, "alt_text": [a for _, a in photos],
+                              "photos": len(photos), "photo_statuses": statuses,
+                              "status": "delivered" if executed else "delivery_uncertain"}
 
     elif outcome.selected_action in (ActionType.REPLY_COMMENT, ActionType.ANSWER_MENTION):
         notif = outcome.target_data.get("notification", {})

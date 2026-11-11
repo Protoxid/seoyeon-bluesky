@@ -267,6 +267,7 @@ class ContentGenerator:
         include_image: bool = False,
         image_kind: str = "unspecified",
         post_kind: str = "thought",
+        allow_thread: bool = False,
     ) -> Tuple[str, str]:
         """Generates an original text post."""
         operator = intent.startswith("master_order")
@@ -341,7 +342,8 @@ class ContentGenerator:
             except Exception:
                 life_data = {}
             return casual_draft(self, sys_prompt, user_prompt, life=life_data, include_image=include_image,
-                                model=config.post_text_model)
+                                model=config.post_text_model,
+                                max_parts=3 if allow_thread and post_kind == "reflection" and not include_image else 1)
         from .discussion import grounded_draft
         return grounded_draft(self, sys_prompt, user_prompt, content_type="post", private=operator, evidence_text=topic_hint or "", include_image=include_image)
 
