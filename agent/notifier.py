@@ -237,10 +237,7 @@ class MasterNotifier:
         action_type = directive.get("action_type")
         topic_hint = directive.get("topic_hint") or ""
 
-        from .generator import generator
         from .bsky_client import bsky_client
-        from .budget_manager import budget_manager
-        from .memory_store import memory_store
 
         # Ensure Bluesky client has session configured
         bsky_client.dry_run = is_dry
@@ -248,99 +245,73 @@ class MasterNotifier:
 
         result: Dict[str, Any] = {"action_type": action_type, "success": False}
 
-        # -------------------------------------------------------------
-        # 1. PUBLISH IMAGE POST
-        # -------------------------------------------------------------
         if action_type == "PUBLISH_IMAGE_POST":
-            from .image_engine import image_engine
+            return self._directive_image_post(directive, context, is_dry, dry_run, topic_hint, result)
+        if action_type == "PUBLISH_TEXT_POST":
+            return self._directive_text_post(directive, context, is_dry, dry_run, topic_hint, result)
+        if action_type == "ANSWER_DM":
+            return self._directive_answer_dm(directive, context, is_dry, dry_run, topic_hint, result)
+        if action_type in ("BROWSE_AND_REPLY", "REPLY_COMMENT", "ANSWER_MENTION"):
+            return self._directive_reply(directive, context, is_dry, dry_run, topic_hint, result)
+        if action_type == "BROWSE_AND_LIKE":
+            return self._directive_like(directive, context, is_dry, dry_run, topic_hint, result)
+        if action_type == "CONSOLIDATE":
+            return self._directive_consolidate(directive, context, is_dry, dry_run, topic_hint, result)
+        return result
 
-            print(f"[Master Directive: Image Post] Generating image post coherent with {context.seoul_time_display}...")
-            req_image_kind = directive.get("image_kind", "unspecified")
-            post_text, model_used = generator.generate_post(
-                intent="master_order_image",
-                context=context,
-                topic_hint=topic_hint,
-                include_image=True,
-                image_kind=req_image_kind,
-            )
-            scene_desc = generator.determine_image_scene(post_text, context, hint=topic_hint,
-                                                        image_kind=req_image_kind)
-            print("[Operator] Private draft generated.")
-            print("[Operator] Private scene redacted.")
+    def _directive_image_post(self, directive: Dict[str, Any], context: Any, is_dry: bool, dry_run: Optional[bool],
+                topic_hint: str, result: Dict[str, Any]) -> Dict[str, Any]:
+        """Operator image order: draft, scene, budgeted generation, pixel review, publish, confirm."""
+        from .generator import generator
+        from .bsky_client import bsky_client
+        from .budget_manager import budget_manager
+        from .memory_store import memory_store
+        from .image_engine import image_engine
 
-            if not post_text or not scene_desc:
-                print(f"[Operator] Image post aborted before generation (draft_ok={bool(post_text)}, scene_ok={bool(scene_desc)}).")
+        print(f"[Master Directive: Image Post] Generating image post coherent with {context.seoul_time_display}...")
+        req_image_kind = directive.get("image_kind", "unspecified")
+        post_text, model_used = generator.generate_post(
+            intent="master_order_image",
+            context=context,
+            topic_hint=topic_hint,
+            include_image=True,
+            image_kind=req_image_kind,
+        )
+        scene_desc = generator.determine_image_scene(post_text, context, hint=topic_hint,
+                                                    image_kind=req_image_kind)
+        print("[Operator] Private draft generated.")
+        print("[Operator] Private scene redacted.")
+
+        if not post_text or not scene_desc:
+            print(f"[Operator] Image post aborted before generation (draft_ok={bool(post_text)}, scene_ok={bool(scene_desc)}).")
+            return result
+        can_img, img_reason = budget_manager.can_generate_image()
+        img_res_id = budget_manager.reserve(0.045, action_type="image_generation", provider="kie.ai") if can_img else None
+
+        img_bytes, prompt_used, err = None, "", img_reason
+        if img_res_id and post_text and scene_desc:
+            image_engine.reservation_id = img_res_id
+            if not is_dry:
+                budget_manager.mark_submitted(img_res_id)
+            img_bytes, prompt_used, err = image_engine.generate_image(scene_desc, dry_run=is_dry, is_selfie=generator.last_scene.get("is_selfie", True),
+                                                                     location=generator.last_scene.get("location"))
+
+        if img_bytes:
+            # Decouple billing: Image was successfully rendered by provider
+            if not is_dry and img_res_id:
+                budget_manager.reconcile(
+                    img_res_id,
+                    actual_cost_usd=0.045,
+                    action_type="image_generation",
+                    details="operator image generation",
+                )
+                img_res_id = None
+
+            approved, alt_text = generator.review_image(img_bytes, post_text, scene_desc)
+            if not approved:
+                print("[Operator] Generated image rejected by pixel review; publication blocked.")
                 return result
-            can_img, img_reason = budget_manager.can_generate_image()
-            img_res_id = budget_manager.reserve(0.045, action_type="image_generation", provider="kie.ai") if can_img else None
-
-            img_bytes, prompt_used, err = None, "", img_reason
-            if img_res_id and post_text and scene_desc:
-                image_engine.reservation_id = img_res_id
-                if not is_dry:
-                    budget_manager.mark_submitted(img_res_id)
-                img_bytes, prompt_used, err = image_engine.generate_image(scene_desc, dry_run=is_dry, is_selfie=generator.last_scene.get("is_selfie", True),
-                                                                         location=generator.last_scene.get("location"))
-
-            if img_bytes:
-                # Decouple billing: Image was successfully rendered by provider
-                if not is_dry and img_res_id:
-                    budget_manager.reconcile(
-                        img_res_id,
-                        actual_cost_usd=0.045,
-                        action_type="image_generation",
-                        details="operator image generation",
-                    )
-                    img_res_id = None
-
-                approved, alt_text = generator.review_image(img_bytes, post_text, scene_desc)
-                if not approved:
-                    print("[Operator] Generated image rejected by pixel review; publication blocked.")
-                    return result
-                res = bsky_client.publish_image_post(post_text, img_bytes, alt_text=alt_text)
-                uri = res.get("uri", "")
-                if uri:
-                    result["success"] = True
-                    result["uri"] = uri
-                    result["post_text"] = post_text
-
-                    if not is_dry:
-                        memory_store.record_recent_post(post_text, topic="master_ordered_image", post_id=uri, has_image=True)
-
-                    rkey = uri.split("/")[-1]
-                    handle = config.bsky_handle or "syeonhn.bsky.social"
-                    web_url = f"https://bsky.app/profile/{handle}/post/{rkey}"
-
-                    confirm_msg = f"done, my master. posted to bluesky: {web_url}"
-                    self.send_telegram_message(confirm_msg, dry_run=dry_run)
-            else:
-                if img_res_id and getattr(image_engine, "last_outcome", "not_sent") in {"not_sent", "rejected"}:
-                    budget_manager.release(img_res_id)
-                    img_res_id = None
-                # If image generation failed, do NOT pollute Bluesky with unwanted text post; report to master on Telegram
-                print("[Operator] Image generation was not confirmed; private details redacted.")
-                confirm_msg = "[operations] image generation was not confirmed. I did not proceed to publication. Check pending costs before requesting a retry."
-                self.send_telegram_message(confirm_msg, dry_run=dry_run)
-
-            if img_res_id and getattr(image_engine, "last_outcome", "not_sent") in {"not_sent", "rejected"}:
-                budget_manager.release(img_res_id)
-
-        # -------------------------------------------------------------
-        # 2. PUBLISH TEXT POST
-        # -------------------------------------------------------------
-        elif action_type == "PUBLISH_TEXT_POST":
-            print(f"[Master Directive: Text Post] Generating post coherent with {context.seoul_time_display}...")
-            post_text, model_used = generator.generate_post(
-                intent="master_order_post",
-                context=context,
-                topic_hint=topic_hint,
-                include_image=False,
-            )
-            print("[Operator] Private draft generated.")
-
-            if not post_text:
-                return result
-            res = bsky_client.publish_text_post(post_text)
+            res = bsky_client.publish_image_post(post_text, img_bytes, alt_text=alt_text)
             uri = res.get("uri", "")
             if uri:
                 result["success"] = True
@@ -348,7 +319,7 @@ class MasterNotifier:
                 result["post_text"] = post_text
 
                 if not is_dry:
-                    memory_store.record_recent_post(post_text, topic="master_ordered_post", post_id=uri)
+                    memory_store.record_recent_post(post_text, topic="master_ordered_image", post_id=uri, has_image=True)
 
                 rkey = uri.split("/")[-1]
                 handle = config.bsky_handle or "syeonhn.bsky.social"
@@ -356,197 +327,248 @@ class MasterNotifier:
 
                 confirm_msg = f"done, my master. posted to bluesky: {web_url}"
                 self.send_telegram_message(confirm_msg, dry_run=dry_run)
+        else:
+            if img_res_id and getattr(image_engine, "last_outcome", "not_sent") in {"not_sent", "rejected"}:
+                budget_manager.release(img_res_id)
+                img_res_id = None
+            # If image generation failed, do NOT pollute Bluesky with unwanted text post; report to master on Telegram
+            print("[Operator] Image generation was not confirmed; private details redacted.")
+            confirm_msg = "[operations] image generation was not confirmed. I did not proceed to publication. Check pending costs before requesting a retry."
+            self.send_telegram_message(confirm_msg, dry_run=dry_run)
 
-        # -------------------------------------------------------------
-        # 3. ANSWER DIRECT MESSAGES
-        # -------------------------------------------------------------
-        elif action_type == "ANSWER_DM":
-            print("[Master Directive: Answer DM] Checking Bluesky conversations...")
-            convos = bsky_client.list_convos(limit=10)
-            answered = False
-            for convo in convos:
-                convo_id = convo.get("id")
-                members = convo.get("members", [])
-                other = next((m for m in members if m.get("did") != bsky_client.did), members[0] if members else {})
-                handle = other.get("handle", "user")
+        if img_res_id and getattr(image_engine, "last_outcome", "not_sent") in {"not_sent", "rejected"}:
+            budget_manager.release(img_res_id)
+        return result
 
-                if not convo.get("unreadCount", 0): continue
-                raw_msgs = bsky_client.get_convo_messages(convo_id, limit=10)
-                if not raw_msgs or raw_msgs[-1].get("sender", {}).get("did") == bsky_client.did:
+    def _directive_text_post(self, directive: Dict[str, Any], context: Any, is_dry: bool, dry_run: Optional[bool],
+                topic_hint: str, result: Dict[str, Any]) -> Dict[str, Any]:
+        """Operator text order: draft, publish, confirm."""
+        from .generator import generator
+        from .bsky_client import bsky_client
+        from .memory_store import memory_store
+        print(f"[Master Directive: Text Post] Generating post coherent with {context.seoul_time_display}...")
+        post_text, model_used = generator.generate_post(
+            intent="master_order_post",
+            context=context,
+            topic_hint=topic_hint,
+            include_image=False,
+        )
+        print("[Operator] Private draft generated.")
+
+        if not post_text:
+            return result
+        res = bsky_client.publish_text_post(post_text)
+        uri = res.get("uri", "")
+        if uri:
+            result["success"] = True
+            result["uri"] = uri
+            result["post_text"] = post_text
+
+            if not is_dry:
+                memory_store.record_recent_post(post_text, topic="master_ordered_post", post_id=uri)
+
+            rkey = uri.split("/")[-1]
+            handle = config.bsky_handle or "syeonhn.bsky.social"
+            web_url = f"https://bsky.app/profile/{handle}/post/{rkey}"
+
+            confirm_msg = f"done, my master. posted to bluesky: {web_url}"
+            self.send_telegram_message(confirm_msg, dry_run=dry_run)
+        return result
+
+    def _directive_answer_dm(self, directive: Dict[str, Any], context: Any, is_dry: bool, dry_run: Optional[bool],
+                topic_hint: str, result: Dict[str, Any]) -> Dict[str, Any]:
+        """Operator order to answer one unread direct message."""
+        from .generator import generator
+        from .bsky_client import bsky_client
+        from .memory_store import memory_store
+        print("[Master Directive: Answer DM] Checking Bluesky conversations...")
+        convos = bsky_client.list_convos(limit=10)
+        answered = False
+        for convo in convos:
+            convo_id = convo.get("id")
+            members = convo.get("members", [])
+            other = next((m for m in members if m.get("did") != bsky_client.did), members[0] if members else {})
+            handle = other.get("handle", "user")
+
+            if not convo.get("unreadCount", 0): continue
+            raw_msgs = bsky_client.get_convo_messages(convo_id, limit=10)
+            if not raw_msgs or raw_msgs[-1].get("sender", {}).get("did") == bsky_client.did:
+                continue
+
+            dm_history = [
+                {
+                    "sender_handle": handle if m.get("sender", {}).get("did") != bsky_client.did else config.bsky_handle,
+                    "text": m.get("text", ""),
+                }
+                for m in raw_msgs
+            ]
+            profile = memory_store.get_user_profile(handle)
+            reply_text, model = generator.generate_dm_reply(dm_history, profile, context)
+            if not reply_text: continue
+            dm_res = bsky_client.send_dm(convo_id, reply_text)
+            if dm_res:
+                if not is_dry:
+                    memory_store.record_user_interaction(handle, "[private direct message]", "[private direct message reply]", "dm")
+                    try:
+                        from .vault import vault
+                        vault.append_private_dm(convo_id, handle, dm_history[-1]["text"] if dm_history else "", reply_text)
+                    except Exception:
+                        pass
+                result["success"] = True
+                result["dm_to"] = handle
+                answered = True
+                confirm_msg = f"done, my master. answered the message from @{handle}."
+                self.send_telegram_message(confirm_msg, dry_run=dry_run)
+                break
+
+        if not answered:
+            confirm_msg = "[operations] no direct-message reply was confirmed. This does not mean the inbox is empty."
+            self.send_telegram_message(confirm_msg, dry_run=dry_run)
+        return result
+
+    def _directive_reply(self, directive: Dict[str, Any], context: Any, is_dry: bool, dry_run: Optional[bool],
+                topic_hint: str, result: Dict[str, Any]) -> Dict[str, Any]:
+        """Operator order to reply to a recent mention/reply, else to a feed post."""
+        from .generator import generator
+        from .bsky_client import bsky_client
+        from .memory_store import memory_store
+        print("[Master Directive: Reply / Comments] Checking notifications and feed...")
+        notifs = bsky_client.list_notifications(limit=25)
+        replied = False
+        for n in notifs:
+            reason = n.get("reason")
+            if reason in ("mention", "reply"):
+                from .recency import post_recency
+                if post_recency(n) != "recent":
+                    continue
+                t_uri = n.get("uri", "")
+                t_cid = n.get("cid", "")
+                t_author = n.get("author", {}).get("handle", "user")
+                u_text = n.get("record", {}).get("text", "")
+
+                if memory_store.has_replied_to_notification(t_uri) or memory_store.has_replied_to_post(t_uri):
                     continue
 
-                dm_history = [
-                    {
-                        "sender_handle": handle if m.get("sender", {}).get("did") != bsky_client.did else config.bsky_handle,
-                        "text": m.get("text", ""),
-                    }
-                    for m in raw_msgs
-                ]
-                profile = memory_store.get_user_profile(handle)
-                reply_text, model = generator.generate_dm_reply(dm_history, profile, context)
+                thread_ctx = bsky_client.get_thread_context(t_uri)
+                can_rep, _ = bsky_client.can_reply_to_thread(t_uri, thread_ctx)
+                if not can_rep:
+                    continue
+
+                profile = memory_store.get_user_profile(t_author)
+                reply_text, model = generator.generate_reply(t_author, u_text, thread_ctx, profile, context)
+
+                rec = n.get("record", {})
+                rmeta = rec.get("reply", {})
+                r_uri = rmeta.get("root", {}).get("uri", t_uri) if rmeta else t_uri
+                r_cid = rmeta.get("root", {}).get("cid", t_cid) if rmeta else t_cid
+
                 if not reply_text: continue
-                dm_res = bsky_client.send_dm(convo_id, reply_text)
-                if dm_res:
+                res = bsky_client.publish_reply(reply_text, t_uri, t_cid, r_uri, r_cid)
+                if res.get("uri"):
                     if not is_dry:
-                        memory_store.record_user_interaction(handle, "[private direct message]", "[private direct message reply]", "dm")
-                        try:
-                            from .vault import vault
-                            vault.append_private_dm(convo_id, handle, dm_history[-1]["text"] if dm_history else "", reply_text)
-                        except Exception:
-                            pass
+                        memory_store.record_user_interaction(t_author, u_text, reply_text, "reply", did=n.get("author", {}).get("did", ""))
+                        memory_store.record_recent_reply(
+                            target_handle=t_author,
+                            user_text=u_text,
+                            reply_text=reply_text,
+                            uri=res.get("uri", ""),
+                            target_uri=t_uri,
+                            root_uri=r_uri,
+                            notification_uri=t_uri,
+                        )
+                    bsky_client.update_seen()
                     result["success"] = True
-                    result["dm_to"] = handle
-                    answered = True
-                    confirm_msg = f"done, my master. answered the message from @{handle}."
+                    replied = True
+                    confirm_msg = f"done, my master. replied to @{t_author}'s comment on bluesky."
                     self.send_telegram_message(confirm_msg, dry_run=dry_run)
                     break
 
-            if not answered:
-                confirm_msg = "[operations] no direct-message reply was confirmed. This does not mean the inbox is empty."
-                self.send_telegram_message(confirm_msg, dry_run=dry_run)
+        if not replied:
+            # Browse feed to leave a thoughtful comment
+            feed_items = bsky_client.get_discovery_feed(limit=15)
+            for item in feed_items:
+                p = item.get("post", {})
+                from .recency import post_recency
+                if post_recency(p) != "recent":
+                    continue
+                p_uri = p.get("uri", "")
+                p_cid = p.get("cid", "")
+                p_author = p.get("author", {}).get("handle", "user")
+                p_text = p.get("record", {}).get("text", "")
 
-        # -------------------------------------------------------------
-        # 4. BROWSE FEED & REPLY / COMMENT
-        # -------------------------------------------------------------
-        elif action_type in ("BROWSE_AND_REPLY", "REPLY_COMMENT", "ANSWER_MENTION"):
-            print("[Master Directive: Reply / Comments] Checking notifications and feed...")
-            notifs = bsky_client.list_notifications(limit=25)
-            replied = False
-            for n in notifs:
-                reason = n.get("reason")
-                if reason in ("mention", "reply"):
-                    from .recency import post_recency
-                    if post_recency(n) != "recent":
-                        continue
-                    t_uri = n.get("uri", "")
-                    t_cid = n.get("cid", "")
-                    t_author = n.get("author", {}).get("handle", "user")
-                    u_text = n.get("record", {}).get("text", "")
+                if memory_store.has_replied_to_post(p_uri):
+                    continue
+                thread_ctx = bsky_client.get_thread_context(p_uri)
+                can_rep, _ = bsky_client.can_reply_to_thread(p_uri, thread_ctx)
+                if not can_rep:
+                    continue
 
-                    if memory_store.has_replied_to_notification(t_uri) or memory_store.has_replied_to_post(t_uri):
-                        continue
+                profile = memory_store.get_user_profile(p_author)
+                reply_text, model = generator.generate_reply(p_author, p_text, thread_ctx, profile, context)
+                r_meta = p.get("record", {}).get("reply", {})
+                r_uri = r_meta.get("root", {}).get("uri", p_uri) if r_meta else p_uri
+                r_cid = r_meta.get("root", {}).get("cid", p_cid) if r_meta else p_cid
 
-                    thread_ctx = bsky_client.get_thread_context(t_uri)
-                    can_rep, _ = bsky_client.can_reply_to_thread(t_uri, thread_ctx)
-                    if not can_rep:
-                        continue
+                if not reply_text: continue
+                res = bsky_client.publish_reply(reply_text, p_uri, p_cid, r_uri, r_cid)
+                if res.get("uri"):
+                    if not is_dry:
+                        memory_store.record_user_interaction(p_author, p_text, reply_text, "reply", did=p.get("author", {}).get("did", ""))
+                        memory_store.record_recent_reply(
+                            target_handle=p_author,
+                            user_text=p_text,
+                            reply_text=reply_text,
+                            uri=res.get("uri", ""),
+                            target_uri=p_uri,
+                            root_uri=r_uri,
+                            notification_uri=p_uri,
+                        )
+                    result["success"] = True
+                    replied = True
+                    confirm_msg = f"done, my master. left a comment on @{p_author}'s post on the feed."
+                    self.send_telegram_message(confirm_msg, dry_run=dry_run)
+                    break
 
-                    profile = memory_store.get_user_profile(t_author)
-                    reply_text, model = generator.generate_reply(t_author, u_text, thread_ctx, profile, context)
-
-                    rec = n.get("record", {})
-                    rmeta = rec.get("reply", {})
-                    r_uri = rmeta.get("root", {}).get("uri", t_uri) if rmeta else t_uri
-                    r_cid = rmeta.get("root", {}).get("cid", t_cid) if rmeta else t_cid
-
-                    if not reply_text: continue
-                    res = bsky_client.publish_reply(reply_text, t_uri, t_cid, r_uri, r_cid)
-                    if res.get("uri"):
-                        if not is_dry:
-                            memory_store.record_user_interaction(t_author, u_text, reply_text, "reply", did=n.get("author", {}).get("did", ""))
-                            memory_store.record_recent_reply(
-                                target_handle=t_author,
-                                user_text=u_text,
-                                reply_text=reply_text,
-                                uri=res.get("uri", ""),
-                                target_uri=t_uri,
-                                root_uri=r_uri,
-                                notification_uri=t_uri,
-                            )
-                        bsky_client.update_seen()
-                        result["success"] = True
-                        replied = True
-                        confirm_msg = f"done, my master. replied to @{t_author}'s comment on bluesky."
-                        self.send_telegram_message(confirm_msg, dry_run=dry_run)
-                        break
-
-            if not replied:
-                # Browse feed to leave a thoughtful comment
-                feed_items = bsky_client.get_discovery_feed(limit=15)
-                for item in feed_items:
-                    p = item.get("post", {})
-                    from .recency import post_recency
-                    if post_recency(p) != "recent":
-                        continue
-                    p_uri = p.get("uri", "")
-                    p_cid = p.get("cid", "")
-                    p_author = p.get("author", {}).get("handle", "user")
-                    p_text = p.get("record", {}).get("text", "")
-
-                    if memory_store.has_replied_to_post(p_uri):
-                        continue
-                    thread_ctx = bsky_client.get_thread_context(p_uri)
-                    can_rep, _ = bsky_client.can_reply_to_thread(p_uri, thread_ctx)
-                    if not can_rep:
-                        continue
-
-                    profile = memory_store.get_user_profile(p_author)
-                    reply_text, model = generator.generate_reply(p_author, p_text, thread_ctx, profile, context)
-                    r_meta = p.get("record", {}).get("reply", {})
-                    r_uri = r_meta.get("root", {}).get("uri", p_uri) if r_meta else p_uri
-                    r_cid = r_meta.get("root", {}).get("cid", p_cid) if r_meta else p_cid
-
-                    if not reply_text: continue
-                    res = bsky_client.publish_reply(reply_text, p_uri, p_cid, r_uri, r_cid)
-                    if res.get("uri"):
-                        if not is_dry:
-                            memory_store.record_user_interaction(p_author, p_text, reply_text, "reply", did=p.get("author", {}).get("did", ""))
-                            memory_store.record_recent_reply(
-                                target_handle=p_author,
-                                user_text=p_text,
-                                reply_text=reply_text,
-                                uri=res.get("uri", ""),
-                                target_uri=p_uri,
-                                root_uri=r_uri,
-                                notification_uri=p_uri,
-                            )
-                        result["success"] = True
-                        replied = True
-                        confirm_msg = f"done, my master. left a comment on @{p_author}'s post on the feed."
-                        self.send_telegram_message(confirm_msg, dry_run=dry_run)
-                        break
-
-            if not replied:
-                confirm_msg = "[operations] no suitable reply was delivered from the items checked."
-                self.send_telegram_message(confirm_msg, dry_run=dry_run)
-
-        # -------------------------------------------------------------
-        # 5. BROWSE & LIKE
-        # -------------------------------------------------------------
-        elif action_type == "BROWSE_AND_LIKE":
-            from .delivery import exclude_completed_candidates
-            from .decision_engine import ActionCandidate, ActionType
-            feed_items = bsky_client.get_discovery_feed(limit=10)
-            candidates = exclude_completed_candidates([
-                ActionCandidate(ActionType.BROWSE_AND_LIKE, 0, 0, "", item)
-                for item in feed_items
-            ])
-            from .recency import candidate_recency
-            feed_items = [candidate.target_data for candidate in candidates if candidate_recency(candidate) == "recent"]
-            if feed_items:
-                p = feed_items[0].get("post", {})
-                receipt = bsky_client.like_post(p.get("uri", ""), p.get("cid", ""))
-                if not receipt.get("uri"): return result
-                author = p.get("author", {}).get("handle", "")
-                result["success"] = True
-                confirm_msg = f"done, my master. liked a post by @{author} on the feed."
-                self.send_telegram_message(confirm_msg, dry_run=dry_run)
-            else:
-                confirm_msg = "checked feed, my master. no matching posts to like right now."
-                self.send_telegram_message(confirm_msg, dry_run=dry_run)
-
-        # -------------------------------------------------------------
-        # 6. CONSOLIDATE MEMORIES & PRIVATE JOURNAL
-        # -------------------------------------------------------------
-        elif action_type == "CONSOLIDATE":
-            from .consolidator import consolidator
-            res = consolidator.consolidate(context, dry_run=is_dry, force=True)
-            result["success"] = res.get("status") == "success"
-            confirm_msg = "[operations] memory consolidation completed." if result["success"] else "[operations] memory consolidation was not confirmed."
+        if not replied:
+            confirm_msg = "[operations] no suitable reply was delivered from the items checked."
             self.send_telegram_message(confirm_msg, dry_run=dry_run)
-
         return result
 
+    def _directive_like(self, directive: Dict[str, Any], context: Any, is_dry: bool, dry_run: Optional[bool],
+                topic_hint: str, result: Dict[str, Any]) -> Dict[str, Any]:
+        """Operator order to like one recent, not-yet-liked feed post."""
+        from .bsky_client import bsky_client
+        from .delivery import exclude_completed_candidates
+        from .decision_engine import ActionCandidate, ActionType
+        feed_items = bsky_client.get_discovery_feed(limit=10)
+        candidates = exclude_completed_candidates([
+            ActionCandidate(ActionType.BROWSE_AND_LIKE, 0, 0, "", item)
+            for item in feed_items
+        ])
+        from .recency import candidate_recency
+        feed_items = [candidate.target_data for candidate in candidates if candidate_recency(candidate) == "recent"]
+        if feed_items:
+            p = feed_items[0].get("post", {})
+            receipt = bsky_client.like_post(p.get("uri", ""), p.get("cid", ""))
+            if not receipt.get("uri"): return result
+            author = p.get("author", {}).get("handle", "")
+            result["success"] = True
+            confirm_msg = f"done, my master. liked a post by @{author} on the feed."
+            self.send_telegram_message(confirm_msg, dry_run=dry_run)
+        else:
+            confirm_msg = "checked feed, my master. no matching posts to like right now."
+            self.send_telegram_message(confirm_msg, dry_run=dry_run)
+        return result
+
+    def _directive_consolidate(self, directive: Dict[str, Any], context: Any, is_dry: bool, dry_run: Optional[bool],
+                topic_hint: str, result: Dict[str, Any]) -> Dict[str, Any]:
+        """Operator order to run memory consolidation."""
+        from .consolidator import consolidator
+        res = consolidator.consolidate(context, dry_run=is_dry, force=True)
+        result["success"] = res.get("status") == "success"
+        confirm_msg = "[operations] memory consolidation completed." if result["success"] else "[operations] memory consolidation was not confirmed."
+        self.send_telegram_message(confirm_msg, dry_run=dry_run)
+        return result
     def process_master_inbox(self, context, dry_run=None, actions_available=True):
         """Freeze each response and command stage before sending. Never rerun an interrupted command."""
         from .runtime import may_publish
