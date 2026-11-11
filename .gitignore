@@ -103,3 +103,12 @@ data/*.bak
 
 *.lock
 test-results*.txt
+
+# ─────────────────────────────────────────────────────────────────────────────
+# RUNTIME STATE — lives only inside the encrypted bundle on the `state` branch.
+# Only the authored identity is tracked on main.
+# ─────────────────────────────────────────────────────────────────────────────
+/data/*
+!/data/memory/
+/data/memory/*
+!/data/memory/identity_memory.json

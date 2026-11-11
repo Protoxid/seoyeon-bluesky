@@ -34,16 +34,10 @@ def checkpoint():
     if os.environ.get("SEOYEON_GIT_CHECKPOINT") != "1":
         return
     from .config import PROJECT_ROOT
-    from .git_checkpoint import checked_git, push_checkpoint
-    def git(*args):
-        return checked_git(PROJECT_ROOT, *args)
-    for relative in ("data/vault.enc", "data/budget_ledger.json", "data/memory", "data/logs/tick_history.jsonl"):
-        if (PROJECT_ROOT / relative).exists():
-            git("add", "--", relative)
-    if git("diff", "--cached", "--name-only"):
-        git("commit", "-m", "chore(agent): checkpoint delivery state [skip ci]")
-    # Never send if the durable checkpoint cannot reach the remote repository.
-    push_checkpoint(PROJECT_ROOT)
+    from .git_checkpoint import publish_state
+    # All runtime state (vault, memory, logs, ledger) is inside the encrypted bundle.
+    # Never send if the durable checkpoint cannot reach the remote state branch.
+    publish_state(PROJECT_ROOT)
 
 
 class Outbox:

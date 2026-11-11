@@ -22,7 +22,7 @@ Never run a live tick merely to test a code change. Provider previews can cost m
 
 Update README, CANON when identity changes, operations/evaluation docs and relevant skills to reflect actual behavior. Historical reports must be labeled historical. Avoid fixed test counts and unsupported claims of zero regressions, complete naturalness or guaranteed provider reliability.
 
-Read docs/OPERATIONS.md before changing workflows, encryption or recovery. State commits and source commits may race: refresh remote state before integration, preserve the latest encrypted vault, and never resolve a state conflict by blindly choosing the older file.
+Read docs/OPERATIONS.md before changing workflows, encryption or recovery. Runtime state lives only in the encrypted bundle on the single-commit `state` branch; `main` carries code, docs and authored identity, so source pushes no longer race with state. Never commit plaintext runtime data to `main`, never publish an older vault over newer state, and keep the lease-based fail-closed publish in `agent/git_checkpoint.py`.
 
 Grounded discussion uses `agent/discussion.py`; see `docs/DISCUSSION.md`. Preserve exact source provenance, the independent fail-closed review, private/offline fetch isolation, and correction quarantine. Do not turn focus areas into schedules, quotas, canned examples, or claimed credentials.
 

@@ -6,7 +6,15 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from agent.git_checkpoint import push_checkpoint
+from agent.git_checkpoint import publish_state
+
+
+def _workdir(tmp, base=""):
+    root = Path(tmp) / "work"
+    (root / "data").mkdir(parents=True)
+    (root / "data" / "vault.enc").write_bytes(b"ciphertext")
+    (root / "data" / ".state_base").write_text(base)
+    return root
 
 
 class TestCheckpointFailures(unittest.TestCase):
@@ -14,26 +22,32 @@ class TestCheckpointFailures(unittest.TestCase):
         pushes = iter(push_results)
         remotes = iter(remote_results)
         def run(args, **kwargs):
-            if args[1] == "rev-parse":
+            if args[1] in {"hash-object", "mktree", "rev-parse"}:
+                return subprocess.CompletedProcess(args, 0, b"obj\n", b"")
+            if args[1] == "commit-tree":
                 return subprocess.CompletedProcess(args, 0, b"abc\n", b"")
             result = next(pushes if args[1] == "push" else remotes)
             if isinstance(result, Exception):
                 raise result
             code, stdout, stderr = result
             return subprocess.CompletedProcess(args, code, stdout, stderr)
-        with patch("agent.git_checkpoint.subprocess.run", side_effect=run), patch("agent.git_checkpoint.time.sleep"):
-            push_checkpoint("unused")
+        with tempfile.TemporaryDirectory() as tmp:
+            root = _workdir(tmp)
+            with patch("agent.git_checkpoint.subprocess.run", side_effect=run), patch("agent.git_checkpoint.time.sleep"):
+                publish_state(root)
+            return (root / "data" / ".state_base").read_text()
 
     def test_lost_push_acknowledgment_is_verified_without_replaying_commit(self):
-        self.run_case([(1, b"", b"connection reset")], [(0, b"abc\trefs/heads/main\n", b"")])
+        base = self.run_case([(1, b"", b"connection reset")], [(0, b"abc\trefs/heads/state\n", b"")])
+        self.assertEqual(base, "abc")
 
-    def test_transient_push_failure_retries_same_head(self):
+    def test_transient_push_failure_retries_same_commit(self):
         self.run_case([(1, b"", b"503 unavailable"), (0, b"", b"")],
-                      [(0, b"old\trefs/heads/main\n", b""), (0, b"abc\trefs/heads/main\n", b"")])
+                      [(0, b"old\trefs/heads/state\n", b""), (0, b"abc\trefs/heads/state\n", b"")])
 
     def test_timeout_retries_and_verifies(self):
         self.run_case([subprocess.TimeoutExpired("git", 30), (0, b"", b"")],
-                      [(1, b"", b"connection reset"), (0, b"abc\trefs/heads/main\n", b"")])
+                      [(1, b"", b"connection reset"), (0, b"abc\trefs/heads/state\n", b"")])
 
     def test_successful_push_without_remote_confirmation_fails_closed(self):
         with self.assertRaisesRegex(RuntimeError, "not verified"):
@@ -41,7 +55,7 @@ class TestCheckpointFailures(unittest.TestCase):
 
     def test_remote_divergence_is_not_overwritten(self):
         with self.assertRaisesRegex(RuntimeError, "remote_changed"):
-            self.run_case([(1, b"", b"rejected non-fast-forward")], [(0, b"other\trefs/heads/main\n", b"")])
+            self.run_case([(1, b"", b"rejected (stale info)")], [(0, b"other\trefs/heads/state\n", b"")])
 
     def test_failure_diagnostics_do_not_disclose_git_stderr(self):
         output = io.StringIO()
@@ -51,35 +65,54 @@ class TestCheckpointFailures(unittest.TestCase):
         self.assertNotIn("secret", output.getvalue() + str(error.exception))
         self.assertNotIn("example.com", output.getvalue() + str(error.exception))
 
+    def test_missing_base_fails_closed(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = _workdir(tmp)
+            (root / "data" / ".state_base").unlink()
+            with self.assertRaisesRegex(RuntimeError, "base unknown"):
+                publish_state(root)
+
 
 class TestCheckpointLocalGit(unittest.TestCase):
-    def test_already_committed_state_pushes_with_clean_index_and_rejects_competing_state(self):
+    def test_state_branch_is_replaced_not_grown_and_competing_state_is_kept(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            bare, first, other = (root / name for name in ("remote.git", "first", "other"))
+            bare = root / "remote.git"
             def git(cwd, *args):
-                result = subprocess.run(["git", *args], cwd=cwd, capture_output=True, check=True)
-                return result.stdout.strip()
+                return subprocess.run(["git", *args], cwd=cwd, capture_output=True, check=True).stdout.strip()
             git(root, "init", "--bare", str(bare))
-            git(root, "init", "-b", "main", str(first))
-            for key, value in (("user.name", "Test"), ("user.email", "test@example.invalid")):
-                git(first, "config", key, value)
-            git(first, "remote", "add", "origin", str(bare))
-            (first / "state").write_text("initial")
-            git(first, "add", "state"); git(first, "commit", "-m", "initial")
-            push_checkpoint(first)
-            git(root, "clone", "-b", "main", str(bare), str(other))
-            for key, value in (("user.name", "Test"), ("user.email", "test@example.invalid")):
-                git(other, "config", key, value)
-            (first / "state").write_text("new local state")
-            git(first, "commit", "-am", "saved locally before failed push")
-            self.assertEqual(git(first, "status", "--porcelain"), b"")
-            push_checkpoint(first)
-            saved = git(first, "rev-parse", "HEAD")
-            self.assertEqual(git(bare, "rev-parse", "main"), saved)
-            (other / "state").write_text("competing state")
-            git(other, "commit", "-am", "competing state")
+            def workspace(name, base):
+                work = root / name
+                (work / "data").mkdir(parents=True)
+                git(work, "init", "-b", "main")
+                for key, value in (("user.name", "Test"), ("user.email", "test@example.invalid")):
+                    git(work, "config", key, value)
+                git(work, "remote", "add", "origin", str(bare))
+                (work / "data" / ".state_base").write_text(base)
+                return work
+
+            first = workspace("first", "")
+            (first / "data" / "vault.enc").write_bytes(b"state one")
+            publish_state(first)
+            one = git(bare, "rev-parse", "state")
+            self.assertEqual((first / "data" / ".state_base").read_text(), one.decode())
+
+            # A second run restores from the published commit.
+            second = workspace("second", one.decode())
+            git(second, "fetch", "origin", "state")
+            (second / "data" / "vault.enc").write_bytes(b"state two")
+            publish_state(second)
+            two = git(bare, "rev-parse", "state")
+            self.assertNotEqual(one, two)
+            self.assertEqual(git(bare, "rev-list", "--count", "state"), b"1")  # parentless: no growing history
+
+            # Unchanged content publishes nothing.
+            publish_state(second)
+            self.assertEqual(git(bare, "rev-parse", "state"), two)
+
+            # The first workspace still holds the stale lease: it must not overwrite newer state.
+            (first / "data" / "vault.enc").write_bytes(b"stale competing state")
             with self.assertRaisesRegex(RuntimeError, "remote_changed"):
-                push_checkpoint(other)
-            self.assertEqual(git(bare, "rev-parse", "main"), saved)
-            self.assertEqual((other / "state").read_text(), "competing state")
+                publish_state(first)
+            self.assertEqual(git(bare, "rev-parse", "state"), two)
+            self.assertEqual(git(bare, "show", "state:vault.enc"), b"state two")
