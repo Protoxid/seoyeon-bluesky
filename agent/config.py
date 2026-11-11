@@ -83,11 +83,13 @@ class AgentConfig:
     allow_images: bool = field(default_factory=lambda: _get_bool("ALLOW_IMAGES", True))
 
     # --- Activity & Cadence Limits ---
-    max_posts_per_day: int = field(default_factory=lambda: _get_int("MAX_POSTS_PER_DAY", 3))
+    max_posts_per_day: int = field(default_factory=lambda: _get_int("MAX_POSTS_PER_DAY", 5))
     max_replies_per_day: int = field(default_factory=lambda: _get_int("MAX_REPLIES_PER_DAY", 12))
     max_likes_per_day: int = field(default_factory=lambda: _get_int("MAX_LIKES_PER_DAY", 25))
     max_dms_per_day: int = field(default_factory=lambda: _get_int("MAX_DMS_PER_DAY", 15))
-    max_images_per_day: int = field(default_factory=lambda: _get_int("MAX_IMAGES_PER_DAY", 1))
+    max_images_per_day: int = field(default_factory=lambda: _get_int("MAX_IMAGES_PER_DAY", 3))
+    # Minimum spacing between her own posts; a floor against bursts, not a target.
+    min_post_gap_hours: float = field(default_factory=lambda: _get_float("MIN_POST_GAP_HOURS", 2.0))
     max_actions_per_tick: int = field(default_factory=lambda: _get_int("MAX_ACTIONS_PER_TICK", 2))
 
     # --- Budget & Safety Controls ---
@@ -99,6 +101,10 @@ class AgentConfig:
     # Anthropic Claude Haiku 5.5 for nuanced, intelligent persona writing at 20x lower cost than Sonnet 5.5
     primary_text_model: str = field(
         default_factory=lambda: os.environ.get("PRIMARY_TEXT_MODEL", "anthropic/claude-haiku-5.5")
+    )
+    # Her own posts are few, so they can use a stronger writer than high-volume replies.
+    post_text_model: str = field(
+        default_factory=lambda: os.environ.get("POST_TEXT_MODEL", "anthropic/claude-sonnet-5.5")
     )
     # OpenRouter API Endpoint (supports https://openrouter.ai/api/v1 or https://eu.openrouter.ai/api/v1)
     openrouter_base_url: str = field(
@@ -130,20 +136,13 @@ class AgentConfig:
     bsky_chat_base: str = "https://api.bsky.chat/xrpc"
 
     # --- Discovery & Engagement Topics ---
+    # Areas of her life she might search for. Interest possibilities, not a rotation or quota.
     canon_search_topics: List[str] = field(
         default_factory=lambda: [
-            "성수동",
-            "뚝섬",
-            "서울숲",
-            "독립영화",
-            "헌책",
-            "한글 타이포그래피",
-            "서울 건축",
-            "2호선",
-            "seongsu",
-            "translated literature",
-            "independent cinema",
-            "graphic design",
+            "필라테스", "필라테스 강사", "pilates instructor", "reformer pilates",
+            "자취 요리", "혼밥", "성수동", "서울숲", "퇴사", "이직 고민",
+            "독립영화", "영화 추천", "책 추천", "translated literature", "indie music", "플레이리스트",
+            "seoul cafe", "seoul walk", "graphic design",
         ]
     )
 

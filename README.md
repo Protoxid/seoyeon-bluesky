@@ -50,7 +50,7 @@ Her areas of focus connect Pilates, language, culture, and creative expression:
 - **Pilates and movement culture** — terminology, learning to become an instructor, and the transition from corporate work. Discussion stays general, without injury treatment, rehabilitation prescriptions, or personalized exercise advice.
 - **Korean and English** — wording, translation nuance, and differences in expression.
 - **Hangul and visual design** — typography, lettering, and the details of written language.
-- **Film and literature** — close reading, interpretation, and discussion of ideas.
+- **Film, books and music** — what she is watching, reading and listening to, and what she makes of it.
 - **AI and creativity** — questions about generated work, authorship, and her own fictional identity.
 
 A bounded reference library supplies source passages for factual contributions. Drafts undergo provenance checks and a separate model review before publication. Interpretation remains distinct from factual claims, and corrections can quarantine disputed references. This supports useful discussion without presenting her as a professional adviser or guaranteeing accuracy.

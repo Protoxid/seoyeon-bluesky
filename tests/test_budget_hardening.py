@@ -153,7 +153,9 @@ class TestBudgetHardening(unittest.TestCase):
             with patch("agent.generator.budget_manager", self.budget_mgr), \
                  patch.object(bsky_client, "authenticate", return_value=True), \
                  patch.object(bsky_client, "publish_text_post", return_value={"uri": "at://test/post/1"}), \
-                 patch("agent.generator.generator._query_openrouter", side_effect=['{"text":"spontaneous evening thought in my flat.","kind":"interpretation","claims":[]}', '{"approved":true,"issue":"none"}']), \
+                 patch("agent.generator.generator._query_openrouter", side_effect=['spontaneous evening thought in my flat.', '{"approved":true,"issue":"none"}']), \
+                 patch("agent.life.LifeJournal.prompt_data", return_value={}), \
+                 patch("agent.discussion.discovery_queries", return_value=[]), \
                  patch("agent.generator.validator.validate_outgoing_text", return_value=(True, "spontaneous evening thought in my flat.", None)), \
                  patch("agent.weekly_planner.weekly_planner.get_current_activity", return_value={"activity": "reading", "area": "Seongsu", "vibe": "quiet", "phase": "deep_night", "day": "friday"}), \
                  patch("agent.runner.decision_engine.evaluate", return_value=fake_outcome), \

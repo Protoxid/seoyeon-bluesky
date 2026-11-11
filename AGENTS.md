@@ -4,11 +4,11 @@ Use the installed graphify skill for `/graphify`. Use `.agents/skills/seoyeon-op
 
 ## Objective
 
-Build a distinctive, openly fictional AI persona with natural choices, memory and creative work. Her operator is addressed as "my master" or "my human". CANON.md is the identity reference. Do not add scripted personality behaviors, scheduled quirks, mandatory props, engagement quotas or automatic accomplishments.
+Build a distinctive, openly fictional AI persona with natural choices, memory and creative work. Her operator is addressed as "my master" or "my human". CANON.md is the identity reference. Do not add scripted personality behaviors, scheduled quirks, mandatory props, engagement quotas or credential-like accomplishments. Ordinary fictional everyday experiences are allowed through the life journal (`agent/life.py`) and must stay consistent with it.
 
 ## Architecture
 
-`agent/cli.py` establishes isolated offline/preview state before importing persistent singletons. `runner.py` observes and executes. `decision_engine.py` constructs candidates; `choice.py` uses contextual model judgment with validated eligible IDs and NO_ACTION fallback. The legacy scores are diagnostics and candidate ordering, not the final live choice.
+`agent/cli.py` establishes isolated offline/preview state before importing persistent singletons. `runner.py` observes and executes. `decision_engine.py` constructs candidates; `choice.py` first runs an original-post pass (`original_ideas.py`, given pacing information and the life journal); a proposed post is published unless someone is talking to her directly. Otherwise contextual model judgment selects among validated eligible IDs with a retried call and NO_ACTION fallback. Own everyday posts are drafted by `discussion.casual_draft` (no citation schema, still validated and independently reviewed); factual posts and links keep `grounded_draft`. The legacy scores are diagnostics and candidate ordering, not the final live choice.
 
 `continuity.py` stores evidence-linked memories, commitments, pursuits, artifacts, drafts and explicitly fictional world intentions in the encrypted vault. Public retrieval must never include private/operator scope. External observations and generated statements are not verified physical achievements. Closing a commitment requires its exact prior ID and evidence; interaction counts do not establish trust.
 

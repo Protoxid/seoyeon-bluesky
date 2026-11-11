@@ -58,9 +58,42 @@ class TestPublicBoundary(unittest.TestCase):
         quiet = ActionCandidate(ActionType.NO_ACTION, .5, .9, "")
         outcome = DecisionOutcome(quiet.action, "", {}, "", {}, [post, quiet])
         idea = "a particular thought about learning movement terminology"
-        with execution_mode("live"), patch("agent.original_ideas.propose", return_value=({"format": "text", "idea": idea}, "proposed")), patch("agent.generator.generator._call_llm", return_value=('{"candidate_id":0,"confidence":0.9}', "mock")) as call:
+        # Contract change (2026-11-11): a proposed idea is published through the original-post pass
+        # instead of competing in the feed chooser, unless someone is addressing her directly.
+        with execution_mode("live"), patch("agent.original_ideas.propose", return_value=({"format": "text", "idea": idea}, "proposed")), patch("agent.life.LifeJournal.prompt_data", return_value={}), patch("agent.generator.generator._call_llm", return_value=('{"candidate_id":0,"confidence":0.9}', "mock")) as call:
             result = choose(outcome, build_environment_context())
         self.assertEqual(result.selected_action, post.action)
         self.assertEqual(result.target_data["topic_hint"], idea)
+        self.assertEqual(result.discussion_diagnostics["selection"], "original_pass")
+        call.assert_not_called()
+
+    def test_direct_conversation_takes_priority_over_original_pass(self):
+        from agent.choice import choose
+        from agent.context_engine import build_environment_context
+        from agent.decision_engine import ActionCandidate, ActionType, DecisionOutcome
+        from agent.runtime import execution_mode
+        post = ActionCandidate(ActionType.PUBLISH_TEXT_POST, .5, .9, "")
+        direct = ActionCandidate(ActionType.ANSWER_DM, .5, .9, "", target_data={})
+        quiet = ActionCandidate(ActionType.NO_ACTION, .5, .9, "")
+        outcome = DecisionOutcome(quiet.action, "", {}, "", {}, [post, direct, quiet])
+        idea = "a particular thought about learning movement terminology"
+        with execution_mode("live"), patch("agent.original_ideas.propose", return_value=({"format": "text", "idea": idea}, "proposed")), patch("agent.life.LifeJournal.prompt_data", return_value={}), patch("agent.generator.generator._call_llm", return_value=('{"candidate_id":1,"confidence":0.9}', "mock")) as call:
+            result = choose(outcome, build_environment_context())
+        self.assertEqual(result.selected_action, ActionType.ANSWER_DM)
         self.assertEqual(json.loads(call.call_args.args[1])["options"][0]["original_idea"], idea)
-        self.assertIsNone(result.discussion_diagnostics["choice_rejection"])
+
+    def test_recent_post_gap_removes_original_options(self):
+        from agent.choice import choose
+        from agent.context_engine import build_environment_context
+        from agent.decision_engine import ActionCandidate, ActionType, DecisionOutcome
+        from agent.runtime import execution_mode
+        post = ActionCandidate(ActionType.PUBLISH_TEXT_POST, .5, .9, "")
+        quiet = ActionCandidate(ActionType.NO_ACTION, .5, .9, "")
+        outcome = DecisionOutcome(quiet.action, "", {}, "", {}, [post, quiet])
+        context = build_environment_context()
+        context.hours_since_last_post = 0.5
+        with execution_mode("live"), patch("agent.original_ideas.propose") as prop, patch("agent.generator.generator._call_llm", return_value=('{"candidate_id":0,"confidence":0.9}', "mock")):
+            result = choose(outcome, context)
+        prop.assert_not_called()
+        self.assertEqual(result.selected_action, ActionType.NO_ACTION)
+        self.assertEqual(result.discussion_diagnostics["original_idea_status"], "recent_post_gap")
