@@ -120,9 +120,8 @@ class TestRepositoryIntegrity(unittest.TestCase):
         # Contract change: runtime state (logs, memory) travels only inside the encrypted bundle on the
         # `state` branch; main never commits plaintext state, and the key has no credential fallback.
         self.assertIn("refs/heads/state", content)
-        self.assertIn("--first-parent --diff-filter=AM", content)  # bootstrap must take main's latest state
+        self.assertNotIn("legacy", content)  # no bootstrap from main history: state must come from the state branch
         self.assertIn("python -m agent.git_checkpoint", content)
-        self.assertIn("data/memory/identity_memory.json", content)
         self.assertNotIn("git add", content)
         self.assertNotIn("seoyeon_vault_v2", content)
         self.assertIn("DATA_ENCRYPTION_KEY: ${{ secrets.DATA_ENCRYPTION_KEY }}", content)

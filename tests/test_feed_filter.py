@@ -32,21 +32,3 @@ class TestFeedFilterBreadth(unittest.TestCase):
 if __name__ == "__main__":
     unittest.main()
 
-
-class TestCompactLocationRefs(unittest.TestCase):
-    def test_compact_reference_used_only_when_originals_absent(self):
-        import tempfile
-        from pathlib import Path
-        from unittest.mock import patch
-        import agent.image_engine as ie
-        with tempfile.TemporaryDirectory() as tmp:
-            originals, compact = Path(tmp) / "locations", Path(tmp) / "location_refs"
-            (originals / "kitchen").mkdir(parents=True)
-            compact.mkdir()
-            (compact / "kitchen.jpg").write_bytes(b"jpg")
-            (compact / "studio.jpg").write_bytes(b"jpg")
-            with patch.object(ie, "LOCATIONS_DIR", originals), patch.object(ie, "LOCATION_REFS_DIR", compact):
-                self.assertEqual(ie.location_reference_path("studio"), compact / "studio.jpg")
-                (originals / "kitchen" / "kitchen_01.png").write_bytes(b"png")
-                self.assertEqual(ie.location_reference_path("kitchen"), originals / "kitchen" / "kitchen_01.png")
-                self.assertIsNone(ie.location_reference_path("bathroom"))

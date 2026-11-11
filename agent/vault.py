@@ -139,17 +139,8 @@ class PrivateVault:
             key = _get_encryption_key(key_override=key_override)
             fernet = Fernet(key)
             encrypted_data = self.enc_file.read_bytes()
-            try:
-                decrypted_bytes = fernet.decrypt(encrypted_data)
-            except InvalidToken:
-                # If explicit key was configured but existing vault was encrypted
-                # with credential derivation, seamlessly fallback to credential key
-                if config.bsky_app_password and config.bsky_handle:
-                    seed = f"{config.bsky_app_password}:{config.bsky_handle}:seoyeon_vault_v2"
-                    cred_key = base64.urlsafe_b64encode(hashlib.sha256(seed.encode("utf-8")).digest())
-                    decrypted_bytes = Fernet(cred_key).decrypt(encrypted_data)
-                else:
-                    raise
+            # No credential-derived fallback: the vault is encrypted only with the dedicated key.
+            decrypted_bytes = fernet.decrypt(encrypted_data)
             if decrypted_bytes.startswith(COMPRESSED_MAGIC):
                 import zlib
                 decrypted_bytes = zlib.decompress(decrypted_bytes[len(COMPRESSED_MAGIC):])

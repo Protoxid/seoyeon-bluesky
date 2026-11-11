@@ -29,7 +29,7 @@ Interaction learning distinguishes another person's stated preference from Seo-y
 
 Legacy goal/narrative files remain readable for compatibility. They do not advance from elapsed days or keywords. New creative completion needs stored artifact evidence. An event reporting a physical accomplishment is still a statement, not verification of that accomplishment.
 
-Keep a protected copy of the encryption key. The current loader supports the previous credential-derived key during migration. Fernet uses AES-128-CBC plus HMAC-SHA256; this is not an AES-256 cipher. Authentication failure blocks writes. The `.bak` ciphertext is a recovery backup, not permission to discard the current vault.
+Keep a protected copy of the encryption key. The production vault is encrypted only with `DATA_ENCRYPTION_KEY`; the credential-derived migration fallback was removed on 2026-11-11 after the first run re-encrypted the vault. Losing the key means losing the vault. Fernet uses AES-128-CBC plus HMAC-SHA256; this is not an AES-256 cipher. Authentication failure blocks writes. The `.bak` ciphertext is a recovery backup, not permission to discard the current vault.
 
 ## Durable delivery
 
@@ -43,7 +43,7 @@ All runtime state is in one encrypted, compressed bundle, `data/vault.enc`: the 
 
 The bundle is published as a single parentless commit on the `state` branch (`agent/git_checkpoint.py`), replacing the previous commit with `--force-with-lease` against the exact state commit the run restored (`data/.state_base`). A competing update therefore fails closed instead of being overwritten; there is no rebase or ciphertext merge. The workflow restores `data/vault.enc` from `state` before the run, publishes again in a final step that also runs after failures, and uploads the ciphertext as a 7-day workflow artifact (`state-<run_id>-<attempt>`) for rollback. Bounded Git commands, at most three push attempts, and a fresh remote read that must equal the new commit: a lost push acknowledgment is reconciled without replaying outbound work. Logs expose only categorized failures, never raw Git stderr or authenticated URLs. SEOYEON_GIT_CHECKPOINT=1 is only for the production workflow, never for feature branches or tests.
 
-`DATA_ENCRYPTION_KEY` is a required repository secret; the workflow has no credential-derived fallback and fails early without it. If the state branch is missing, the workflow bootstraps once from the last `main` commit that still carried `data/vault.enc`.
+`DATA_ENCRYPTION_KEY` is a required repository secret; the workflow has no credential-derived fallback and fails early without it. If the state branch is missing the run fails; restore it from a recovery artifact (see rollback below). The one-time bootstrap from legacy `main` state was removed after the cutover, when the history of `main` was rewritten without runtime data.
 
 To roll back, download an artifact, verify it decrypts locally, and publish it with the current `state` commit as the lease (step 6 below).
 

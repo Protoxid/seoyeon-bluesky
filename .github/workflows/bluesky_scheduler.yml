@@ -49,34 +49,14 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
       # Runtime state lives only in the encrypted bundle on the single-commit `state` branch.
-      # Bootstrap (one time): if that branch does not exist yet, take data/ from the last main
-      # commit that still carried state; the first checkpoint then creates the branch.
+      # A missing branch is an error: restore it from a recovery artifact, never start empty.
       - name: Restore encrypted state
         if: github.ref == 'refs/heads/main'
         run: |
           mkdir -p data
-          set +e
-          git ls-remote --exit-code origin refs/heads/state > /dev/null
-          status=$?
-          set -e
-          if [ "$status" -eq 0 ]; then
-            git fetch --quiet --depth=1 origin refs/heads/state:refs/remotes/origin/state
-            git show origin/state:vault.enc > data/vault.enc
-            git rev-parse origin/state > data/.state_base
-          elif [ "$status" -eq 2 ]; then
-            git fetch --quiet --depth=200 origin main
-            # --first-parent: through the cutover merge, plain path history would follow the feature
-            # branch and find a stale vault instead of the latest state committed on main.
-            legacy=$(git log -1 --first-parent --diff-filter=AM --format=%H FETCH_HEAD -- data/vault.enc)
-            if [ -z "$legacy" ]; then echo "No state branch and no legacy state found"; exit 1; fi
-            git checkout "$legacy" -- data
-            git reset --quiet
-            git checkout HEAD -- data/memory/identity_memory.json
-            : > data/.state_base
-            echo "Bootstrapped state from legacy main commit"
-          else
-            echo "Could not read the state branch"; exit 1
-          fi
+          git fetch --quiet --depth=1 origin refs/heads/state:refs/remotes/origin/state
+          git show origin/state:vault.enc > data/vault.enc
+          git rev-parse origin/state > data/.state_base
 
       - name: Execute Autonomous Agent Cognitive Tick
         if: github.ref == 'refs/heads/main'
