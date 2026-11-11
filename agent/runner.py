@@ -53,6 +53,15 @@ from .validator import validator
 TICK_LOG_FILE = LOGS_DIR / "tick_history.jsonl"
 
 
+
+def _record_life(context, text, uri, kind):
+    """Keep her fictional life consistent: what she published about her day becomes continuity."""
+    try:
+        from .life import journal
+        journal().record(context.date_display, text, kind=kind, uri=uri)
+    except Exception as exc:  # Continuity is best-effort; delivery already succeeded.
+        print(f"[Life] Could not record post in life journal: {type(exc).__name__}")
+
 def log_tick(entry: Dict[str, Any]) -> None:
     entry.setdefault("discussion_status", getattr(generator, "last_discussion_status", "not_attempted"))
     LOGS_DIR.mkdir(parents=True, exist_ok=True)
@@ -264,7 +273,7 @@ def run_tick(
 
     elif outcome.selected_action == ActionType.PUBLISH_TEXT_POST:
         print("\n[Generating Original Text Post...]")
-        post_text, model_used = generator.generate_post(outcome.intent, context, topic_hint=outcome.target_data.get("topic_hint"))
+        post_text, model_used = generator.generate_post(outcome.intent, context, topic_hint=outcome.target_data.get("topic_hint"), post_kind=outcome.target_data.get("post_kind", "thought"))
         print(f"  Draft ({model_used}): \"{post_text}\"")
 
         if not post_text:
@@ -278,11 +287,12 @@ def run_tick(
                 memory_store.log_episode("post", "Published spontaneous thought", {"text": post_text, "uri": res.get("uri")})
                 from .continuity import learn_interaction
                 learn_interaction(res["uri"], "", post_text, "self")
+                _record_life(context, post_text, res["uri"], "post")
             executed = True
             result_details = {"uri": res.get("uri"), "text": post_text, "model": model_used}
 
     elif outcome.selected_action == ActionType.PUBLISH_IMAGE_POST:
-        post_text, model_used = generator.generate_post(outcome.intent, context, topic_hint=outcome.target_data.get("topic_hint"), include_image=True)
+        post_text, model_used = generator.generate_post(outcome.intent, context, topic_hint=outcome.target_data.get("topic_hint"), include_image=True, post_kind=outcome.target_data.get("post_kind", "moment"))
         scene_desc = generator.determine_image_scene(post_text, context, hint=outcome.target_data.get("topic_hint"))
         if not post_text or not scene_desc:
             log_tick({"ts": dt.datetime.now(dt.timezone.utc).isoformat(), "action": "NO_ACTION", "executed": False, "status": "image_scene_unavailable" if post_text else "draft_unavailable", "dry_run": is_dry})
@@ -294,7 +304,8 @@ def run_tick(
         image_engine.reservation_id = img_res_id
         budget_manager.mark_submitted(img_res_id)
         img_bytes, prompt_used, err = image_engine.generate_image(scene_desc,
-            is_selfie=getattr(generator, "last_scene", {}).get("is_selfie"), dry_run=is_dry)
+            is_selfie=getattr(generator, "last_scene", {}).get("is_selfie"),
+            location=getattr(generator, "last_scene", {}).get("location"), dry_run=is_dry)
         if img_bytes:
             budget_manager.reconcile(img_res_id, IMAGE_GEN_COST, action_type="image_generation", details="provider completion; estimated tariff")
             approved, alt_text = generator.review_image(img_bytes, post_text, scene_desc)
@@ -305,6 +316,7 @@ def run_tick(
                 executed = bool(res.get("uri"))
                 if executed and not is_dry:
                     memory_store.record_recent_post(post_text, topic="image_post", post_id=res["uri"], has_image=True)
+                    _record_life(context, post_text, res["uri"], "photo")
                 result_details = {"uri":res.get("uri"), "text":post_text, "alt_text":alt_text, "status":"delivered" if executed else "delivery_uncertain"}
         else:
             if getattr(image_engine, "last_outcome", "uncertain") in {"not_sent", "rejected"}:

@@ -31,6 +31,38 @@ KIE_UPLOAD_BASE = "https://kieai.redpandaai.co"
 MASTER_A1_PATH = PROJECT_ROOT / "personas" / "seoyeon" / "master" / "a" / "a1_front.png"
 MASTER_C5_PATH = PROJECT_ROOT / "personas" / "seoyeon" / "master" / "c" / "c5_relax_front.png"
 
+LOCATIONS_DIR = PROJECT_ROOT / "personas" / "seoyeon" / "locations"
+KNOWN_LOCATIONS = ("bathroom", "bedroom", "cafe", "kitchen", "rooftop", "studio", "window")
+
+
+def _location_files(name: str, root: Optional[pathlib.Path] = None) -> List[pathlib.Path]:
+    base = (root or LOCATIONS_DIR) / name
+    try:
+        return sorted(p for p in base.glob(f"{name}_0*.png") if p.is_file())
+    except OSError:
+        return []
+
+
+def available_locations(root: Optional[pathlib.Path] = None) -> List[str]:
+    """Known place names that currently have at least one private reference image on disk."""
+    return [n for n in KNOWN_LOCATIONS if _location_files(n, root)]
+
+
+def normalize_location(value, root: Optional[pathlib.Path] = None) -> Optional[str]:
+    """Return a valid, available location name or None (unknown / absent / non-string)."""
+    if not isinstance(value, str):
+        return None
+    name = value.strip().lower()
+    return name if name in KNOWN_LOCATIONS and _location_files(name, root) else None
+
+
+def location_reference_path(name, root: Optional[pathlib.Path] = None, rng=None) -> Optional[pathlib.Path]:
+    """Pick one reference image of the place; None when the place or its files are missing."""
+    norm = normalize_location(name, root)
+    if not norm:
+        return None
+    import random
+    return (rng or random).choice(_location_files(norm, root))
 
 
 def _is_url_alive(url: str) -> bool:
@@ -119,6 +151,7 @@ class ImageEngine:
         aspect: str = "3:4",
         is_selfie: Optional[bool] = None,
         dry_run: Optional[bool] = None,
+        location: Optional[str] = None,
     ) -> Tuple[Optional[bytes], str, Optional[str]]:
         """
         Generates an authentic image through Kie.ai API.
@@ -131,6 +164,7 @@ class ImageEngine:
         is_dry = (dry_run if dry_run is not None else config.dry_run) or MODE.get() == "offline"
         self.last_task_id = ""
         self.last_outcome = "not_sent"
+        self.last_location = None
         if not scene_description.strip():
             return None, "", "No grounded scene supplied"
 
@@ -147,7 +181,9 @@ class ImageEngine:
             ))
             is_selfie = not (has_explicit_pov and not has_selfie_clues)
 
-        prompt = build_image_prompt(scene_description, mood=mood, is_selfie=is_selfie)
+        loc_path = location_reference_path(location) if location else None
+        self.last_location = loc_path.parent.name if loc_path else None
+        prompt = build_image_prompt(scene_description, mood=mood, is_selfie=is_selfie, location_ref=bool(loc_path))
 
         if is_dry:
             print(f"[DRY-RUN Kie ImageEngine] Model: {config.kie_image_model}")
@@ -155,6 +191,8 @@ class ImageEngine:
                 print(f"[DRY-RUN Kie ImageEngine] Master Ref: {MASTER_A1_PATH.name}")
             else:
                 print(f"[DRY-RUN Kie ImageEngine] POV Environmental Shot (No Person/Face)")
+            if loc_path:
+                print(f"[DRY-RUN Kie ImageEngine] Location Ref: {loc_path.name}")
             print("[ImageEngine] Private generation prompt redacted.")
             buf = io.BytesIO()
             dummy_img = Image.new("RGB", (400, 533), color=(215, 210, 205))
@@ -173,7 +211,17 @@ class ImageEngine:
                     ref_urls.append(u)
         if is_selfie and len(ref_urls) < 2:
             return None, prompt, "Required identity references unavailable; selfie blocked"
-        model = config.kie_image_model if is_selfie else config.kie_pov_model
+        loc_url = get_or_upload_master_reference(loc_path, self.api_key) if loc_path else None
+        if loc_path and not loc_url:
+            # Location continuity is best-effort: regenerate the prompt without the place reference.
+            print("[ImageEngine] Location reference unavailable; continuing without it.")
+            loc_path = None
+            self.last_location = None
+            prompt = build_image_prompt(scene_description, mood=mood, is_selfie=is_selfie)
+        if loc_url:
+            ref_urls.append(loc_url)
+        use_i2i = bool(ref_urls)
+        model = config.kie_image_model if (is_selfie or use_i2i) else config.kie_pov_model
 
         # 2. Build task payload
         task_input: dict = {
@@ -182,11 +230,10 @@ class ImageEngine:
             "resolution": config.kie_resolution,
             "background": "opaque",
         }
-        if is_selfie and ref_urls and "image-to-image" in model:
+        if use_i2i and "image-to-image" in model:
             task_input["input_urls"] = ref_urls
             task_input["background"] = "opaque"
-            ref_names = ", ".join(p.name for p in (MASTER_A1_PATH, MASTER_C5_PATH) if p.exists())
-            print(f"[Kie ImageEngine] Model: {model} | Identity References Fed: [{ref_names}] -> {len(ref_urls)} URLs")
+            print(f"[Kie ImageEngine] Model: {model} | References Fed: {len(ref_urls)} URLs (location ref: {'yes' if loc_url else 'no'})")
         else:
             print(f"[Kie ImageEngine] Model: {model} | Notice: Running {'text-to-image POV' if not is_selfie else 'text-to-image'}")
 

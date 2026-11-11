@@ -648,15 +648,28 @@ class BlueskyClient:
     def publish_image_post(
         self,
         text: str,
-        image_bytes: bytes,
-        alt_text: str = "Seo-yeon candid snapshot",
+        image_bytes,
+        alt_text="Seo-yeon candid snapshot",
         langs: Optional[List[str]] = None,
     ) -> Dict[str, Any]:
-        """Publishes an image post with text."""
-        blob = self.upload_image_blob(image_bytes)
-        if not blob:
-            print("[BlueskyClient] Blob upload failed; aborting image post without text fallback.")
+        """Publishes an image post with text. Accepts one image (bytes) or a list of up to 4 with matching alt texts."""
+        images_in = [image_bytes] if isinstance(image_bytes, (bytes, bytearray)) else list(image_bytes or [])
+        images_in = images_in[:4]
+        if not images_in:
             return {}
+        if isinstance(alt_text, str):
+            alts = [alt_text] if len(images_in) == 1 else [alt_text] + [""] * (len(images_in) - 1)
+        else:
+            alts = [str(a) for a in (alt_text or [])]
+            alts = (alts + [""] * len(images_in))[:len(images_in)]
+
+        embeds = []
+        for data, alt in zip(images_in, alts):
+            blob = self.upload_image_blob(bytes(data))
+            if not blob:
+                print("[BlueskyClient] Blob upload failed; aborting image post without text fallback.")
+                return {}
+            embeds.append({"alt": alt, "image": blob})
 
         if not self.ensure_session():
             return {}
@@ -669,7 +682,7 @@ class BlueskyClient:
             "langs": langs or ["ko", "en"],
             "embed": {
                 "$type": "app.bsky.embed.images",
-                "images": [{"alt": alt_text, "image": blob}],
+                "images": embeds,
             },
         }
         facets = self.parse_facets(text)
@@ -677,7 +690,8 @@ class BlueskyClient:
             record["facets"] = facets
 
         if self.dry_run:
-            print(f"[DRY-RUN] Would publish image post: \"{text}\"")
+            print(f"[DRY-RUN] Would publish image post ({len(embeds)} image(s)): \"{text}\"")
+            self.last_dry_run_record = record
             return {"uri": "at://did:plc:simulated/app.bsky.feed.post/simulated", "cid": "sim-cid"}
 
         return self.xrpc_post(

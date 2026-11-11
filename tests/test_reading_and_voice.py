@@ -15,10 +15,12 @@ class TestReadingAndVoice(unittest.TestCase):
         from agent.context_engine import build_environment_context
         post = ActionCandidate(ActionType.PUBLISH_TEXT_POST, .5, .9, "")
         quiet = ActionCandidate(ActionType.NO_ACTION, .5, .9, "")
-        outcome = DecisionOutcome(quiet.action, "", {}, "", {}, [post, quiet])
+        # A pending direct conversation routes the decision through the chooser (not the original-post pass).
+        direct = ActionCandidate(ActionType.ANSWER_DM, .5, .9, "", target_data={})
+        outcome = DecisionOutcome(quiet.action, "", {}, "", {}, [post, direct, quiet])
         url = "https://www.bfi.org.uk/features/example"
         proposal = {"format": "text", "idea": "a particular reading of this excerpt\n" + url, "source_url": url}
-        with execution_mode("live"), patch("agent.original_ideas.propose", return_value=(proposal, "proposed")), patch("agent.reading.public_reading", return_value=[]), patch("agent.generator.generator._call_llm", return_value=('{"candidate_id":0,"confidence":0.9,"contribution":"a shorter reading idea"}', "mock")):
+        with execution_mode("live"), patch("agent.original_ideas.propose", return_value=(proposal, "proposed")), patch("agent.reading.public_reading", return_value=[]), patch("agent.life.LifeJournal.prompt_data", return_value={}), patch("agent.generator.generator._call_llm", return_value=('{"candidate_id":0,"confidence":0.9,"contribution":"a shorter reading idea"}', "mock")):
             result = choose(outcome, build_environment_context())
         self.assertEqual(result.target_data["topic_hint"], "a shorter reading idea\n" + url)
 

@@ -50,6 +50,7 @@ def build_image_prompt(
     scene_description: str,
     mood: Optional[str] = None,
     is_selfie: bool = True,
+    location_ref: bool = False,
 ) -> str:
     """
     Synthesizes a short, punchy photographic prompt for OpenAI GPT Image 2.5 on Kie.ai.
@@ -59,6 +60,22 @@ def build_image_prompt(
     """
     clean_scene = scene_description.strip().rstrip(".")
     mood_str = f", {mood}" if mood else ""
+
+    if location_ref:
+        place = (
+            "The last reference image shows her real place: keep the same room, furniture, layout, materials and light character. "
+        )
+        if is_selfie:
+            return (
+                f"Candid everyday smartphone selfie of Seo-yeon, {clean_scene}{mood_str}. "
+                "The first reference images are her face, keep that identity. " + place +
+                "Natural unposed expression, authentic phone camera quality with subtle real-life imperfections, "
+                "unedited, natural lighting, no CGI."
+            )
+        return (
+            f"Casual smartphone photo of {clean_scene}{mood_str}. " + place +
+            "Natural light, realistic texture, no people, no CGI."
+        )
 
     if is_selfie:
         return (
@@ -73,3 +90,25 @@ def build_image_prompt(
             "Authentic natural lighting, candid street photography, realistic texture and film grain, no people, no CGI."
         )
 
+
+
+
+def _wardrobe_path():
+    from .config import PROJECT_ROOT
+    return PROJECT_ROOT / "personas" / "seoyeon" / "wardrobe_inventory.json"
+
+
+def wardrobe_subset(season: Optional[str], limit: int = 3, path=None, rng=None) -> list:
+    """Season-appropriate outfits (name, description, vibe) from her wardrobe; [] if file missing/invalid."""
+    import json
+    import random
+    try:
+        data = json.loads((path or _wardrobe_path()).read_text(encoding="utf-8"))
+        outfits = list((data.get("outfits") or {}).values())
+    except (OSError, ValueError, AttributeError):
+        return []
+    season = (season or "").strip().lower()
+    fits = [o for o in outfits if isinstance(o, dict) and o.get("description")
+            and (not season or season in [str(x).lower() for x in (o.get("season") or [])])]
+    (rng or random).shuffle(fits)
+    return [{"name": o.get("name", ""), "description": o["description"], "vibe": o.get("vibe", "")} for o in fits[:max(0, limit)]]
