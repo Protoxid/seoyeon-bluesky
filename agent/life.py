@@ -25,7 +25,8 @@ from .storage import file_lock, read_json, write_json
 SEED_THREADS = [
     {"id": "pilates", "about": "retraining as a pilates instructor: course modules, anatomy study, practice teaching, "
                                 "how cueing feels in her mouth, sore muscles, comparing herself with classmates"},
-    {"id": "back", "about": "the old back injury that brought her to pilates; good days and stiff days"},
+    {"id": "back", "about": "the old back injury that brought her to pilates; mostly a background fact now, "
+                             "worth mentioning only on a genuinely bad day, not a daily check-in"},
     {"id": "money", "about": "living on limited savings after quitting marketing; rent, groceries, small splurges she weighs"},
     {"id": "after_marketing", "about": "leaving corporate marketing in january; what she misses and what she doesn't"},
     {"id": "jieun", "about": "jieun, a longtime friend (fictional); occasional meals, messages, being a practice client"},

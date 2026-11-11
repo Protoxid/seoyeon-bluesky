@@ -293,7 +293,10 @@ def run_tick(
 
     elif outcome.selected_action == ActionType.PUBLISH_IMAGE_POST:
         post_text, model_used = generator.generate_post(outcome.intent, context, topic_hint=outcome.target_data.get("topic_hint"), include_image=True, post_kind=outcome.target_data.get("post_kind", "moment"))
+        print(f"  Caption Draft ({model_used}, {getattr(generator, 'last_discussion_status', '')}): \"{post_text}\"")
         scene_desc = generator.determine_image_scene(post_text, context, hint=outcome.target_data.get("topic_hint"))
+        scene = getattr(generator, "last_scene", {}) or {}
+        print(f"  Photo plan: {'selfie' if scene.get('is_selfie') else 'pov'}, location={scene.get('location')}")
         if not post_text or not scene_desc:
             log_tick({"ts": dt.datetime.now(dt.timezone.utc).isoformat(), "action": "NO_ACTION", "executed": False, "status": "image_scene_unavailable" if post_text else "draft_unavailable", "dry_run": is_dry})
             return 0  # No justified draft/scene, no fabricated fallback.
