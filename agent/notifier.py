@@ -161,12 +161,16 @@ class MasterNotifier:
         master_chat_id = str(config.telegram_chat_id or self.chat_id or "").strip()
 
         messages: list[Dict[str, Any]] = []
+        highest_seen = 0
+        ignored = 0
         try:
             req = urllib.request.Request(url, headers={"User-Agent": "SeoYeonAgent/1.0"})
             with urllib.request.urlopen(req, timeout=8) as resp:
                 data = json.loads(resp.read().decode("utf-8"))
                 for update in data.get("result", []):
                     up_id = update.get("update_id")
+                    if isinstance(up_id, int):
+                        highest_seen = max(highest_seen, up_id)
                     msg = update.get("message", {})
                     sender = msg.get("from", {})
                     sender_username = (sender.get("username") or "").lower().lstrip("@")
@@ -193,9 +197,12 @@ class MasterNotifier:
                             "date": msg.get("date"),
                         })
                     else:
-                        print(f"[Telegram Notice] Ignored message from unauthorized sender: @{sender_username} (id: {sender_id})")
+                        ignored += 1
         except Exception as e:
             print("[MasterNotifier] Polling failed; details redacted.")
+        if ignored:
+            # Counts only: workflow logs of a public repository are public.
+            print(f"[Telegram Notice] Ignored {ignored} message(s) from unauthorized senders.")
 
         # Queue encrypted messages durably before acknowledging Telegram updates.
         from .vault import vault
@@ -208,7 +215,10 @@ class MasterNotifier:
         if messages:
             write_json(queue_file, queue)
             checkpoint()
-            memory_store.set_telegram_last_update_id(max(item["update_id"] for item in messages))
+        # Acknowledge every fetched update (master messages are durably queued above), so ignored
+        # updates from other senders are not fetched again on every wakeup.
+        if highest_seen > last_update_id:
+            memory_store.set_telegram_last_update_id(highest_seen)
         return list(queue.values())
 
     def execute_master_directive(
@@ -269,7 +279,8 @@ class MasterNotifier:
                 image_engine.reservation_id = img_res_id
                 if not is_dry:
                     budget_manager.mark_submitted(img_res_id)
-                img_bytes, prompt_used, err = image_engine.generate_image(scene_desc, dry_run=is_dry, is_selfie=generator.last_scene.get("is_selfie", True))
+                img_bytes, prompt_used, err = image_engine.generate_image(scene_desc, dry_run=is_dry, is_selfie=generator.last_scene.get("is_selfie", True),
+                                                                         location=generator.last_scene.get("location"))
 
             if img_bytes:
                 # Decouple billing: Image was successfully rendered by provider

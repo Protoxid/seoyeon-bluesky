@@ -60,15 +60,16 @@ ASSISTANT_JARGON_PATTERNS = [
     r"\bvirtual assistant\b",
 ]
 
-# Curated negative filters for community feed discovery (skip spam, bots, ads, politics, nsfw, finance)
+# Curated negative filters for community feed discovery: spam, scams, adult content, and electoral politics.
+# Kept narrow on purpose: broad words ("collaboration", "sponsor", "candidate", "president", "investment",
+# 정부 "government", 정당 which also means "justified") removed too many ordinary posts, including
+# ones about money and housing support that fit her life. Korean terms match as substrings.
 NEGATIVE_KEYWORDS = [
-    "crypto", "bitcoin", "btc", "eth", "nft", "airdrop", "presale",
-    "giveaway", "discount", "promo", "sponsor", "collaboration", "dm me",
-    "onlyfans", "fanvue", "patreon", "nsfw", "porn", "xxx", "18+",
-    "politics", "election", "candidate", "president", "trump", "biden",
-    "democrat", "republican", "국회", "대통령", "당대표", "선거", "정당",
-    "정부",
-    "disclaimer", "investing", "investment", "inversiones", "inversion", "stocks", "trading", "forex", "dividend",
+    "crypto", "bitcoin", "btc", "eth", "nft", "airdrop", "presale", "giveaway", "dm me",
+    "onlyfans", "fanvue", "nsfw", "porn", "xxx", "18+",
+    "forex", "inversiones", "inversion",
+    "politics", "election", "trump", "biden", "democrat", "republican",
+    "국회", "대통령", "당대표", "선거", "탄핵",
 ]
 
 class ContentValidator:

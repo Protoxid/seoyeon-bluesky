@@ -25,9 +25,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from .budget_manager import budget_manager
 from .config import config
 from .context_engine import EnvironmentContext
-from .goal_manager import goal_manager
 from .memory_store import UserProfile, memory_store
-from .narrative_engine import narrative_engine
 from .notifier import notifier
 from .validator import ContentValidator, validator
 
@@ -670,10 +668,8 @@ class ContentGenerator:
         if not post_text:
             return ""
         from .continuity import ContinuityStore
-        from .weekly_planner import weekly_planner
         from .image_engine import available_locations, normalize_location
         from .visual_identity import wardrobe_subset
-        intentions = weekly_planner.get_or_create_schedule(force=False).get("intentions", [])
         locations = available_locations()
         try:
             from .life import journal
@@ -686,7 +682,6 @@ class ContentGenerator:
             "hint": hint,
             "environment": context.to_prompt_context(),
             "today_in_her_life": today,
-            "weekly_intentions": intentions,
             "continuity": ContinuityStore().context(post_text, subject="self"),
             "available_locations": locations,
             "wardrobe_if_selfie": wardrobe_subset(getattr(context, "season", None)),
@@ -698,7 +693,7 @@ class ContentGenerator:
             "would casually take and share. "
             "1. Follow any specific subject or framing in the caption or hint. "
             "2. For anything unspecified, infer where she is and what is around her from the environment (Seoul time, weather, season), "
-            "today_in_her_life, weekly_intentions and continuity, so light, setting and surroundings fit her current moment in Seoul. "
+            "today_in_her_life and continuity, so light, setting and surroundings fit her current moment in Seoul. "
             "3. Favor natural phone-photo subjects: food on her small table, the street in Seongsu, the studio floor or reformer, "
             "sky from the rooftop, a mirror selfie after class, a desk with notes. A short casual caption need not be literally depicted. "
             "4. Prefer a first-person POV shot (is_selfie=false, include 'no people' in the description). Use is_selfie=true only when the caption is "

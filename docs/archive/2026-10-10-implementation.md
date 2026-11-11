@@ -1,3 +1,5 @@
+> Historical record; describes the system as of 2026-10-10.
+
 # Evidence-led continuity implementation
 
 This change follows the [project review](2026-10-10-project-review-and-roadmap.md). That review is a historical baseline, not the current feature specification.

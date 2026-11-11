@@ -157,7 +157,6 @@ class TestBudgetHardening(unittest.TestCase):
                  patch("agent.life.LifeJournal.prompt_data", return_value={}), \
                  patch("agent.discussion.discovery_queries", return_value=[]), \
                  patch("agent.generator.validator.validate_outgoing_text", return_value=(True, "spontaneous evening thought in my flat.", None)), \
-                 patch("agent.weekly_planner.weekly_planner.get_current_activity", return_value={"activity": "reading", "area": "Seongsu", "vibe": "quiet", "phase": "deep_night", "day": "friday"}), \
                  patch("agent.runner.decision_engine.evaluate", return_value=fake_outcome), \
                  patch("agent.runner.notifier.check_and_send_evening_summary"), \
                  patch("agent.runner.notifier.process_master_inbox", return_value=0), \
@@ -271,7 +270,6 @@ class TestBudgetHardening(unittest.TestCase):
                  patch("agent.runner.generator.review_image", return_value=(True, "Visible scene")), \
                  patch("agent.generator.generator.generate_post", return_value=("autumn day in seongsu.", "mock")), \
                  patch("agent.generator.validator.validate_outgoing_text", return_value=(True, "autumn day in seongsu.", None)), \
-                 patch("agent.weekly_planner.weekly_planner.get_current_activity", return_value={"activity": "walking", "area": "Seongsu", "vibe": "quiet", "phase": "afternoon", "day": "friday"}), \
                  patch("agent.runner.decision_engine.evaluate", return_value=fake_outcome), \
                  patch("agent.runner.notifier.check_and_send_evening_summary"), \
                  patch("agent.runner.notifier.process_master_inbox", return_value=0), \

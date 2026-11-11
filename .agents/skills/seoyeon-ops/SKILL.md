@@ -9,7 +9,7 @@ Read README and docs/OPERATIONS.md for current commands. Use `python scripts/run
 
 Before pushing code, run the isolated suite, `python agent_runner.py --status`, and `python agent_runner.py --dry-run`. Offline status deliberately hides credentials and does not fetch live weather. Verify these commands leave production data unchanged. Do not require a particular action, draft or test count.
 
-`--auto`, `--check-master`, `--daily-summary`, `--ask-master`, `--force-plan` and `--consolidate` are live operational commands. Do not run them merely as tests. `--preview` can incur real provider charges despite blocking publication and isolating state; it does not debit the production ledger.
+`--auto`, `--check-master`, `--daily-summary`, `--ask-master` and `--consolidate` are live operational commands. Do not run them merely as tests. `--preview` can incur real provider charges despite blocking publication and isolating state; it does not debit the production ledger.
 
 For uncertainty, inspect `python scripts/maintain.py pending`. Verify provider receipts before reconciliation. Never automatically resend a timed-out DM or Telegram message. Never discard submitted cost reservations because time passed. Failed vault decryption blocks saving; preserve ciphertext and keys.
 

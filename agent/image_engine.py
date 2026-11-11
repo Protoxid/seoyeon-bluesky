@@ -35,10 +35,19 @@ LOCATIONS_DIR = PROJECT_ROOT / "personas" / "seoyeon" / "locations"
 KNOWN_LOCATIONS = ("bathroom", "bedroom", "cafe", "kitchen", "rooftop", "studio", "window")
 
 
+# Small committed copies (one JPEG per place) used where the private full-size originals are absent,
+# e.g. on the GitHub Actions runner. Created by scripts/make_location_refs.py.
+LOCATION_REFS_DIR = LOCATIONS_DIR.parent / "location_refs"
+
+
 def _location_files(name: str, root: Optional[pathlib.Path] = None) -> List[pathlib.Path]:
     base = (root or LOCATIONS_DIR) / name
     try:
-        return sorted(p for p in base.glob(f"{name}_0*.png") if p.is_file())
+        originals = sorted(p for p in base.glob(f"{name}_0*.png") if p.is_file())
+        if originals or root is not None:
+            return originals
+        compact = LOCATION_REFS_DIR / f"{name}.jpg"
+        return [compact] if compact.is_file() else []
     except OSError:
         return []
 

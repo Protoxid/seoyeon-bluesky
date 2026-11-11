@@ -381,7 +381,6 @@ class TestDecisionEngine(unittest.TestCase):
             replies_today=0,
             dms_today=0,
             likes_today=0,
-            scheduled_area="Seongsu red-brick streets",
         )
 
         outcome = self.engine.evaluate(

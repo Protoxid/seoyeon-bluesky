@@ -43,7 +43,6 @@ from .bsky_client import bsky_client
 from .budget_manager import budget_manager
 from .decision_engine import ActionType, decision_engine
 from .generator import generator
-from .goal_manager import goal_manager
 from .image_engine import image_engine
 from .narrative_engine import narrative_engine
 from .notifier import notifier
@@ -837,23 +836,6 @@ def show_status() -> int:
     print(f"  Opinions:       {len(opinions)} established topic stances")
     print(f"  Recent Posts:   {len(recent.get('posts', []))} tracked for repetition defense")
 
-    print("\n[Active Goals & Pursuits]")
-    active_goals = goal_manager.get_active_goals()
-    if active_goals:
-        for g in active_goals:
-            metrics_str = f" ({g.metrics})" if g.metrics else ""
-            print(f"  - [{g.category}] {g.title} [{g.status}]{metrics_str}")
-    else:
-        print("  No active goals.")
-
-    print("\n[Legacy narrative records — not verified current activity]")
-    arcs = narrative_engine.get_active_narrative_arcs()
-    if arcs:
-        for a in arcs:
-            print(f"  - {a.title}: {a.summary[:65]}...")
-    else:
-        print("  No active narrative arcs.")
-
     print("\n[Offline snapshot: credentials intentionally not loaded]")
     print(f"  Bluesky Handle:    {config.bsky_handle}")
     print(f"  App Password:      {'Configured' if config.bsky_app_password else 'MISSING'}")
@@ -879,8 +861,6 @@ def main() -> int:
     parser.add_argument("--check-master", action="store_true", help="Poll and reply to incoming Telegram messages from my master")
     parser.add_argument("--consolidate", action="store_true", help="Run nightly memory consolidation and private journal pass")
     parser.add_argument("--daily-summary", action="store_true", help="Generate and send Telegram check-in to my master")
-    parser.add_argument("--plan-week", action="store_true", help="Display or generate Seo-yeon's 7-day weekly life itinerary")
-    parser.add_argument("--force-plan", action="store_true", help="Force regenerate fresh 7-day weekly itinerary with LLM")
     parser.add_argument("--preview", action="store_true", help="Paid provider preview in isolated state; never publish")
     parser.add_argument("--replay", type=str, help="Offline observation fixture JSON")
     parser.add_argument("--date", type=str, help="Target date for daily summary (YYYY-MM-DD)")
@@ -890,20 +870,6 @@ def main() -> int:
         args.dry_run = True
     if args.preview:
         args.dry_run = True
-
-    if args.plan_week or args.force_plan:
-        from .weekly_planner import weekly_planner
-        now_kst = get_seoul_datetime()
-        schedule_data = weekly_planner.get_or_create_schedule(now_kst=now_kst, force=args.force_plan)
-        print("\n" + weekly_planner.format_schedule_summary(schedule_data))
-        current_act = weekly_planner.get_current_activity(now_kst)
-        print(f"\n[Current Rhythm Right Now ({now_kst.strftime('%H:%M KST')})]")
-        print(f"  Day:      {current_act.get('day', '').capitalize()}")
-        print(f"  Phase:    {current_act.get('phase', '').replace('_', ' ').capitalize()}")
-        print(f"  Activity: {current_act.get('activity', '')}")
-        print(f"  Area:     {current_act.get('area', '')}")
-        print(f"  Vibe:     {current_act.get('vibe', '')}\n")
-        return 0
 
     if args.status:
         return show_status()

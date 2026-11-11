@@ -8,8 +8,6 @@ Ensures long-term coherence across posts, replies, and direct messages:
   2. Open Conversational Loops:
      - Tracks commitments made to users (e.g. promised book/movie follow-up, advice tested).
      - Grounds future interactions with that specific user in past shared topics.
-  3. Multi-Day Narrative Arcs:
-     - Connects everyday occurrences across days (e.g. buying a plant, repotting, new leaves).
 """
 
 from __future__ import annotations
@@ -20,7 +18,7 @@ import os
 import pathlib
 import re
 import uuid
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass
 from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -76,31 +74,7 @@ class ConversationalLoop:
         )
 
 
-@dataclass
-class NarrativeArc:
-    arc_id: str
-    title: str
-    summary: str
-    milestones: List[Dict[str, Any]] = field(default_factory=list)
-    status: str = "ACTIVE"  # "ACTIVE" or "CONCLUDED"
-    created_at: str = field(default_factory=lambda: dt.datetime.now(dt.timezone.utc).isoformat())
-
-    def to_dict(self) -> Dict[str, Any]:
-        return asdict(self)
-
-    @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> NarrativeArc:
-        return cls(
-            arc_id=data.get("arc_id", f"arc_{uuid.uuid4().hex[:8]}"),
-            title=data.get("title", ""),
-            summary=data.get("summary", ""),
-            milestones=data.get("milestones", []),
-            status=data.get("status", "ACTIVE"),
-            created_at=data.get("created_at", dt.datetime.now(dt.timezone.utc).isoformat()),
-        )
-
-
-DEFAULT_NARRATIVE_STATE = {"open_loops": [], "narrative_arcs": [], "daily_events": {}}
+DEFAULT_NARRATIVE_STATE = {"open_loops": [], "daily_events": {}}
 
 
 class NarrativeContinuityEngine:
@@ -225,48 +199,6 @@ class NarrativeContinuityEngine:
         Never infer fulfillment from keyword overlap or save unscoped excerpts.
         """
         return [], []
-
-    # --- Multi-Day Narrative Arcs ---
-
-    def get_active_narrative_arcs(self) -> List[NarrativeArc]:
-        data = self._load_raw()
-        arcs = [NarrativeArc.from_dict(a) for a in data.get("narrative_arcs", [])]
-        return [a for a in arcs if a.status == "ACTIVE"]
-
-    def add_narrative_milestone(self, arc_id: str, note: str) -> bool:
-        """Appends a new milestone to an ongoing narrative arc."""
-        data = self._load_raw()
-        arcs = data.get("narrative_arcs", [])
-        updated = False
-        today_str = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%d")
-
-        for a in arcs:
-            if a.get("arc_id") == arc_id:
-                milestones = a.get("milestones", [])
-                milestones.append({"date": today_str, "note": note})
-                a["milestones"] = milestones
-                updated = True
-                break
-
-        if updated:
-            self._save_raw(data)
-        return updated
-
-    def advance_arcs_daily(self, days_elapsed=1, dry_run=False):
-        """Milestones require events; the calendar cannot manufacture them."""
-        return []
-
-    def format_narrative_arcs_context(self) -> str:
-        """Formats active narrative arcs for LLM generation context."""
-        arcs = self.get_active_narrative_arcs()
-        if not arcs:
-            return ""
-
-        lines = ["Ongoing everyday multi-day domestic / lifestyle narrative arcs:"]
-        for a in arcs:
-            latest = a.milestones[-1]["note"] if a.milestones else a.summary
-            lines.append(f"- {a.title}: {latest}")
-        return "\n".join(lines)
 
     # --- Temporal Coherence Validation ---
 
