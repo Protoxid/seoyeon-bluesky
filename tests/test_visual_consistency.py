@@ -184,7 +184,6 @@ class TestVisualConsistency(unittest.TestCase):
         self.assertEqual(packet_day["requested_image_kind"], "pov")
         self.assertIn("11:00 KST", packet_day["environment"])
         self.assertIn("morning", packet_day["environment"])
-        self.assertIn("weekly_intentions", packet_day)
         self.assertFalse(generator.last_scene["is_selfie"])
         _, prompt_day, _ = engine.generate_image(scene_day, is_selfie=generator.last_scene["is_selfie"], dry_run=True)
         self.assertIn("35mm film photograph", prompt_day)

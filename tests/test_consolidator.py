@@ -10,7 +10,6 @@ from unittest.mock import patch, MagicMock
 from agent.consolidator import MemoryConsolidator
 from agent.memory_store import UserProfile, memory_store
 from agent.state_manager import state_manager
-from agent.goal_manager import goal_manager
 from agent.narrative_engine import narrative_engine
 
 
@@ -29,17 +28,11 @@ class TestConsolidator(unittest.TestCase):
         self.test_state_file = pathlib.Path(self.tmp_dir.name) / "agent_state.json"
         state_manager.state_file = self.test_state_file
 
-        self.orig_goals_file = goal_manager.goals_file
-        self.test_goals_file = pathlib.Path(self.tmp_dir.name) / "active_goals.json"
-        goal_manager.goals_file = self.test_goals_file
-
         self.orig_narrative_file = narrative_engine.state_file
         self.test_narrative_file = pathlib.Path(self.tmp_dir.name) / "narrative_state.json"
         narrative_engine.state_file = self.test_narrative_file
 
         self.consolidator = MemoryConsolidator(
-            goal_mgr=goal_manager,
-            narrative_eng=narrative_engine,
             state_mgr=state_manager,
             mem_store=memory_store,
         )
@@ -49,7 +42,6 @@ class TestConsolidator(unittest.TestCase):
         memory_store.users_file = self.orig_users_file
         memory_store.episodic_file = self.orig_episodic_file
         state_manager.state_file = self.orig_state_file
-        goal_manager.goals_file = self.orig_goals_file
         narrative_engine.state_file = self.orig_narrative_file
         self.tmp_dir.cleanup()
 

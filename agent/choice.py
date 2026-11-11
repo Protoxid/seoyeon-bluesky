@@ -90,7 +90,8 @@ def choose(outcome, context):
             for candidate in outcome.all_candidates:
                 if original_formats.get(candidate.action) == proposal["format"]:
                     candidate.target_data = {**(candidate.target_data or {}), "topic_hint": proposal["idea"],
-                                             "source_url": proposal.get("source_url", ""), "post_kind": proposal.get("kind", "thought")}
+                                             "source_url": proposal.get("source_url", ""), "post_kind": proposal.get("kind", "thought"),
+                                             "thread": proposal.get("thread", False), "photos": proposal.get("photos", 1)}
     # Own posts get their own decision instead of competing with every feed option. People talking to her
     # directly still come first; otherwise a proposed idea is published on this tick.
     direct_pending = any(c.action in {ActionType.REPLY_COMMENT, ActionType.ANSWER_MENTION, ActionType.ANSWER_DM}

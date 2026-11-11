@@ -31,14 +31,10 @@ class MemoryConsolidator:
 
     def __init__(
         self,
-        goal_mgr=None,
-        narrative_eng=None,
         state_mgr=None,
         mem_store=None,
     ):
         self.journal_file = PRIVATE_JOURNAL_FILE
-        self._goal_manager = goal_mgr
-        self._narrative_engine = narrative_eng
         self._state_manager = state_mgr
         self._memory_store = mem_store
 

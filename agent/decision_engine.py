@@ -10,15 +10,15 @@ Implements the full Observe-Context-Recall-Evaluate-Decide loop:
 
 from __future__ import annotations
 
+import re
+
 import datetime as dt
 import enum
-import re
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Tuple
 
 from .config import config
 from .context_engine import EnvironmentContext
-from .goal_manager import goal_manager
 from .memory_store import UserProfile, memory_store
 from .narrative_engine import narrative_engine
 from .validator import ContentValidator
@@ -62,23 +62,13 @@ class DecisionOutcome:
 class DecisionEngine:
     def __init__(
         self,
-        goal_mgr: Optional[Any] = None,
         narrative_eng: Optional[Any] = None,
         mem_store: Optional[Any] = None,
         state_mgr: Optional[Any] = None,
     ):
-        self._goal_mgr = goal_mgr
         self._narrative_eng = narrative_eng
         self._mem_store = mem_store
         self._state_mgr = state_mgr
-
-    @property
-    def goal_manager(self) -> Any:
-        return self._goal_mgr or goal_manager
-
-    @goal_manager.setter
-    def goal_manager(self, value: Any) -> None:
-        self._goal_mgr = value
 
     @property
     def narrative_engine(self) -> Any:
@@ -118,7 +108,6 @@ class DecisionEngine:
         max_feed_candidates: int = 10,
     ) -> DecisionOutcome:
         """Evaluates current sensory inputs and decides the most natural action."""
-        gm = self.goal_manager
         ne = self.narrative_engine
         ms = self.memory_store
 
@@ -311,10 +300,6 @@ class DecisionEngine:
             best_repost_candidate: Optional[ActionCandidate] = None
 
             evaluated_count = 0
-            active_goals = gm.get_active_goals()
-            goal_keywords = []
-            for g in active_goals:
-                goal_keywords.extend([w.lower() for w in re.findall(r"\w+", f"{g.title} {g.description}") if len(w) > 3])
 
             for item in feed_items:
                 if evaluated_count >= max_feed_candidates:
@@ -342,9 +327,16 @@ class DecisionEngine:
 
                 # Content filter (prompt injection, spam, ads, crypto, politics, bots/news, language)
                 langs = record.get("langs", []) if isinstance(record, dict) else []
-                is_eligible, _ = ContentValidator.filter_feed_post(text, author_handle, langs=langs)
+                is_eligible, filter_reason = ContentValidator.filter_feed_post(text, author_handle, langs=langs)
                 if not is_eligible:
                     feed_diagnostics["filtered"] += 1
+                    # Counts by category only (keyword or language family), never the post text.
+                    reason = str(filter_reason)
+                    kw = re.search(r"negative keyword: '([^']+)'", reason)
+                    category = ("keyword:" + kw.group(1)) if kw else ("language" if "language" in reason.lower() else
+                                ("injection" if "inject" in reason.lower() else "other"))
+                    reasons = feed_diagnostics.setdefault("filter_reasons", {})
+                    reasons[category] = reasons.get(category, 0) + 1
                     continue
                 feed_diagnostics["eligible"] += 1
                 if ms.has_replied_to_post(post_uri): feed_diagnostics["already_replied"] += 1
@@ -354,13 +346,11 @@ class DecisionEngine:
                     candidates.append(ActionCandidate(action=ActionType.FOLLOW, score=0.50, confidence=0.65,
                         reason="Consider following this public author if their work is worth returning to.",
                         target_data={"did": author_did, "handle": author_handle, "post": post}))
-                text_lower = text.lower()
 
                 # User profile and memory context
                 author_profile = ms.get_user_profile(author_handle, did=author_did)
                 is_connected_user = author_profile.relationship in ("regular", "trusted_friend", "friendly_acquaintance")
                 open_loops = ne.get_open_loops_for_user(author_did, author_handle)
-                has_goal_overlap = any(kw in text_lower for kw in goal_keywords) if goal_keywords else False
 
                 # 5a. Thoughtful Reply Candidate Evaluation
                 if (
@@ -388,8 +378,6 @@ class DecisionEngine:
                         reply_score += 0.15
                     if open_loops:
                         reply_score += 0.12
-                    if has_goal_overlap:
-                        reply_score += 0.10
                     if len(text.strip()) >= 50:
                         reply_score += 0.05
 
@@ -413,8 +401,6 @@ class DecisionEngine:
                     like_score = 0.46 if context.hours_since_last_action >= 1.0 else 0.32
                     if is_connected_user:
                         like_score += 0.12
-                    if has_goal_overlap:
-                        like_score += 0.08
 
                     like_score = min(0.80, round(like_score, 3))
 
@@ -436,8 +422,6 @@ class DecisionEngine:
                     and len(text.strip()) >= 30
                 ):
                     quote_score = 0.48 if context.hours_since_last_action >= 1.5 else 0.30
-                    if has_goal_overlap:
-                        quote_score += 0.10
 
                     cand = ActionCandidate(
                         action=ActionType.QUOTE_POST,

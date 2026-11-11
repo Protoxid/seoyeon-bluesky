@@ -1,3 +1,5 @@
+> Historical record; describes the system as of 2026-10-10.
+
 # Grounded discussion update — 10 October 2026
 
 ## Delivered

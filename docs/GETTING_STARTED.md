@@ -12,8 +12,6 @@ Requires Python 3.11+ and `pip install -r requirements.txt`.
 | `python agent_runner.py --replay fixtures/example.json` | Offline supplied observations; schema below. |
 | `python agent_runner.py --preview` | Paid text/model preview in isolated state; no social publishing. Costs are in the temporary ledger, not production accounting. |
 | `python agent_runner.py --auto` | Live autonomous tick; can spend and publish. |
-| `python agent_runner.py --plan-week` | Read optional intentions; never fills an invented calendar. |
-| `python agent_runner.py --force-plan` | Explicitly request model-proposed intentions; can spend. |
 | `python agent_runner.py --consolidate` | Private reflection; no automatic achievements or relationship upgrades. |
 | `python scripts/maintain.py pending` | Private-content-free list of unresolved delivery IDs and cost reservations. |
 | `python scripts/maintain.py export-work output/work` | Export existing public creative artifacts as Markdown; does not generate or publish. |
@@ -39,6 +37,6 @@ Spending defaults: $2/day and $30/month, one generated image/day. `MAX_POSTS_PER
 - Generated pixels are reviewed before publishing; unavailable review blocks the image. There is no text fallback for a failed image request. Vision review is probabilistic, not identity verification.
 - CI runs on all branches. Production wakeups are infrastructure polling, not a daily life schedule. Live state is checkpointed before outbound effects when `SEOYEON_GIT_CHECKPOINT=1`.
 
-See [architecture and recovery](OPERATIONS.md), [behavior evaluation](BEHAVIOR_EVALUATION.md), [canon](../CANON.md), and [implementation record](2026-10-10-implementation.md).
+See [architecture and recovery](OPERATIONS.md), [behavior evaluation](BEHAVIOR_EVALUATION.md), [canon](../CANON.md), and [implementation record](archive/2026-10-10-implementation.md).
 
 Telegram personal check-ins default to meaningful updates. Set `/checkins daily`, `/checkins meaningful`, or `/checkins off` in the private chat. See [Telegram behavior and recovery](TELEGRAM.md).

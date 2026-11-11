@@ -310,7 +310,10 @@ def discovery_queries():
     except (ValueError,TypeError): return []
 
 
-def casual_draft(generator, system, prompt, *, life=None, include_image=False, model=None):
+THREAD_SEPARATOR = "\n---\n"
+
+
+def casual_draft(generator, system, prompt, *, life=None, include_image=False, model=None, max_parts=1):
     """Draft for her own everyday posts (moments, thoughts, reflections) without the citation schema.
 
     The JSON claims pipeline suits factual contributions but turns small personal posts into hedged commentary.
@@ -321,9 +324,13 @@ def casual_draft(generator, system, prompt, *, life=None, include_image=False, m
     from .public_boundary import BOUNDARY, public_data
     from .voice import VOICE, OWN_POST_VOICE
     system = system + "\n" + VOICE + "\n" + OWN_POST_VOICE + "\n" + BOUNDARY
+    if max_parts > 1:
+        system += ("\nThis may be a short thread: if the thought genuinely needs more room, split it into at most "
+                   f"{max_parts} posts separated by a line containing only ---. Each part stays under 280 characters and "
+                   "the first must stand on its own. One post is usually enough; do not pad.")
     packet = public_data({"request": prompt, "life": life or {}})
     raw, used = generator._call_llm(system + "\nOutput ONLY the post text: no quotes, no JSON, no explanation.",
-                                    json.dumps(packet, ensure_ascii=False), max_tokens=300, model_override=model)
+                                    json.dumps(packet, ensure_ascii=False), max_tokens=300 * max_parts, model_override=model)
     generator.last_discussion_status = "draft_unavailable"
     if not raw and model:
         raw, used = generator._call_llm(system + "\nOutput ONLY the post text.", json.dumps(packet, ensure_ascii=False), max_tokens=300)
@@ -335,9 +342,16 @@ def casual_draft(generator, system, prompt, *, life=None, include_image=False, m
         return "", "failed"
     from .validator import validator
     generator.last_discussion_status = "text_validation_rejected"
-    ok, clean, _ = validator.validate_outgoing_text(text, content_type="post", check_repetition=True)
-    if not ok or not clean:
+    parts = [p.strip() for p in re.split(r"\n\s*---\s*\n", text) if p.strip()]
+    if not parts or len(parts) > max_parts:
         return "", "failed"
+    cleaned = []
+    for number, part in enumerate(parts):
+        ok, clean_part, _ = validator.validate_outgoing_text(part, content_type="post", check_repetition=number == 0)
+        if not ok or not clean_part:
+            return "", "failed"
+        cleaned.append(clean_part)
+    clean = THREAD_SEPARATOR.join(cleaned)
     generator.last_discussion_status = "review_unavailable"
     review, _ = generator._call_llm(
         BOUNDARY + "Independently review a casual post by Han Seo-yeon, an openly fictional character with a fictional "

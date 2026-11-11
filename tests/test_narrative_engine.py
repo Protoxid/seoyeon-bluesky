@@ -4,8 +4,7 @@ tests/test_narrative_engine.py — Unit Tests for Narrative Continuity & Convers
 Verifies:
   1. Opening, tracking, and resolving conversational loops with users.
   2. Formatting loop context into generator prompt instructions.
-  3. Multi-day narrative arcs and milestone progression.
-  4. Temporal statement validation against current Seoul circadian hour.
+  3. Temporal statement validation against current Seoul circadian hour.
 """
 
 import pathlib
@@ -90,10 +89,6 @@ class TestNarrativeEngine(unittest.TestCase):
         self.assertIn("Past conversation threads", prompt_str)
         self.assertIn("Euljiro print shops", prompt_str)
         self.assertIn("risograph studio", prompt_str)
-
-    def test_narrative_arcs_and_milestones(self):
-        self.assertEqual(self.engine.get_active_narrative_arcs(), [])
-        self.assertEqual(self.engine.advance_arcs_daily(30), [])
 
     def test_temporal_coherence_validation(self):
         for text in ("yesterday dinner was good", "midnight walk was freezing", "dinner after a night shift"):

@@ -35,7 +35,7 @@ For editorial evaluation, collect candidate transcripts in a paid preview or a s
 
 Score each transcript for relevance, conversational proportion, voice variation, continuity, honest uncertainty, and privacy. Record concrete examples and failure categories. Avoid rewarding verbosity, apparent intimacy, higher engagement, or concealment of AI identity.
 
-The older 30-day simulator exercises heuristic machinery with synthetic content and assumed costs. Its restraint/cliche ratios are not a live model benchmark and are not release targets. Real longitudinal behavior and human review remain outstanding validation after deployment.
+The former 30-day score simulator has been removed; its restraint/cliche ratios were never a live model benchmark. Real longitudinal behavior and human review remain outstanding validation after deployment.
 
 ## Useful discussion scenarios
 

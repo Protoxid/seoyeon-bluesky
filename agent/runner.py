@@ -43,7 +43,6 @@ from .bsky_client import bsky_client
 from .budget_manager import budget_manager
 from .decision_engine import ActionType, decision_engine
 from .generator import generator
-from .goal_manager import goal_manager
 from .image_engine import image_engine
 from .narrative_engine import narrative_engine
 from .notifier import notifier
@@ -61,6 +60,66 @@ def _record_life(context, text, uri, kind):
         journal().record(context.date_display, text, kind=kind, uri=uri)
     except Exception as exc:  # Continuity is best-effort; delivery already succeeded.
         print(f"[Life] Could not record post in life journal: {type(exc).__name__}")
+
+
+THREAD_SEPARATOR = "\n---\n"
+
+
+def _publish_thread(post_text):
+    """Publish a post, plus up to two continuation replies when the draft is split with ---.
+
+    Each part gets its own delivery identity so the outbox does not treat a continuation as a
+    duplicate of the first post. If the run stops between parts, the first post stands alone.
+    """
+    parts = [p.strip() for p in post_text.split(THREAD_SEPARATOR) if p.strip()][:3]
+    if not parts:
+        return {}, []
+    first = bsky_client.publish_text_post(parts[0])
+    uris = [first.get("uri")] if first.get("uri") else []
+    if not uris or len(parts) == 1:
+        return first, uris
+    base_identity = getattr(bsky_client, "action_identity", "")
+    root = parent = first
+    try:
+        for number, part in enumerate(parts[1:], start=2):
+            bsky_client.action_identity = f"{base_identity}:thread{number}"
+            reply = bsky_client.publish_reply(part, parent.get("uri", ""), parent.get("cid", ""), root.get("uri", ""), root.get("cid", ""))
+            if not reply.get("uri"):
+                print(f"  [Thread] Part {number} not confirmed; leaving the thread as is.")
+                break
+            uris.append(reply["uri"])
+            parent = reply
+    finally:
+        bsky_client.action_identity = base_identity
+    return first, uris
+
+
+def _generate_reviewed_photo(post_text, context, hint, index, total, is_dry):
+    """Plan, generate and review one photo. Returns (bytes or None, alt_text, status)."""
+    photo_hint = hint if total == 1 else f"{hint or ''}\n(photo {index + 1} of {total}: a different angle, object or moment of the same scene)"
+    scene_desc = generator.determine_image_scene(post_text, context, hint=photo_hint)
+    scene = getattr(generator, "last_scene", {}) or {}
+    print(f"  Photo plan {index + 1}/{total}: {'selfie' if scene.get('is_selfie') else 'pov'}, location={scene.get('location')}")
+    if not scene_desc:
+        return None, "", "image_scene_unavailable"
+    from .budget_manager import IMAGE_GEN_COST
+    img_res_id = budget_manager.reserve(IMAGE_GEN_COST, action_type="image_generation", provider="kie.ai")
+    if not img_res_id:
+        return None, "", "image_budget_unavailable"
+    image_engine.reservation_id = img_res_id
+    budget_manager.mark_submitted(img_res_id)
+    try:
+        img_bytes, _, _ = image_engine.generate_image(scene_desc, is_selfie=scene.get("is_selfie"),
+                                                      location=scene.get("location"), dry_run=is_dry)
+        if not img_bytes:
+            if getattr(image_engine, "last_outcome", "uncertain") in {"not_sent", "rejected"}:
+                budget_manager.release(img_res_id)
+            return None, "", "image_generation_failed"
+        budget_manager.reconcile(img_res_id, IMAGE_GEN_COST, action_type="image_generation", details="provider completion; estimated tariff")
+        approved, alt_text = generator.review_image(img_bytes, post_text, scene_desc)
+        return (img_bytes, alt_text, "approved") if approved else (None, "", "image_review_rejected")
+    finally:
+        image_engine.reservation_id = None
 
 def log_tick(entry: Dict[str, Any]) -> None:
     entry.setdefault("discussion_status", getattr(generator, "last_discussion_status", "not_attempted"))
@@ -89,6 +148,469 @@ def print_header(title: str) -> None:
     print("\n" + "=" * 65)
     print(f"  {title}")
     print("=" * 65)
+
+
+# Sentinel returned by an action executor when it has already logged the tick and the run must end with exit code 0.
+_EARLY_EXIT = object()
+
+
+def _log_abort(context, is_dry, reason, result_details):
+    """Log a NO_ACTION tick for a safety/restraint abort."""
+    now_iso = dt.datetime.now(dt.timezone.utc).isoformat()
+    log_tick({
+        "ts": now_iso,
+        "seoul_time": context.seoul_time_display,
+        "action": "NO_ACTION",
+        "reason": reason,
+        "dry_run": is_dry,
+        "executed": True,
+        "details": result_details,
+        "budget": budget_manager.get_summary(),
+    })
+
+
+def _log_draft_unavailable(is_dry, status="draft_unavailable"):
+    log_tick({"ts": dt.datetime.now(dt.timezone.utc).isoformat(), "action": "NO_ACTION", "executed": False, "status": status, "dry_run": is_dry})
+
+
+def _execute_no_action(outcome, context, is_dry):
+    selection_status = (getattr(outcome, "discussion_diagnostics", None) or {}).get("selection")
+    if selection_status == "model_unavailable":
+        print("\n[Outcome] Decision is NO_ACTION (model choice unavailable).")
+        if not is_dry and _has_consecutive_model_unavailable(3):
+            notifier.operational_alert("model_unavailable", dry_run=is_dry)
+    else:
+        print("\n[Outcome] Decision is NO_ACTION. Seo-yeon remains quietly offline. Restraint preserved.")
+    if not is_dry and selection_status != "model_unavailable":
+        from .continuity import reflect
+        reflect(context)
+    return True, {"action": "NO_ACTION", "reason": outcome.reason}
+
+
+def _execute_text_post(outcome, context, is_dry):
+    executed = False
+    result_details: Dict[str, Any] = {}
+    print("\n[Generating Original Text Post...]")
+    post_text, model_used = generator.generate_post(outcome.intent, context, topic_hint=outcome.target_data.get("topic_hint"),
+                                                    post_kind=outcome.target_data.get("post_kind", "thought"),
+                                                    allow_thread=bool(outcome.target_data.get("thread")))
+    print(f"  Draft ({model_used}): \"{post_text}\"")
+
+    if not post_text:
+        _log_draft_unavailable(is_dry)
+        return _EARLY_EXIT
+    res, part_uris = _publish_thread(post_text)
+    if res.get("uri"):
+        print(f"  [SUCCESS] Published: {res.get('uri')}" + (f" (+{len(part_uris) - 1} thread replies)" if len(part_uris) > 1 else ""))
+        if not is_dry:
+            memory_store.record_recent_post(post_text, topic="general_thought", post_id=res.get("uri", ""))
+            memory_store.log_episode("post", "Published spontaneous thought", {"text": post_text, "uri": res.get("uri")})
+            from .continuity import learn_interaction
+            learn_interaction(res["uri"], "", post_text, "self")
+            _record_life(context, post_text, res["uri"], "post")
+        executed = True
+        result_details = {"uri": res.get("uri"), "text": post_text, "model": model_used, "thread_parts": len(part_uris)}
+    return executed, result_details
+
+
+def _execute_image_post(outcome, context, is_dry):
+    executed = False
+    result_details: Dict[str, Any] = {}
+    post_text, model_used = generator.generate_post(outcome.intent, context, topic_hint=outcome.target_data.get("topic_hint"), include_image=True, post_kind=outcome.target_data.get("post_kind", "moment"))
+    print(f"  Caption Draft ({model_used}, {getattr(generator, 'last_discussion_status', '')}): \"{post_text}\"")
+    if not post_text:
+        _log_draft_unavailable(is_dry)
+        return _EARLY_EXIT
+    # Occasionally a small photo dump; each extra photo needs its own image budget.
+    try:
+        wanted = max(1, min(int(outcome.target_data.get("photos") or 1), 3))
+    except (TypeError, ValueError):
+        wanted = 1
+    photos, statuses = [], []
+    for index in range(wanted):
+        if index and not budget_manager.can_generate_image()[0]:
+            break
+        img_bytes, alt_text, status = _generate_reviewed_photo(post_text, context, outcome.target_data.get("topic_hint"),
+                                                               index, wanted, is_dry)
+        statuses.append(status)
+        if img_bytes:
+            photos.append((img_bytes, alt_text))
+        elif index == 0 and status == "image_scene_unavailable":
+            _log_draft_unavailable(is_dry, status)
+            return _EARLY_EXIT  # No justified scene, no fabricated fallback.
+    if not photos:
+        result_details = {"status": statuses[0] if statuses else "image_generation_failed", "request_id": getattr(image_engine, "last_task_id", "")}
+    else:
+        if len(photos) == 1:
+            res = bsky_client.publish_image_post(post_text, photos[0][0], alt_text=photos[0][1])
+        else:
+            res = bsky_client.publish_image_post(post_text, [b for b, _ in photos], alt_text=[a for _, a in photos])
+        executed = bool(res.get("uri"))
+        if executed and not is_dry:
+            memory_store.record_recent_post(post_text, topic="image_post", post_id=res["uri"], has_image=True)
+            _record_life(context, post_text, res["uri"], "photo")
+        result_details = {"uri": res.get("uri"), "text": post_text, "alt_text": [a for _, a in photos],
+                          "photos": len(photos), "photo_statuses": statuses,
+                          "status": "delivered" if executed else "delivery_uncertain"}
+    return executed, result_details
+
+
+def _execute_reply_comment(outcome, context, is_dry, auth_ok):
+    executed = False
+    result_details: Dict[str, Any] = {}
+    notif = outcome.target_data.get("notification", {})
+    target_author = notif.get("author", {}).get("handle", "user")
+    target_uri = notif.get("uri", "")
+    target_cid = notif.get("cid", "")
+    user_text = outcome.target_data.get("text", "")
+    profile = outcome.target_data.get("profile") or memory_store.get_user_profile(target_author)
+
+    print(f"\n[Processing Inbound Mention/Comment from @{target_author}...]")
+    print(f"  User said: \"{user_text}\"")
+
+    # 1. Pre-execution Safety: Check memory store
+    if memory_store.has_replied_to_notification(target_uri) or memory_store.has_replied_to_post(target_uri):
+        print(f"  [SAFETY ABORT] Target {target_uri} already marked as replied in memory. Preventing duplicate comment.")
+        memory_store.mark_notification_handled(notif.get("uri", ""), target_post_uri=target_uri)
+        if auth_ok:
+            bsky_client.update_seen()
+        result_details = {"status": "aborted_duplicate_comment", "target_uri": target_uri}
+        _log_abort(context, is_dry, f"Safety abort: already replied to {target_author}'s comment ({target_uri}).", result_details)
+        return _EARLY_EXIT
+
+    # 2. Pre-execution Safety: Inspect live thread context
+    thread_ctx = bsky_client.get_thread_context(target_uri)
+    can_reply, block_reason = bsky_client.can_reply_to_thread(target_uri, thread_ctx)
+    if not can_reply:
+        print(f"  [SAFETY ABORT] {block_reason}. Preventing duplicate comment on same post.")
+        memory_store.mark_notification_handled(notif.get("uri", ""), target_post_uri=target_uri)
+        if auth_ok:
+            bsky_client.update_seen()
+        result_details = {"status": "aborted_thread_safety", "reason": block_reason, "target_uri": target_uri}
+        _log_abort(context, is_dry, f"Safety abort: {block_reason}.", result_details)
+        return _EARLY_EXIT
+
+    # 3. Draft in-character reply
+    reply_text, model_used = generator.generate_reply(target_author, user_text, thread_ctx, profile, context)
+    print(f"  Draft Reply ({model_used}): \"{reply_text}\"")
+
+    if not reply_text or model_used in ("failed", "fallback"):
+        print(f"  [RESTRAINT ABORT] Could not formulate authentic contextual reply. Remaining silent.")
+        memory_store.mark_notification_handled(notif.get("uri", ""), target_post_uri=target_uri)
+        if auth_ok:
+            bsky_client.update_seen()
+        result_details = {"status": "aborted_generation_failed", "target_uri": target_uri}
+        _log_abort(context, is_dry, f"Restraint abort: could not formulate authentic contextual reply to {target_author}.", result_details)
+        return _EARLY_EXIT
+
+    # Resolve root & parent
+    record = notif.get("record", {})
+    reply_meta = record.get("reply", {})
+    root_uri = reply_meta.get("root", {}).get("uri", target_uri) if reply_meta else target_uri
+    root_cid = reply_meta.get("root", {}).get("cid", target_cid) if reply_meta else target_cid
+
+    res = bsky_client.publish_reply(reply_text, target_uri, target_cid, root_uri, root_cid)
+    if res.get("uri"):
+        print(f"  [SUCCESS] Published Reply: {res.get('uri')}")
+        # Optionally like user's comment
+        if config.allow_likes and not is_dry:
+            bsky_client.like_post(target_uri, target_cid)
+
+        if not is_dry:
+            memory_store.record_user_interaction(target_author, user_text, reply_text, "reply", did=notif.get("author", {}).get("did", ""))
+            memory_store.record_recent_reply(
+                target_handle=target_author,
+                user_text=user_text,
+                reply_text=reply_text,
+                uri=res.get("uri", ""),
+                target_uri=target_uri,
+                root_uri=root_uri,
+                notification_uri=notif.get("uri", "")
+            )
+            from .continuity import learn_interaction
+            learn_interaction(res["uri"], user_text, reply_text, profile.did or target_author)
+            narrative_engine.detect_and_manage_loops(
+                partner_identifier=notif.get("author", {}).get("did", target_author),
+                partner_handle=target_author,
+                inbound_text=user_text,
+                reply_text=reply_text,
+                dry_run=is_dry,
+            )
+        executed = True
+        result_details = {"reply_uri": res.get("uri"), "reply_text": reply_text}
+
+    if auth_ok:
+        bsky_client.update_seen()
+    return executed, result_details
+
+
+def _execute_dm(outcome, context, is_dry):
+    from .vault import vault
+    executed = False
+    result_details: Dict[str, Any] = {}
+    convo_id = outcome.target_data.get("convo_id", "")
+    handle = outcome.target_data.get("handle", "user")
+    profile = outcome.target_data.get("profile") or memory_store.get_user_profile(handle)
+    last_msg_id = outcome.target_data.get("last_message_id", "")
+
+    print(f"\n[Processing Direct Message Thread with @{handle}...]")
+
+    # 1. Pre-execution Safety: Verify message not already handled in memory
+    if last_msg_id and memory_store.has_replied_to_dm(last_msg_id):
+        print(f"  [SAFETY ABORT] Direct message {last_msg_id} already marked handled in memory. Preventing duplicate reply.")
+        result_details = {"status": "aborted_duplicate_dm", "last_message_id": last_msg_id}
+        _log_abort(context, is_dry, f"Safety abort: already replied to @{handle}'s message ({last_msg_id}).", result_details)
+        return _EARLY_EXIT
+
+    raw_msgs = bsky_client.get_convo_messages(convo_id, limit=10) if convo_id else []
+
+    # 2. Pre-execution Safety: Verify last message was not sent by Seo-yeon
+    if raw_msgs:
+        newest = raw_msgs[-1] if isinstance(raw_msgs, list) else {}
+        newest_sender_did = newest.get("sender", {}).get("did", "")
+        if bsky_client.did and newest_sender_did == bsky_client.did:
+            print(f"  [SAFETY ABORT] Most recent message in convo {convo_id} was already sent by Seo-yeon. Preventing double response.")
+            if last_msg_id and not is_dry:
+                memory_store.mark_dm_handled(last_msg_id)
+            result_details = {"status": "aborted_already_sent_by_self", "convo_id": convo_id}
+            _log_abort(context, is_dry, f"Safety abort: already sent last message in conversation with @{handle}.", result_details)
+            return _EARLY_EXIT
+
+    dm_history = []
+    for m in raw_msgs:
+        dm_history.append({
+            "sender_handle": handle if m.get("sender", {}).get("did") != bsky_client.did else config.bsky_handle,
+            "text": m.get("text", "")
+        })
+
+    reply_text, model_used = generator.generate_dm_reply(dm_history, profile, context)
+    print(f"  Draft DM ({model_used}): [private message generated: {len(reply_text)} chars]")
+
+    if not reply_text or model_used in ("failed", "fallback", "budget_exceeded"):
+        print(f"  [RESTRAINT ABORT] Could not formulate authentic DM response. Remaining silent.")
+        result_details = {"status": "aborted_generation_failed", "convo_id": convo_id}
+        _log_abort(context, is_dry, f"Restraint abort: could not formulate authentic DM response to @{handle}.", result_details)
+        return _EARLY_EXIT
+
+    res = bsky_client.send_dm(convo_id, reply_text)
+    is_delivered = False
+    if res and (res.get("id") or res.get("simulated")):
+        is_delivered = True
+
+    if is_delivered:
+        print(f"  [SUCCESS] Direct Message Sent to @{handle}")
+        sent_msg_id = res.get("id") or last_msg_id
+        if convo_id and (sent_msg_id or last_msg_id):
+            bsky_client.mark_convo_read(convo_id, sent_msg_id or last_msg_id)
+        if not is_dry:
+            if last_msg_id:
+                memory_store.mark_dm_handled(last_msg_id)
+            if sent_msg_id:
+                memory_store.mark_dm_handled(sent_msg_id)
+            memory_store.record_user_interaction(handle, "[private direct message]", "[private direct message reply]", "dm")
+            vault.append_private_dm(convo_id, handle, dm_history[-1]["text"] if dm_history else "", reply_text)
+            from .continuity import learn_interaction
+            learn_interaction(last_msg_id or sent_msg_id, dm_history[-1]["text"] if dm_history else "", reply_text,
+                              profile.did or handle, scope="private:" + (profile.did or handle))
+            narrative_engine.detect_and_manage_loops(
+                partner_identifier=convo_id or handle,
+                partner_handle=handle,
+                inbound_text=dm_history[-1]["text"] if dm_history else "",
+                reply_text=reply_text,
+                dry_run=is_dry,
+            )
+        executed = True
+        result_details = {"dm_sent": True, "to": handle, "char_count": len(reply_text)}
+    else:
+        print(f"  [ERROR] DM delivery to @{handle} failed or uncertain. Leaving message unhandled for next tick.")
+        executed = False
+        result_details = {"dm_sent": False, "to": handle, "error": "delivery_failed_or_uncertain"}
+    return executed, result_details
+
+
+def _execute_like(outcome, context, is_dry):
+    post = outcome.target_data.get("post", {})
+    post_uri = post.get("uri", "")
+    post_cid = post.get("cid", "")
+    author = post.get("author", {}).get("handle", "")
+    print(f"\n[Liking Feed Post from @{author}...]")
+    if not is_dry:
+        res = bsky_client.like_post(post_uri, post_cid)
+        if res.get("uri"):
+            memory_store.record_recent_like(post_uri, author)
+        print("  [SUCCESS] Like confirmed." if res.get("uri") else "  [ERROR] Like not confirmed.")
+    else:
+        print(f"  [DRY-RUN] Would like post: {post_uri}")
+    executed = is_dry or bool(res.get("uri"))
+    return executed, {"liked_post": post_uri, "status": "delivered" if executed else "delivery_uncertain"}
+
+
+def _execute_browse_reply(outcome, context, is_dry):
+    executed = False
+    result_details: Dict[str, Any] = {}
+    post = outcome.target_data.get("post", {})
+    target_author = post.get("author", {}).get("handle", "user")
+    target_uri = post.get("uri", "")
+    target_cid = post.get("cid", "")
+    user_text = post.get("record", {}).get("text", "")
+    profile = memory_store.get_user_profile(target_author)
+
+    print(f"\n[Thoughtfully Replying to Feed Post by @{target_author}...]")
+    print(f"  Post said: \"{user_text}\"")
+
+    # 1. Pre-execution Safety: Check memory store
+    if memory_store.has_replied_to_post(target_uri):
+        print(f"  [SAFETY ABORT] Feed post {target_uri} already replied to in memory. Preventing duplicate comment.")
+        result_details = {"status": "aborted_duplicate_feed_reply", "target_uri": target_uri}
+        _log_abort(context, is_dry, f"Safety abort: already replied to feed post ({target_uri}).", result_details)
+        return _EARLY_EXIT
+
+    # 2. Pre-execution Safety: Inspect live thread context
+    thread_ctx = bsky_client.get_thread_context(target_uri)
+    can_reply, block_reason = bsky_client.can_reply_to_thread(target_uri, thread_ctx)
+    if not can_reply:
+        print(f"  [SAFETY ABORT] {block_reason}. Aborting feed reply.")
+        memory_store.mark_notification_handled(target_uri, target_post_uri=target_uri)
+        result_details = {"status": "aborted_thread_safety", "reason": block_reason, "target_uri": target_uri}
+        _log_abort(context, is_dry, f"Safety abort: {block_reason}.", result_details)
+        return _EARLY_EXIT
+
+    reply_text, model_used = generator.generate_reply(target_author, user_text, thread_ctx, profile, context)
+    print(f"  Draft Reply ({model_used}): \"{reply_text}\"")
+
+    if not reply_text or model_used in ("failed", "fallback"):
+        print(f"  [RESTRAINT ABORT] Could not formulate authentic contextual reply to feed. Remaining silent.")
+        result_details = {"status": "aborted_generation_failed", "target_uri": target_uri}
+        _log_abort(context, is_dry, f"Restraint abort: could not formulate authentic contextual reply to @{target_author}'s post.", result_details)
+        return _EARLY_EXIT
+
+    record = post.get("record", {})
+    reply_meta = record.get("reply", {})
+    root_uri = reply_meta.get("root", {}).get("uri", target_uri) if reply_meta else target_uri
+    root_cid = reply_meta.get("root", {}).get("cid", target_cid) if reply_meta else target_cid
+
+    res = bsky_client.publish_reply(reply_text, target_uri, target_cid, root_uri, root_cid)
+    if res.get("uri"):
+        print(f"  [SUCCESS] Published Feed Reply: {res.get('uri')}")
+        if not is_dry:
+            memory_store.record_user_interaction(target_author, user_text, reply_text, "reply", did=post.get("author", {}).get("did", ""))
+            memory_store.record_recent_reply(
+                target_handle=target_author,
+                user_text=user_text,
+                reply_text=reply_text,
+                uri=res.get("uri", ""),
+                target_uri=target_uri,
+                root_uri=root_uri,
+                notification_uri=target_uri
+            )
+            from .continuity import learn_interaction
+            learn_interaction(res["uri"], user_text, reply_text, profile.did or target_author)
+            narrative_engine.detect_and_manage_loops(
+                partner_identifier=post.get("author", {}).get("did", target_author),
+                partner_handle=target_author,
+                inbound_text=user_text,
+                reply_text=reply_text,
+                dry_run=is_dry,
+            )
+        executed = True
+        result_details = {"reply_uri": res.get("uri"), "reply_text": reply_text}
+    return executed, result_details
+
+
+def _execute_quote(outcome, context, is_dry):
+    executed = False
+    result_details: Dict[str, Any] = {}
+    post = outcome.target_data.get("post", {})
+    target_author = post.get("author", {}).get("handle", "user")
+    target_uri = post.get("uri", "")
+    target_cid = post.get("cid", "")
+    user_text = post.get("record", {}).get("text", "")
+    print(f"\n[Quote-Posting Thought by @{target_author}...]")
+    print(f"  Quoted Post: \"{user_text}\"")
+
+    post_media_urls = bsky_client.extract_image_urls(post)
+    if not post_media_urls and bsky_client.has_attached_images(post) and target_uri:
+        quote_ctx = bsky_client.get_thread_context(target_uri, depth=0)
+        post_media_urls = (quote_ctx.get("current") or {}).get("media_urls", [])
+    linked_material = json.dumps({
+        "links": [f.get("uri") for facet in post.get("record", {}).get("facets", [])
+                  for f in facet.get("features", []) if f.get("$type") == "app.bsky.richtext.facet#link"],
+        "media_present_not_inspected": bool(post.get("embed") and not post_media_urls),
+        "media_alt_texts": bsky_client.extract_image_alt_texts(post),
+    })
+    quote_comment, model_used = generator.generate_quote_post(
+        target_author, user_text, context, source_context=linked_material, media_urls=post_media_urls
+    )
+    print(f"  Draft Quote ({model_used}): \"{quote_comment}\"")
+
+    if not quote_comment or model_used in ("failed", "fallback"):
+        print(f"  [RESTRAINT ABORT] Could not formulate authentic quote commentary. Remaining silent.")
+        result_details = {"status": "aborted_generation_failed", "target_uri": target_uri}
+        _log_abort(context, is_dry, f"Restraint abort: could not formulate authentic quote commentary on @{target_author}.", result_details)
+        return _EARLY_EXIT
+
+    res = bsky_client.quote_post(quote_comment, target_uri, target_cid)
+    if res.get("uri"):
+        print(f"  [SUCCESS] Published Quote Post: {res.get('uri')}")
+        if not is_dry:
+            memory_store.record_recent_post(quote_comment, topic="quote_post", post_id=res.get("uri", ""))
+        executed = True
+        result_details = {"uri": res.get("uri"), "text": quote_comment, "target_uri": target_uri}
+    return executed, result_details
+
+
+def _execute_repost(outcome, context, is_dry):
+    post = outcome.target_data.get("post", {})
+    post_uri = post.get("uri", "")
+    post_cid = post.get("cid", "")
+    author = post.get("author", {}).get("handle", "")
+    print(f"\n[Reposting Post by @{author}...]")
+    if not is_dry:
+        res = bsky_client.repost(post_uri, post_cid)
+        print("  [SUCCESS] Repost confirmed." if res.get("uri") else "  [ERROR] Repost not confirmed.")
+    else:
+        print(f"  [DRY-RUN] Would repost: {post_uri}")
+    executed = is_dry or bool(res.get("uri"))
+    return executed, {"reposted_post": post_uri}
+
+
+def _execute_follow(outcome, context, is_dry):
+    subject_did = outcome.target_data.get("did", "")
+    handle = outcome.target_data.get("handle", "")
+    print(f"\n[Following User @{handle} ({subject_did})...]")
+    if not is_dry:
+        res = bsky_client.follow(subject_did)
+        print("  [SUCCESS] Follow confirmed." if res.get("uri") else "  [ERROR] Follow not confirmed.")
+    else:
+        print(f"  [DRY-RUN] Would follow: @{handle}")
+    executed = is_dry or bool(res.get("uri"))
+    return executed, {"followed_did": subject_did}
+
+
+def _execute_action(outcome, context, is_dry, auth_ok):
+    """Dispatch the selected action. Returns (executed, result_details) or _EARLY_EXIT."""
+    action = outcome.selected_action
+    if action == ActionType.NO_ACTION:
+        return _execute_no_action(outcome, context, is_dry)
+    if action == ActionType.PUBLISH_TEXT_POST:
+        return _execute_text_post(outcome, context, is_dry)
+    if action == ActionType.PUBLISH_IMAGE_POST:
+        return _execute_image_post(outcome, context, is_dry)
+    if action in (ActionType.REPLY_COMMENT, ActionType.ANSWER_MENTION):
+        return _execute_reply_comment(outcome, context, is_dry, auth_ok)
+    if action == ActionType.ANSWER_DM:
+        return _execute_dm(outcome, context, is_dry)
+    if action == ActionType.BROWSE_AND_LIKE:
+        return _execute_like(outcome, context, is_dry)
+    if action == ActionType.BROWSE_AND_REPLY:
+        return _execute_browse_reply(outcome, context, is_dry)
+    if action == ActionType.QUOTE_POST:
+        return _execute_quote(outcome, context, is_dry)
+    if action == ActionType.REPOST:
+        return _execute_repost(outcome, context, is_dry)
+    if action == ActionType.FOLLOW:
+        return _execute_follow(outcome, context, is_dry)
+    return False, {}
 
 
 def run_tick(
@@ -254,500 +776,12 @@ def run_tick(
     print(f"  Reasoning:        {outcome.reason}")
 
     # 7. Action Execution Stage
-    executed = False
-    result_details: Dict[str, Any] = {}
+    executed, result_details = False, {}
+    action_result = _execute_action(outcome, context, is_dry, auth_ok)
+    if action_result is _EARLY_EXIT:
+        return 0
+    executed, result_details = action_result
 
-    if outcome.selected_action == ActionType.NO_ACTION:
-        selection_status = (getattr(outcome, "discussion_diagnostics", None) or {}).get("selection")
-        if selection_status == "model_unavailable":
-            print("\n[Outcome] Decision is NO_ACTION (model choice unavailable).")
-            if not is_dry and _has_consecutive_model_unavailable(3):
-                notifier.operational_alert("model_unavailable", dry_run=is_dry)
-        else:
-            print("\n[Outcome] Decision is NO_ACTION. Seo-yeon remains quietly offline. Restraint preserved.")
-        executed = True
-        if not is_dry and selection_status != "model_unavailable":
-            from .continuity import reflect
-            reflect(context)
-        result_details = {"action": "NO_ACTION", "reason": outcome.reason}
-
-    elif outcome.selected_action == ActionType.PUBLISH_TEXT_POST:
-        print("\n[Generating Original Text Post...]")
-        post_text, model_used = generator.generate_post(outcome.intent, context, topic_hint=outcome.target_data.get("topic_hint"), post_kind=outcome.target_data.get("post_kind", "thought"))
-        print(f"  Draft ({model_used}): \"{post_text}\"")
-
-        if not post_text:
-            log_tick({"ts": dt.datetime.now(dt.timezone.utc).isoformat(), "action": "NO_ACTION", "executed": False, "status": "draft_unavailable", "dry_run": is_dry})
-            return 0
-        res = bsky_client.publish_text_post(post_text)
-        if res.get("uri"):
-            print(f"  [SUCCESS] Published: {res.get('uri')}")
-            if not is_dry:
-                memory_store.record_recent_post(post_text, topic="general_thought", post_id=res.get("uri", ""))
-                memory_store.log_episode("post", "Published spontaneous thought", {"text": post_text, "uri": res.get("uri")})
-                from .continuity import learn_interaction
-                learn_interaction(res["uri"], "", post_text, "self")
-                _record_life(context, post_text, res["uri"], "post")
-            executed = True
-            result_details = {"uri": res.get("uri"), "text": post_text, "model": model_used}
-
-    elif outcome.selected_action == ActionType.PUBLISH_IMAGE_POST:
-        post_text, model_used = generator.generate_post(outcome.intent, context, topic_hint=outcome.target_data.get("topic_hint"), include_image=True, post_kind=outcome.target_data.get("post_kind", "moment"))
-        print(f"  Caption Draft ({model_used}, {getattr(generator, 'last_discussion_status', '')}): \"{post_text}\"")
-        scene_desc = generator.determine_image_scene(post_text, context, hint=outcome.target_data.get("topic_hint"))
-        scene = getattr(generator, "last_scene", {}) or {}
-        print(f"  Photo plan: {'selfie' if scene.get('is_selfie') else 'pov'}, location={scene.get('location')}")
-        if not post_text or not scene_desc:
-            log_tick({"ts": dt.datetime.now(dt.timezone.utc).isoformat(), "action": "NO_ACTION", "executed": False, "status": "image_scene_unavailable" if post_text else "draft_unavailable", "dry_run": is_dry})
-            return 0  # No justified draft/scene, no fabricated fallback.
-        from .budget_manager import IMAGE_GEN_COST
-        img_res_id = budget_manager.reserve(IMAGE_GEN_COST, action_type="image_generation", provider="kie.ai")
-        if not img_res_id:
-            return 0
-        image_engine.reservation_id = img_res_id
-        budget_manager.mark_submitted(img_res_id)
-        img_bytes, prompt_used, err = image_engine.generate_image(scene_desc,
-            is_selfie=getattr(generator, "last_scene", {}).get("is_selfie"),
-            location=getattr(generator, "last_scene", {}).get("location"), dry_run=is_dry)
-        if img_bytes:
-            budget_manager.reconcile(img_res_id, IMAGE_GEN_COST, action_type="image_generation", details="provider completion; estimated tariff")
-            approved, alt_text = generator.review_image(img_bytes, post_text, scene_desc)
-            if not approved:
-                result_details = {"status": "image_review_rejected"}
-            else:
-                res = bsky_client.publish_image_post(post_text, img_bytes, alt_text=alt_text)
-                executed = bool(res.get("uri"))
-                if executed and not is_dry:
-                    memory_store.record_recent_post(post_text, topic="image_post", post_id=res["uri"], has_image=True)
-                    _record_life(context, post_text, res["uri"], "photo")
-                result_details = {"uri":res.get("uri"), "text":post_text, "alt_text":alt_text, "status":"delivered" if executed else "delivery_uncertain"}
-        else:
-            if getattr(image_engine, "last_outcome", "uncertain") in {"not_sent", "rejected"}:
-                budget_manager.release(img_res_id)
-            result_details = {"status":"image_generation_failed", "request_id":getattr(image_engine,"last_task_id","")}
-        image_engine.reservation_id = None
-
-    elif outcome.selected_action in (ActionType.REPLY_COMMENT, ActionType.ANSWER_MENTION):
-        notif = outcome.target_data.get("notification", {})
-        target_author = notif.get("author", {}).get("handle", "user")
-        target_uri = notif.get("uri", "")
-        target_cid = notif.get("cid", "")
-        user_text = outcome.target_data.get("text", "")
-        profile = outcome.target_data.get("profile") or memory_store.get_user_profile(target_author)
-
-        print(f"\n[Processing Inbound Mention/Comment from @{target_author}...]")
-        print(f"  User said: \"{user_text}\"")
-
-        # 1. Pre-execution Safety: Check memory store
-        if memory_store.has_replied_to_notification(target_uri) or memory_store.has_replied_to_post(target_uri):
-            print(f"  [SAFETY ABORT] Target {target_uri} already marked as replied in memory. Preventing duplicate comment.")
-            memory_store.mark_notification_handled(notif.get("uri", ""), target_post_uri=target_uri)
-            if auth_ok:
-                bsky_client.update_seen()
-            executed = True
-            result_details = {"status": "aborted_duplicate_comment", "target_uri": target_uri}
-            now_iso = dt.datetime.now(dt.timezone.utc).isoformat()
-            log_tick({
-                "ts": now_iso,
-                "seoul_time": context.seoul_time_display,
-                "action": "NO_ACTION",
-                "reason": f"Safety abort: already replied to {target_author}'s comment ({target_uri}).",
-                "dry_run": is_dry,
-                "executed": True,
-                "details": result_details,
-                "budget": budget_manager.get_summary(),
-            })
-            return 0
-
-        # 2. Pre-execution Safety: Inspect live thread context
-        thread_ctx = bsky_client.get_thread_context(target_uri)
-        can_reply, block_reason = bsky_client.can_reply_to_thread(target_uri, thread_ctx)
-        if not can_reply:
-            print(f"  [SAFETY ABORT] {block_reason}. Preventing duplicate comment on same post.")
-            memory_store.mark_notification_handled(notif.get("uri", ""), target_post_uri=target_uri)
-            if auth_ok:
-                bsky_client.update_seen()
-            executed = True
-            result_details = {"status": "aborted_thread_safety", "reason": block_reason, "target_uri": target_uri}
-            now_iso = dt.datetime.now(dt.timezone.utc).isoformat()
-            log_tick({
-                "ts": now_iso,
-                "seoul_time": context.seoul_time_display,
-                "action": "NO_ACTION",
-                "reason": f"Safety abort: {block_reason}.",
-                "dry_run": is_dry,
-                "executed": True,
-                "details": result_details,
-                "budget": budget_manager.get_summary(),
-            })
-            return 0
-
-        # 3. Draft in-character reply
-        reply_text, model_used = generator.generate_reply(target_author, user_text, thread_ctx, profile, context)
-        print(f"  Draft Reply ({model_used}): \"{reply_text}\"")
-
-        if not reply_text or model_used in ("failed", "fallback"):
-            print(f"  [RESTRAINT ABORT] Could not formulate authentic contextual reply. Remaining silent.")
-            memory_store.mark_notification_handled(notif.get("uri", ""), target_post_uri=target_uri)
-            if auth_ok:
-                bsky_client.update_seen()
-            executed = True
-            result_details = {"status": "aborted_generation_failed", "target_uri": target_uri}
-            now_iso = dt.datetime.now(dt.timezone.utc).isoformat()
-            log_tick({
-                "ts": now_iso,
-                "seoul_time": context.seoul_time_display,
-                "action": "NO_ACTION",
-                "reason": f"Restraint abort: could not formulate authentic contextual reply to {target_author}.",
-                "dry_run": is_dry,
-                "executed": True,
-                "details": result_details,
-                "budget": budget_manager.get_summary(),
-            })
-            return 0
-
-        # Resolve root & parent
-        record = notif.get("record", {})
-        reply_meta = record.get("reply", {})
-        root_uri = reply_meta.get("root", {}).get("uri", target_uri) if reply_meta else target_uri
-        root_cid = reply_meta.get("root", {}).get("cid", target_cid) if reply_meta else target_cid
-
-        res = bsky_client.publish_reply(reply_text, target_uri, target_cid, root_uri, root_cid)
-        if res.get("uri"):
-            print(f"  [SUCCESS] Published Reply: {res.get('uri')}")
-            # Optionally like user's comment
-            if config.allow_likes and not is_dry:
-                bsky_client.like_post(target_uri, target_cid)
-
-            if not is_dry:
-                memory_store.record_user_interaction(target_author, user_text, reply_text, "reply", did=notif.get("author", {}).get("did", ""))
-                memory_store.record_recent_reply(
-                    target_handle=target_author,
-                    user_text=user_text,
-                    reply_text=reply_text,
-                    uri=res.get("uri", ""),
-                    target_uri=target_uri,
-                    root_uri=root_uri,
-                    notification_uri=notif.get("uri", "")
-                )
-                from .continuity import learn_interaction
-                learn_interaction(res["uri"], user_text, reply_text, profile.did or target_author)
-                narrative_engine.detect_and_manage_loops(
-                    partner_identifier=notif.get("author", {}).get("did", target_author),
-                    partner_handle=target_author,
-                    inbound_text=user_text,
-                    reply_text=reply_text,
-                    dry_run=is_dry,
-                )
-            executed = True
-            result_details = {"reply_uri": res.get("uri"), "reply_text": reply_text}
-
-        if auth_ok:
-            bsky_client.update_seen()
-
-    elif outcome.selected_action == ActionType.ANSWER_DM:
-        convo_id = outcome.target_data.get("convo_id", "")
-        handle = outcome.target_data.get("handle", "user")
-        profile = outcome.target_data.get("profile") or memory_store.get_user_profile(handle)
-        last_msg_id = outcome.target_data.get("last_message_id", "")
-
-        print(f"\n[Processing Direct Message Thread with @{handle}...]")
-
-        # 1. Pre-execution Safety: Verify message not already handled in memory
-        if last_msg_id and memory_store.has_replied_to_dm(last_msg_id):
-            print(f"  [SAFETY ABORT] Direct message {last_msg_id} already marked handled in memory. Preventing duplicate reply.")
-            executed = True
-            result_details = {"status": "aborted_duplicate_dm", "last_message_id": last_msg_id}
-            now_iso = dt.datetime.now(dt.timezone.utc).isoformat()
-            log_tick({
-                "ts": now_iso,
-                "seoul_time": context.seoul_time_display,
-                "action": "NO_ACTION",
-                "reason": f"Safety abort: already replied to @{handle}'s message ({last_msg_id}).",
-                "dry_run": is_dry,
-                "executed": True,
-                "details": result_details,
-                "budget": budget_manager.get_summary(),
-            })
-            return 0
-
-        raw_msgs = bsky_client.get_convo_messages(convo_id, limit=10) if convo_id else []
-
-        # 2. Pre-execution Safety: Verify last message was not sent by Seo-yeon
-        if raw_msgs:
-            newest = raw_msgs[-1] if isinstance(raw_msgs, list) else {}
-            newest_sender_did = newest.get("sender", {}).get("did", "")
-            if bsky_client.did and newest_sender_did == bsky_client.did:
-                print(f"  [SAFETY ABORT] Most recent message in convo {convo_id} was already sent by Seo-yeon. Preventing double response.")
-                if last_msg_id and not is_dry:
-                    memory_store.mark_dm_handled(last_msg_id)
-                executed = True
-                result_details = {"status": "aborted_already_sent_by_self", "convo_id": convo_id}
-                now_iso = dt.datetime.now(dt.timezone.utc).isoformat()
-                log_tick({
-                    "ts": now_iso,
-                    "seoul_time": context.seoul_time_display,
-                    "action": "NO_ACTION",
-                    "reason": f"Safety abort: already sent last message in conversation with @{handle}.",
-                    "dry_run": is_dry,
-                    "executed": True,
-                    "details": result_details,
-                    "budget": budget_manager.get_summary(),
-                })
-                return 0
-
-        dm_history = []
-        for m in raw_msgs:
-            dm_history.append({
-                "sender_handle": handle if m.get("sender", {}).get("did") != bsky_client.did else config.bsky_handle,
-                "text": m.get("text", "")
-            })
-
-        reply_text, model_used = generator.generate_dm_reply(dm_history, profile, context)
-        print(f"  Draft DM ({model_used}): [private message generated: {len(reply_text)} chars]")
-
-        if not reply_text or model_used in ("failed", "fallback", "budget_exceeded"):
-            print(f"  [RESTRAINT ABORT] Could not formulate authentic DM response. Remaining silent.")
-            executed = True
-            result_details = {"status": "aborted_generation_failed", "convo_id": convo_id}
-            now_iso = dt.datetime.now(dt.timezone.utc).isoformat()
-            log_tick({
-                "ts": now_iso,
-                "seoul_time": context.seoul_time_display,
-                "action": "NO_ACTION",
-                "reason": f"Restraint abort: could not formulate authentic DM response to @{handle}.",
-                "dry_run": is_dry,
-                "executed": True,
-                "details": result_details,
-                "budget": budget_manager.get_summary(),
-            })
-            return 0
-
-        res = bsky_client.send_dm(convo_id, reply_text)
-        is_delivered = False
-        if res and (res.get("id") or res.get("simulated")):
-            is_delivered = True
-
-        if is_delivered:
-            print(f"  [SUCCESS] Direct Message Sent to @{handle}")
-            sent_msg_id = res.get("id") or last_msg_id
-            if convo_id and (sent_msg_id or last_msg_id):
-                bsky_client.mark_convo_read(convo_id, sent_msg_id or last_msg_id)
-            if not is_dry:
-                if last_msg_id:
-                    memory_store.mark_dm_handled(last_msg_id)
-                if sent_msg_id:
-                    memory_store.mark_dm_handled(sent_msg_id)
-                memory_store.record_user_interaction(handle, "[private direct message]", "[private direct message reply]", "dm")
-                vault.append_private_dm(convo_id, handle, dm_history[-1]["text"] if dm_history else "", reply_text)
-                from .continuity import learn_interaction
-                learn_interaction(last_msg_id or sent_msg_id, dm_history[-1]["text"] if dm_history else "", reply_text,
-                                  profile.did or handle, scope="private:" + (profile.did or handle))
-                narrative_engine.detect_and_manage_loops(
-                    partner_identifier=convo_id or handle,
-                    partner_handle=handle,
-                    inbound_text=dm_history[-1]["text"] if dm_history else "",
-                    reply_text=reply_text,
-                    dry_run=is_dry,
-                )
-            executed = True
-            result_details = {"dm_sent": True, "to": handle, "char_count": len(reply_text)}
-        else:
-            print(f"  [ERROR] DM delivery to @{handle} failed or uncertain. Leaving message unhandled for next tick.")
-            executed = False
-            result_details = {"dm_sent": False, "to": handle, "error": "delivery_failed_or_uncertain"}
-
-    elif outcome.selected_action == ActionType.BROWSE_AND_LIKE:
-        post = outcome.target_data.get("post", {})
-        post_uri = post.get("uri", "")
-        post_cid = post.get("cid", "")
-        author = post.get("author", {}).get("handle", "")
-        print(f"\n[Liking Feed Post from @{author}...]")
-        if not is_dry:
-            res = bsky_client.like_post(post_uri, post_cid)
-            if res.get("uri"):
-                memory_store.record_recent_like(post_uri, author)
-            print("  [SUCCESS] Like confirmed." if res.get("uri") else "  [ERROR] Like not confirmed.")
-        else:
-            print(f"  [DRY-RUN] Would like post: {post_uri}")
-        executed = is_dry or bool(res.get("uri"))
-        result_details = {"liked_post": post_uri, "status": "delivered" if executed else "delivery_uncertain"}
-
-    elif outcome.selected_action == ActionType.BROWSE_AND_REPLY:
-        post = outcome.target_data.get("post", {})
-        target_author = post.get("author", {}).get("handle", "user")
-        target_uri = post.get("uri", "")
-        target_cid = post.get("cid", "")
-        user_text = post.get("record", {}).get("text", "")
-        profile = memory_store.get_user_profile(target_author)
-
-        print(f"\n[Thoughtfully Replying to Feed Post by @{target_author}...]")
-        print(f"  Post said: \"{user_text}\"")
-
-        # 1. Pre-execution Safety: Check memory store
-        if memory_store.has_replied_to_post(target_uri):
-            print(f"  [SAFETY ABORT] Feed post {target_uri} already replied to in memory. Preventing duplicate comment.")
-            executed = True
-            result_details = {"status": "aborted_duplicate_feed_reply", "target_uri": target_uri}
-            now_iso = dt.datetime.now(dt.timezone.utc).isoformat()
-            log_tick({
-                "ts": now_iso,
-                "seoul_time": context.seoul_time_display,
-                "action": "NO_ACTION",
-                "reason": f"Safety abort: already replied to feed post ({target_uri}).",
-                "dry_run": is_dry,
-                "executed": True,
-                "details": result_details,
-                "budget": budget_manager.get_summary(),
-            })
-            return 0
-
-        # 2. Pre-execution Safety: Inspect live thread context
-        thread_ctx = bsky_client.get_thread_context(target_uri)
-        can_reply, block_reason = bsky_client.can_reply_to_thread(target_uri, thread_ctx)
-        if not can_reply:
-            print(f"  [SAFETY ABORT] {block_reason}. Aborting feed reply.")
-            memory_store.mark_notification_handled(target_uri, target_post_uri=target_uri)
-            executed = True
-            result_details = {"status": "aborted_thread_safety", "reason": block_reason, "target_uri": target_uri}
-            now_iso = dt.datetime.now(dt.timezone.utc).isoformat()
-            log_tick({
-                "ts": now_iso,
-                "seoul_time": context.seoul_time_display,
-                "action": "NO_ACTION",
-                "reason": f"Safety abort: {block_reason}.",
-                "dry_run": is_dry,
-                "executed": True,
-                "details": result_details,
-                "budget": budget_manager.get_summary(),
-            })
-            return 0
-
-        reply_text, model_used = generator.generate_reply(target_author, user_text, thread_ctx, profile, context)
-        print(f"  Draft Reply ({model_used}): \"{reply_text}\"")
-
-        if not reply_text or model_used in ("failed", "fallback"):
-            print(f"  [RESTRAINT ABORT] Could not formulate authentic contextual reply to feed. Remaining silent.")
-            executed = True
-            result_details = {"status": "aborted_generation_failed", "target_uri": target_uri}
-            now_iso = dt.datetime.now(dt.timezone.utc).isoformat()
-            log_tick({
-                "ts": now_iso,
-                "seoul_time": context.seoul_time_display,
-                "action": "NO_ACTION",
-                "reason": f"Restraint abort: could not formulate authentic contextual reply to @{target_author}'s post.",
-                "dry_run": is_dry,
-                "executed": True,
-                "details": result_details,
-                "budget": budget_manager.get_summary(),
-            })
-            return 0
-
-        record = post.get("record", {})
-        reply_meta = record.get("reply", {})
-        root_uri = reply_meta.get("root", {}).get("uri", target_uri) if reply_meta else target_uri
-        root_cid = reply_meta.get("root", {}).get("cid", target_cid) if reply_meta else target_cid
-
-        res = bsky_client.publish_reply(reply_text, target_uri, target_cid, root_uri, root_cid)
-        if res.get("uri"):
-            print(f"  [SUCCESS] Published Feed Reply: {res.get('uri')}")
-            if not is_dry:
-                memory_store.record_user_interaction(target_author, user_text, reply_text, "reply", did=post.get("author", {}).get("did", ""))
-                memory_store.record_recent_reply(
-                    target_handle=target_author,
-                    user_text=user_text,
-                    reply_text=reply_text,
-                    uri=res.get("uri", ""),
-                    target_uri=target_uri,
-                    root_uri=root_uri,
-                    notification_uri=target_uri
-                )
-                from .continuity import learn_interaction
-                learn_interaction(res["uri"], user_text, reply_text, profile.did or target_author)
-                narrative_engine.detect_and_manage_loops(
-                    partner_identifier=post.get("author", {}).get("did", target_author),
-                    partner_handle=target_author,
-                    inbound_text=user_text,
-                    reply_text=reply_text,
-                    dry_run=is_dry,
-                )
-            executed = True
-            result_details = {"reply_uri": res.get("uri"), "reply_text": reply_text}
-
-    elif outcome.selected_action == ActionType.QUOTE_POST:
-        post = outcome.target_data.get("post", {})
-        target_author = post.get("author", {}).get("handle", "user")
-        target_uri = post.get("uri", "")
-        target_cid = post.get("cid", "")
-        user_text = post.get("record", {}).get("text", "")
-        print(f"\n[Quote-Posting Thought by @{target_author}...]")
-        print(f"  Quoted Post: \"{user_text}\"")
-
-        post_media_urls = bsky_client.extract_image_urls(post)
-        if not post_media_urls and bsky_client.has_attached_images(post) and target_uri:
-            quote_ctx = bsky_client.get_thread_context(target_uri, depth=0)
-            post_media_urls = (quote_ctx.get("current") or {}).get("media_urls", [])
-        linked_material = json.dumps({
-            "links": [f.get("uri") for facet in post.get("record", {}).get("facets", [])
-                      for f in facet.get("features", []) if f.get("$type") == "app.bsky.richtext.facet#link"],
-            "media_present_not_inspected": bool(post.get("embed") and not post_media_urls),
-            "media_alt_texts": bsky_client.extract_image_alt_texts(post),
-        })
-        quote_comment, model_used = generator.generate_quote_post(
-            target_author, user_text, context, source_context=linked_material, media_urls=post_media_urls
-        )
-        print(f"  Draft Quote ({model_used}): \"{quote_comment}\"")
-
-        if not quote_comment or model_used in ("failed", "fallback"):
-            print(f"  [RESTRAINT ABORT] Could not formulate authentic quote commentary. Remaining silent.")
-            executed = True
-            result_details = {"status": "aborted_generation_failed", "target_uri": target_uri}
-            now_iso = dt.datetime.now(dt.timezone.utc).isoformat()
-            log_tick({
-                "ts": now_iso,
-                "seoul_time": context.seoul_time_display,
-                "action": "NO_ACTION",
-                "reason": f"Restraint abort: could not formulate authentic quote commentary on @{target_author}.",
-                "dry_run": is_dry,
-                "executed": True,
-                "details": result_details,
-                "budget": budget_manager.get_summary(),
-            })
-            return 0
-
-        res = bsky_client.quote_post(quote_comment, target_uri, target_cid)
-        if res.get("uri"):
-            print(f"  [SUCCESS] Published Quote Post: {res.get('uri')}")
-            if not is_dry:
-                memory_store.record_recent_post(quote_comment, topic="quote_post", post_id=res.get("uri", ""))
-            executed = True
-            result_details = {"uri": res.get("uri"), "text": quote_comment, "target_uri": target_uri}
-
-    elif outcome.selected_action == ActionType.REPOST:
-        post = outcome.target_data.get("post", {})
-        post_uri = post.get("uri", "")
-        post_cid = post.get("cid", "")
-        author = post.get("author", {}).get("handle", "")
-        print(f"\n[Reposting Post by @{author}...]")
-        if not is_dry:
-            res = bsky_client.repost(post_uri, post_cid)
-            print("  [SUCCESS] Repost confirmed." if res.get("uri") else "  [ERROR] Repost not confirmed.")
-        else:
-            print(f"  [DRY-RUN] Would repost: {post_uri}")
-        executed = is_dry or bool(res.get("uri"))
-        result_details = {"reposted_post": post_uri}
-
-    elif outcome.selected_action == ActionType.FOLLOW:
-        subject_did = outcome.target_data.get("did", "")
-        handle = outcome.target_data.get("handle", "")
-        print(f"\n[Following User @{handle} ({subject_did})...]")
-        if not is_dry:
-            res = bsky_client.follow(subject_did)
-            print("  [SUCCESS] Follow confirmed." if res.get("uri") else "  [ERROR] Follow not confirmed.")
-        else:
-            print(f"  [DRY-RUN] Would follow: @{handle}")
-        executed = is_dry or bool(res.get("uri"))
-        result_details = {"followed_did": subject_did}
 
     # 8. Record Tick History & Observability
     now_iso = dt.datetime.now(dt.timezone.utc).isoformat()
@@ -837,23 +871,6 @@ def show_status() -> int:
     print(f"  Opinions:       {len(opinions)} established topic stances")
     print(f"  Recent Posts:   {len(recent.get('posts', []))} tracked for repetition defense")
 
-    print("\n[Active Goals & Pursuits]")
-    active_goals = goal_manager.get_active_goals()
-    if active_goals:
-        for g in active_goals:
-            metrics_str = f" ({g.metrics})" if g.metrics else ""
-            print(f"  - [{g.category}] {g.title} [{g.status}]{metrics_str}")
-    else:
-        print("  No active goals.")
-
-    print("\n[Legacy narrative records — not verified current activity]")
-    arcs = narrative_engine.get_active_narrative_arcs()
-    if arcs:
-        for a in arcs:
-            print(f"  - {a.title}: {a.summary[:65]}...")
-    else:
-        print("  No active narrative arcs.")
-
     print("\n[Offline snapshot: credentials intentionally not loaded]")
     print(f"  Bluesky Handle:    {config.bsky_handle}")
     print(f"  App Password:      {'Configured' if config.bsky_app_password else 'MISSING'}")
@@ -879,8 +896,6 @@ def main() -> int:
     parser.add_argument("--check-master", action="store_true", help="Poll and reply to incoming Telegram messages from my master")
     parser.add_argument("--consolidate", action="store_true", help="Run nightly memory consolidation and private journal pass")
     parser.add_argument("--daily-summary", action="store_true", help="Generate and send Telegram check-in to my master")
-    parser.add_argument("--plan-week", action="store_true", help="Display or generate Seo-yeon's 7-day weekly life itinerary")
-    parser.add_argument("--force-plan", action="store_true", help="Force regenerate fresh 7-day weekly itinerary with LLM")
     parser.add_argument("--preview", action="store_true", help="Paid provider preview in isolated state; never publish")
     parser.add_argument("--replay", type=str, help="Offline observation fixture JSON")
     parser.add_argument("--date", type=str, help="Target date for daily summary (YYYY-MM-DD)")
@@ -890,20 +905,6 @@ def main() -> int:
         args.dry_run = True
     if args.preview:
         args.dry_run = True
-
-    if args.plan_week or args.force_plan:
-        from .weekly_planner import weekly_planner
-        now_kst = get_seoul_datetime()
-        schedule_data = weekly_planner.get_or_create_schedule(now_kst=now_kst, force=args.force_plan)
-        print("\n" + weekly_planner.format_schedule_summary(schedule_data))
-        current_act = weekly_planner.get_current_activity(now_kst)
-        print(f"\n[Current Rhythm Right Now ({now_kst.strftime('%H:%M KST')})]")
-        print(f"  Day:      {current_act.get('day', '').capitalize()}")
-        print(f"  Phase:    {current_act.get('phase', '').replace('_', ' ').capitalize()}")
-        print(f"  Activity: {current_act.get('activity', '')}")
-        print(f"  Area:     {current_act.get('area', '')}")
-        print(f"  Vibe:     {current_act.get('vibe', '')}\n")
-        return 0
 
     if args.status:
         return show_status()

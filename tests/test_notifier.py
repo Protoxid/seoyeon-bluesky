@@ -168,6 +168,26 @@ class TestTelegramNotifier(unittest.TestCase):
                         self.assertEqual(messages[0]["from"], "test_master")
                         self.assertEqual(messages[0]["text"], "hey seo-yeon, how are you feeling today?")
 
+    def test_stranger_only_updates_are_acknowledged_without_logging_identity(self):
+        import contextlib, io
+        from agent.memory_store import memory_store
+        fake_updates = {"ok": True, "result": [{"update_id": 9001, "message": {
+            "message_id": 1, "from": {"username": "stranger_hacker", "id": 4242}, "chat": {"id": 4242}, "text": "hi"}}]}
+        mock_resp = MagicMock()
+        mock_resp.read.return_value = json.dumps(fake_updates).encode("utf-8")
+        mock_resp.__enter__.return_value = mock_resp
+        output = io.StringIO()
+        with patch("urllib.request.urlopen", return_value=mock_resp), \
+             patch.object(config, "telegram_bot_token", "fake_bot_token"), \
+             patch.object(config, "telegram_chat_id", "999999999"), \
+             patch.object(memory_store, "get_telegram_last_update_id", return_value=9000), \
+             patch.object(memory_store, "set_telegram_last_update_id") as set_offset, \
+             contextlib.redirect_stdout(output):
+            self.notifier.get_master_messages(dry_run=False)
+        set_offset.assert_called_once_with(9001)
+        self.assertNotIn("stranger_hacker", output.getvalue())
+        self.assertNotIn("4242", output.getvalue())
+
     def test_process_master_inbox(self):
         """process_master_inbox must generate reply and deliver message to master."""
         from agent.context_engine import build_environment_context

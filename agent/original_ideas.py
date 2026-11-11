@@ -34,9 +34,11 @@ def propose(generator, identity, context, material, recent_posts, allowed_format
         "the sky, your desk, a mirror selfie after class). web_reading contains retrieved partial excerpts; "
         "reference_topics are unread leads. For a web find set source_url to an exact supplied URL and claim no more "
         "than the excerpt supports.\n"
+        "Rarely, a reflection needs more room: set thread=true to allow up to three short connected posts. "
+        "Rarely, an image moment is better as two or three photos of the same outing or meal: set photos to 2 or 3.\n"
         "Return JSON {format:text|image|none,kind:moment|thought|reflection|question|web_find,idea:string,"
-        "source_url?:string,decline_reason?:string}. idea is what the post is about in at most 400 characters, "
-        "not the final wording. Choose only an allowed format or none.",
+        "source_url?:string,decline_reason?:string,thread?:boolean,photos?:integer}. idea is what the post is about in "
+        "at most 400 characters, not the final wording. Choose only an allowed format or none.",
         json.dumps(public_data({"identity": identity, "context": context, "life": life or {},
             "pacing": pacing or {}, "material": material, "recent_public_posts": recent_posts,
             "allowed_formats": allowed_formats}), ensure_ascii=False), max_tokens=350)
@@ -64,6 +66,10 @@ def propose(generator, identity, context, material, recent_posts, allowed_format
             kind = "web_find"
             if len(idea) > 500:
                 return None, "invalid"
-        return {"format": data["format"], "idea": idea.strip(), "kind": kind, "source_url": url or ""}, "proposed"
+        thread = data.get("thread") is True and kind == "reflection" and data["format"] == "text"
+        photos = data.get("photos") if data["format"] == "image" and type(data.get("photos")) is int else 1
+        photos = max(1, min(photos, 3))
+        return {"format": data["format"], "idea": idea.strip(), "kind": kind, "source_url": url or "",
+                "thread": thread, "photos": photos}, "proposed"
     except (ValueError, TypeError, KeyError):
         return None, "invalid"
