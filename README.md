@@ -213,6 +213,7 @@ Never run `--auto` locally as a test: it is a real wakeup and can post.
 | `FALLBACK_TEXT_MODEL` | `deepseek-v4.1-flash` | Backup if the primary model fails |
 | `VISION_MODEL` | `anthropic/claude-haiku-5.5` | Image review |
 | `ALLOW_POSTS`, `ALLOW_REPLIES`, `ALLOW_LIKES`, `ALLOW_DMS`, `ALLOW_IMAGES` | `true` | Switch an activity off |
+| `OPERATOR_LANGUAGE` | `English` | Language of her private Telegram check-ins to her creator |
 | `EMERGENCY_STOP` | `false` | Stop all outbound activity |
 
 </details>

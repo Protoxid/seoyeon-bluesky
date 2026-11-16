@@ -614,6 +614,8 @@ class ContentGenerator:
             "For authorized BROWSE_AND_REPLY, acknowledge that you will look for a suitable conversation; "
             "do not demand a link unless the operator requested one specific unidentified post. "
             "Do not claim you already checked the feed or promise a reply will be published. "
+            f"Language: reply in the language of his latest message; if that is unclear, write in {config.operator_language}. "
+            "Your public posts being in Korean does not change the language you use with him. "
             "Output only your response, not instructions for tools."
         )
         text,model=self._call_llm(self._build_system_prompt(context)+"\n"+instructions,
@@ -656,7 +658,9 @@ class ContentGenerator:
             f"{catchup_clause}\n"
             f"You are speaking with your master ({config.master_telegram_handle}) on Telegram.\n"
             "This is a personal message in your authentic voice (dry, quiet, perceptive, observant, lowercase, natural punctuation and concise fragments, absolutely zero exclamation marks).\n"
-            "Address him as 'my master' or 'my human'.\n\n"
+            "Address him as 'my master' or 'my human'.\n"
+            f"Write the note in {config.operator_language}, even though your posts below may be in Korean; "
+            "do not quote them at length, describe them in your own words.\n\n"
             f"Here is what you actually did on Bluesky for {date_str}:\n"
             f"- Posts published ({posts_count}): {post_desc}\n"
             f"- Replies / comments ({replies_count}): {reply_desc}\n"

@@ -110,5 +110,31 @@ class TestReflectionThrottle(unittest.TestCase):
             self.assertIn("last_reflection_at", store.load())
 
 
+class TestOperatorLanguage(unittest.TestCase):
+    def test_checkin_uses_operator_language_even_with_korean_posts(self):
+        from agent.config import config
+        from agent.context_engine import build_environment_context
+        from agent.generator import generator
+        activity = {"date": "2026-11-16", "posts": [{"text": "김밥집 들어가기 전에 가격판부터 읽었다"}], "replies": []}
+        with patch.object(config, "operator_language", "English"), \
+             patch.object(generator, "_call_llm", return_value=("a short note", "mock")) as model, \
+             patch("agent.generator.validator.validate_outgoing_text", return_value=(True, "a short note", None)):
+            generator.generate_daily_report(activity, build_environment_context())
+        self.assertIn("Write the note in English", model.call_args.args[1])
+
+    def test_operator_reply_matches_his_language_with_fallback(self):
+        from agent.config import config
+        from agent.context_engine import build_environment_context
+        from agent.generator import generator
+        with patch.object(config, "operator_language", "Italian"), \
+             patch.object(generator, "_call_llm", return_value=("ok", "mock")) as model, \
+             patch("agent.generator.validator.validate_outgoing_text", return_value=(True, "ok", None)), \
+             patch("agent.operator_channel.OperatorChannel.history", return_value=[]):
+            generator.generate_master_reply("come stai?", build_environment_context())
+        system_prompt = model.call_args.args[0]
+        self.assertIn("reply in the language of his latest message", system_prompt)
+        self.assertIn("write in Italian", system_prompt)
+
+
 if __name__ == "__main__":
     unittest.main()

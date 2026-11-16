@@ -159,6 +159,10 @@ class AgentConfig:
     master_telegram_handle: str = field(
         default_factory=lambda: os.environ.get("MASTER_TELEGRAM_HANDLE", "my master")
     )
+    # Language of her private Telegram messages to the operator (check-ins; fallback for replies).
+    operator_language: str = field(
+        default_factory=lambda: os.environ.get("OPERATOR_LANGUAGE", "English")
+    )
     master_designations: List[str] = field(
         default_factory=lambda: ["my master", "my human"]
     )

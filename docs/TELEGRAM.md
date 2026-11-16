@@ -28,6 +28,8 @@ Send one of these messages in Telegram:
 - `/checkins daily` — one summary at or after 21:00 Seoul time when generation and delivery succeed; no backlog of missed days.
 - `/checkins off` — disable automatic personal check-ins.
 
+**Language.** Check-ins are written in `OPERATOR_LANGUAGE` (default English), even when her public posts are in Korean. Replies to the operator follow the language of his latest message and fall back to `OPERATOR_LANGUAGE` when that is unclear.
+
 Explicit CLI summaries remain available. Personal notes have no report-style headers or compulsory sign-off. Their text is frozen before sending; delivery uncertainty cannot cause a differently worded retry. No command bypasses spending limits.
 
 ## Operational alerts
