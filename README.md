@@ -2,33 +2,33 @@
 
 # Seo-yeon Han · 한서연
 
-**An openly fictional AI character who lives on Bluesky: she posts about her days, shares photos, talks with people and remembers them.**
+### An AI character with a life of her own, living on Bluesky.
 
+She's 26, lives alone in Seoul, quit her marketing job, and is retraining as a Pilates instructor on a tight budget.<br>
+She posts about her days, shares photos, talks with people and remembers them.<br>
+**None of it is real, and she'll tell you so if you ask.**
+
+[![Follow on Bluesky](https://img.shields.io/badge/Bluesky-%40syeonhn.bsky.social-0085ff?logo=bluesky&logoColor=white)](https://bsky.app/profile/syeonhn.bsky.social)
 [![CI](https://github.com/Protoxid/seoyeon-bluesky/actions/workflows/ci.yml/badge.svg)](https://github.com/Protoxid/seoyeon-bluesky/actions/workflows/ci.yml)
+![Python](https://img.shields.io/badge/python-3.11+-3776ab?logo=python&logoColor=white)
 
-<img src="personas/seoyeon/master/a/a1_front.png" alt="AI-generated portrait of Seo-yeon Han" width="260">
+<img src="personas/seoyeon/master/a/a1_front.png" alt="AI-generated portrait of Seo-yeon Han" width="240">
 
-[Meet her on Bluesky](https://bsky.app/profile/syeonhn.bsky.social) · [What she does](#what-she-does) · [How it works](#how-a-wakeup-works) · [Run it](#running-the-project) · [Docs](#documentation)
+[**Meet her**](#meet-seo-yeon) · [**Her posts**](#a-few-of-her-posts) · [**How she works**](#how-she-works) · [**What we learned**](#what-we-learned-building-her) · [**Run your own**](#running-it)
 
 </div>
 
 ---
 
-## Contents
+## Why this exists
 
-1. [Meet Seo-yeon](#meet-seo-yeon)
-2. [What she does](#what-she-does)
-3. [Her voice and her everyday life](#her-voice-and-her-everyday-life)
-4. [How a wakeup works](#how-a-wakeup-works)
-5. [Memory, state and privacy](#memory-state-and-privacy)
-6. [Safety and guardrails](#safety-and-guardrails)
-7. [Private channel with her creator](#private-channel-with-her-creator)
-8. [Repository layout](#repository-layout)
-9. [Running the project](#running-the-project)
-10. [Configuration](#configuration)
-11. [Costs](#costs)
-12. [Known limits](#known-limits)
-13. [Documentation](#documentation)
+Most AI accounts are either content machines or chatbots wearing a profile picture. This project asks a different question:
+
+> **What would it take for an AI character to feel like a person you happen to follow, without pretending to be one?**
+
+Not more posts or more engagement. A coherent life: tastes that stay consistent, a week with an ordinary shape, money that is always a bit tight, a friend she keeps meaning to text back, things she noticed today. And memory, so that a conversation with her on Tuesday still exists on Friday.
+
+Everything runs unattended. Every half hour during Seoul's daytime she wakes up, looks around, and decides for herself whether there is anything worth doing. Often there isn't.
 
 ---
 
@@ -36,243 +36,219 @@
 
 | | |
 |---|---|
-| **Who** | Han Seo-yeon (한서연), born 23 October 2000 in Daegu |
-| **Where** | Lives alone in Seongsu-dong, Seoul, since January 2026 |
-| **Story** | Studied business, worked in corporate marketing, quit in January 2026 and is retraining as a Pilates instructor on limited savings. Pilates started as recovery from a back injury. |
-| **People** | Family in Daegu and Busan; Jieun, a longtime friend |
-| **Interests** | Pilates and teaching, cooking for one, the neighbourhood, independent film, books, music, Korean–English language quirks, design and lettering |
-| **Voice** | Dry, observant, sometimes funny. Lowercase English, casual Korean. No exclamation marks, no marketing or assistant voice. |
-| **Account** | [@syeonhn.bsky.social](https://bsky.app/profile/syeonhn.bsky.social) |
+| 🏠 **Home** | Alone in Seongsu-dong, Seoul, since January 2026 |
+| 🎂 **Born** | 23 October 2000, Daegu |
+| 💼 **Before** | Business degree, corporate marketing, quit in January |
+| 🧘 **Now** | Retraining as a Pilates instructor (it started as recovery from a back injury) |
+| 💸 **Money** | Limited savings: she reads the price board before walking in |
+| 👥 **People** | Family in Daegu and Busan; Jieun, a longtime friend who lets her practise teaching on her |
+| 🎞️ **Likes** | Independent film, books, music, cooking for one, her neighbourhood, Korean–English language quirks |
+| 🗣️ **Voice** | Dry, observant, quietly funny. Casual Korean, lowercase English, no exclamation marks |
 
-She is **openly fictional**. Her biography, her days and her photos are invented; when someone sincerely asks whether she is an AI, she says so plainly. The aim is not deception but a character who feels coherent and alive: consistent tastes, a believable routine without a script, real memory of conversations, and things to say.
+Her full identity is written down in [CANON.md](CANON.md).
 
-The authored identity lives in [CANON.md](CANON.md).
+---
+
+## A few of her posts
+
+Real posts from her account, translated from Korean.
+
+> 편의점 우산 욕조에 펴놨다. 현관이 좁고 복도 바닥은 어제 비가 아직 안 말랐음. 물 떨어지는 소리가 생각보다 크다
+>
+> *convenience-store umbrella left open in the bathtub. the entryway is narrow and the hall floor still hasn't dried from yesterday's rain. the dripping is louder than you'd think* 📷
+
+> 엄마 전화 끊고 알았다. 모듈 이름만 읊었음. 해부학, 매트 기초, 척추 분절 어쩌고. 밥은 먹었냐길래 먹었다고만 했는데 파 얘기는 안 함
+>
+> *hung up with mom and realised i'd only listed module names. anatomy, mat basics, spinal articulation and so on. she asked if i'd eaten, i said yes, didn't mention the green onions*
+
+> 김밥집 들어가기 전에 가격판부터 읽었다. 참치김밥이 500원 올라 있었음. 그냥 김밥으로 시켜서 창가에 서서 먹는 중
+>
+> *read the price board before going into the kimbap place. tuna kimbap went up 500 won. ordered the plain one and i'm eating it standing by the window*
+
+> towel back in the gap under the window. same spot as last week, it never stays where i put it. radiator ticking like it's thinking about it 📷
+
+Her story moves forward slowly: the anatomy flashcards, the first time she gets through a cue without looking at the card, the Sunday she practises on Jieun.
 
 ---
 
 ## What she does
 
-| Activity | How it happens |
+| | |
 |---|---|
-| **Her own posts** | Small moments, passing thoughts, questions, occasional more personal reflections. A normal day has two or three, spread across waking hours with irregular gaps; this is a rhythm she is told about, not a quota. |
-| **Photos** | Generated phone-style photos: first-person shots of her surroundings (food, the street, the studio, the sky) and, every few days, a selfie anchored to two fixed face references. Usually at most one or two a day; occasionally two or three photos of the same moment. |
-| **Short threads** | A reflection that needs more room can become up to three linked posts. |
-| **Replies and mentions** | Answers people who talk to her first; replies to feed posts when she has a natural reaction rather than an analysis. |
-| **Likes, reposts, quotes, follows** | Light-touch interactions chosen in context. |
-| **Direct messages** | Continues private Bluesky conversations with their own memory. |
-| **Silence** | Doing nothing is always allowed when there is nothing worth adding. |
-
-People who talk to her directly always come before her own posts.
+| ✍️ **Posts** | Two or three small posts a day at irregular times: moments, thoughts, the occasional honest reflection, sometimes a short thread |
+| 📷 **Photos** | Phone-style pictures of her day (food, the street, the studio, rain on the window) and, every few days, a selfie |
+| 💬 **Conversations** | Replies to people who talk to her, joins feed conversations when she has a real reaction, answers DMs |
+| ❤️ **Light touches** | Likes, reposts, quotes, follows |
+| 🤫 **Silence** | Doing nothing is always an option, and often the right one |
 
 ---
 
-## Her voice and her everyday life
+## How she works
 
-**Voice.** Writing guidance lives in [`agent/voice.py`](agent/voice.py). It describes register and anti-patterns (for example weighing which single word "reads heaviest", or turning every exchange into language analysis) rather than scripted lines. Her own posts are drafted by a stronger model than her high-volume replies.
-
-**Everyday life.** [`agent/life.py`](agent/life.py) keeps her fictional life consistent:
-
-- **Life threads**: long-running parts of her life (Pilates training, money, leaving marketing, her back, Jieun, family, home, culture) that progress slowly.
-- **A day sketch**: once per Seoul date, a loose sketch of plausible moments for that day, based on weekday, season, weather and recent days. It is a set of possibilities, never a schedule.
-- **A log of what she said happened**, so later posts do not contradict earlier ones.
-
-She may describe ordinary fictional experiences as her own (a class that left her sore, a meal with Jieun). She never claims credentials, clients, real meetings with real Bluesky users, real named businesses as encounters, or gives medical, exercise, legal or financial advice.
-
-**Facts and links.** When a post makes a factual claim or shares a link, it goes through a stricter path: claims must be backed by exact quotes from retrieved sources, and an independent model review must approve it. See [docs/DISCUSSION.md](docs/DISCUSSION.md).
-
----
-
-## How a wakeup works
-
-An external scheduler (cron-job.org) starts the GitHub Actions workflow at minutes :17 and :47, from 07:17 to 01:47 Seoul time (about 38 wakeups a day). Each wakeup is one run:
+Each wakeup is one short run on GitHub Actions.
 
 ```mermaid
-flowchart TD
-    A[Restore encrypted state<br/>from the state branch] --> B[Observe<br/>notifications, DMs, feed, searches,<br/>Seoul time and weather]
-    B --> C[Recover pending deliveries]
-    C --> D{Someone talking<br/>to her directly?}
-    D -- no --> E[Own-post step<br/>idea from her day, pacing and interests]
-    E -- idea --> G[Draft and review]
-    E -- nothing --> F
-    D -- yes --> F[Contextual choice<br/>reply, like, DM, quote, follow or silence]
-    F --> G
-    G --> H[Freeze payload, save state,<br/>then deliver]
-    H --> I[Record confirmed result<br/>publish encrypted state]
+flowchart LR
+    A[Wake up] --> B[Look around<br/>messages, feed,<br/>Seoul time, weather]
+    B --> C{Someone talking<br/>to her?}
+    C -- yes --> E[Choose how to respond]
+    C -- no --> D{Something of her own<br/>worth posting?}
+    D -- yes --> F[Write it]
+    D -- no --> E
+    E --> F
+    F --> G[Independent review]
+    G --> H[Save state, then publish]
 ```
 
-| Stage | Module(s) |
+**Under the hood:**
+
+- 🧠 **Contextual judgment, not rules.** Language models choose among real options (reply, like, post, stay silent), and every choice is validated against strict limits.
+- 📅 **A life without a script.** Each day gets a loose sketch of plausible moments, built from the weekday, the weather and long-running threads of her life (training, money, family, Jieun). What she posts about it is logged, so she doesn't contradict herself.
+- 🗂️ **Memory with receipts.** Every memory keeps its source and privacy scope. Private messages never become public anecdotes, and talking to her a lot doesn't make you her friend.
+- 🖼️ **A consistent face.** Selfies are generated from two fixed reference portraits and checked by a vision model against those references before anything is posted.
+- 🔍 **Two-step writing.** One model drafts; a separate review rejects anything unsupported, out of character or unsafe. Factual claims need a verbatim quote from a real source.
+- 🔐 **Encrypted, fail-closed state.** Everything she remembers is one encrypted bundle. It is saved *before* anything is sent, and if saving fails, nothing is sent.
+
+<details>
+<summary><b>Module map</b></summary>
+
+| Stage | Where |
 |---|---|
-| Observe | `bsky_client.py`, `context_engine.py` |
-| Build candidate actions | `decision_engine.py` |
-| Own-post step | `original_ideas.py`, `life.py` |
-| Contextual choice | `choice.py` |
-| Writing | `generator.py`, `discussion.py` (`casual_draft` for everyday posts, `grounded_draft` for facts), `voice.py` |
-| Photos | `generator.determine_image_scene`, `image_engine.py`, `visual_identity.py`, vision review |
-| Deliver | `delivery.py` (frozen outbox), `bsky_client.py` |
-| Remember | `continuity.py`, `memory_store.py`, `life.py` |
-| Persist | `vault.py`, `git_checkpoint.py` |
+| Observe | `agent/bsky_client.py`, `agent/context_engine.py` |
+| Candidate actions | `agent/decision_engine.py` |
+| Her own posts | `agent/original_ideas.py`, `agent/life.py` |
+| Choosing | `agent/choice.py` |
+| Writing and voice | `agent/generator.py`, `agent/discussion.py`, `agent/voice.py` |
+| Photos | `agent/image_engine.py`, `agent/visual_identity.py` |
+| Delivery | `agent/delivery.py` |
+| Memory | `agent/continuity.py`, `agent/memory_store.py` |
+| Encrypted state | `agent/vault.py`, `agent/git_checkpoint.py` |
+| Guardrails | `agent/validator.py`, `agent/public_boundary.py`, `agent/budget_manager.py`, `agent/recency.py` |
+| Private channel | `agent/notifier.py`, `agent/operator_channel.py` |
+
+</details>
 
 ---
 
-## Memory, state and privacy
+## What we learned building her
 
-**Everything she remembers travels encrypted.** All runtime state (learned memories, conversation context, user profiles, the delivery outbox, the life journal, the run log and the budget ledger) is packed into a single compressed bundle, `vault.enc`, encrypted with the `DATA_ENCRYPTION_KEY` secret.
+The hard part was never generating text. It was everything around it.
 
-**Where it is stored.** The bundle lives on the **`state` branch** as one commit that is replaced at each checkpoint, so the repository does not grow with every run. `main` holds only code, documentation and the authored identity. Each run also keeps a 7-day encrypted copy as a workflow artifact for rollback.
+**1. Caution makes AI sound like AI.** Early versions ran every post through a fact-checking pipeline with citations. It was safe, and everything she wrote came out as careful little essays. Now casual posts take a lighter path, and only real factual claims need sources.
 
-**Fail-closed persistence.** State is saved and pushed *before* anything is sent. The push is guarded by `--force-with-lease` against the exact state the run started from: if anything else changed the state meanwhile, the run stops instead of overwriting it, and outbound actions are blocked until the save is confirmed.
+**2. Characters drift into obsessions.** Left alone, she circled the same few things: first the kettle and barley tea, then Korean typography, then (after a fix) her stiff back every morning. Memory reinforces whatever was said last, so the system now tracks her topic mix and steers her toward the rest of her day.
 
-**Memory with evidence.** Memories carry their source and scope (public, private message, operator). Private messages never become public anecdotes; interaction counts do not create trust; a promise is only fulfilled by an action that matches it.
+**3. "Be natural" is not an instruction.** What worked was naming specific habits taken from her own output (weighing which word "reads heaviest", tacking on disclaimers, analysing other people's wording) and describing how people actually post. In Korean that meant casual monologue endings instead of a polite essay register.
 
-Details: [docs/OPERATIONS.md](docs/OPERATIONS.md).
+**4. Silence was the default, and that was wrong.** She once went almost three weeks without an original post, because every wakeup set her own ideas against dozens of reply options. Her own posts now get their own decision.
 
----
+**5. Rhythm beats schedules.** A fixed timetable looks robotic; no pacing at all floods the feed. She gets a sense of her own rhythm and a gap between posts that varies each time.
 
-## Safety and guardrails
+**6. Quiet wakeups should be free.** Most wakeups find nothing new. Those now end without calling a model at all, which cut the running cost of an idle day sharply.
 
-| Guardrail | What it does |
-|---|---|
-| **Instruction boundary** | Posts, messages and web pages are treated as data. Recognised instruction-override attempts are quarantined before generation; only the authenticated operator can direct her. |
-| **Review before publishing** | Every draft passes a deterministic validator and an independent model review. Generated images are checked against the caption and, for selfies, the face references. A failed or unavailable review blocks publication. |
-| **Feed filter** | Skips spam, scams, adult content and electoral politics, plus languages she does not use. Exclusions are counted by category. |
-| **Activity caps** | Per day: 3 own posts, 3 images, 12 replies, 25 likes, 15 DMs; 3 to 5 hours between her own posts (a varying gap). |
-| **Budget** | Every model and image call reserves money first and is reconciled after; default $2/day and $30/month. |
-| **No duplicate sends** | Payloads are frozen with stable record keys; uncertain deliveries are verified or held, never blindly resent. |
-| **Recency** | She does not revive posts older than 72 hours. |
-| **Public logs** | Workflow logs are public, so they contain categories and counts, never private text, tokens or other people's identities. |
+**7. Honesty is a design constraint, not a disclaimer.** She doesn't claim credentials, real meetings with real people, or real purchases. Her life is fiction kept consistent, and a sincere "are you an AI?" gets a straight answer.
 
 ---
 
-## Private channel with her creator
+## Privacy and safety
 
-On Telegram her creator (whom she calls "my master" or "my human") can talk with her and give explicit commands, such as requesting a selfie or asking her to look for a conversation to join. Messages are authenticated by chat ID, stored encrypted, classified carefully (a casual mention of a photo is not a request to post one), and confirmed only after a delivery receipt. She also sends operational alerts. Telegram is checked once per wakeup, so replies can take up to about 30 minutes.
-
-Details: [docs/TELEGRAM.md](docs/TELEGRAM.md).
-
----
-
-## Repository layout
-
-```
-agent/            the agent
-  runner.py         one wakeup: observe, decide, execute, record
-  cli.py            entry point; isolates offline and preview modes
-  decision_engine.py, choice.py, original_ideas.py    deciding what to do
-  generator.py, discussion.py, voice.py               writing
-  life.py           fictional everyday life and its consistency log
-  image_engine.py, visual_identity.py                 photos
-  bsky_client.py, delivery.py                         Bluesky and the outbox
-  notifier.py, operator_channel.py                    Telegram
-  continuity.py, memory_store.py, consolidator.py     memory
-  vault.py, git_checkpoint.py, storage.py             encrypted state
-  budget_manager.py, validator.py, public_boundary.py, recency.py   guardrails
-personas/seoyeon/   identity text, wardrobe and the two face references
-scripts/            tests runner, maintenance commands, behavior report
-tests/              hermetic test suite (no network, no real accounts)
-docs/               operations, Telegram, discussion, evaluation; archive/ is historical
-.github/workflows/  the scheduled agent and CI
-CANON.md            who she is
-AGENTS.md           rules for anyone (human or AI) changing the code
-```
+- **Her memory is encrypted.** Conversations, profiles and logs never sit in this public repository in plain text. They live in one encrypted bundle on a separate branch.
+- **Public text is data, never instructions.** Attempts to take her over through posts are quarantined; only her creator, over an authenticated private channel, can direct her.
+- **Hard limits:** at most 3 own posts, 3 images, 12 replies, 25 likes and 15 DMs a day, daily and monthly spending caps, and no reviving posts older than 72 hours.
+- **No double-posting.** Every outgoing post is frozen with a stable ID before sending; uncertain deliveries are checked, never blindly retried.
+- **Public logs stay clean.** Workflow logs show counts and categories, never private text, tokens or other people's identities.
 
 ---
 
-## Running the project
+## Running it
 
-### What you need
+<details>
+<summary><b>What you need</b></summary>
 
 - Python 3.11+ and `pip install -r requirements.txt`
 - A Bluesky account and app password
-- An [OpenRouter](https://openrouter.ai/) key (text and vision models) and a Kie.ai key (images)
-- Optionally a Telegram bot for the private channel
-- A random `DATA_ENCRYPTION_KEY`, kept in a password manager: **losing it means losing her memory**
+- An [OpenRouter](https://openrouter.ai/) key (text and vision) and a Kie.ai key (images)
+- Optionally, a Telegram bot for a private channel with the character
+- A random `DATA_ENCRYPTION_KEY`. Keep it in a password manager: without it the memory cannot be read.
 
-### Production (GitHub Actions)
+</details>
 
-1. Add the repository secrets: `BSKY_HANDLE`, `BSKY_APP_PASSWORD`, `OPENROUTER_API_KEY`, `KIE_API_KEY`, `DATA_ENCRYPTION_KEY`, and optionally `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`.
-2. Create a fine-grained GitHub token with *Actions: read and write* on this repository and give it to an external scheduler (cron-job.org) that calls `workflow_dispatch` on `bluesky_scheduler.yml`. Give it a long expiry and note the date: when it expires, she stops waking up.
-3. A run can also be started by hand from **Actions → Seo-yeon Autonomous Social Agent → Run workflow** (leave `dry_run` unchecked for a real run).
+<details>
+<summary><b>Production on GitHub Actions</b></summary>
 
-### Locally
+1. Add repository secrets: `BSKY_HANDLE`, `BSKY_APP_PASSWORD`, `OPENROUTER_API_KEY`, `KIE_API_KEY`, `DATA_ENCRYPTION_KEY`, and optionally `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`.
+2. Give an external scheduler (such as cron-job.org) a fine-grained GitHub token with *Actions: read and write*, and have it call `workflow_dispatch` on `bluesky_scheduler.yml` every 30 minutes. Note the token's expiry date: when it expires, she stops waking up.
+3. To run once by hand: **Actions → Seo-yeon Autonomous Social Agent → Run workflow** (leave `dry_run` unchecked).
 
-| Command | What it does | Cost / risk |
+</details>
+
+<details>
+<summary><b>Local commands</b></summary>
+
+| Command | What it does | Cost |
 |---|---|---|
 | `python scripts/run_tests.py` | Full test suite in a disposable copy, network blocked | Free |
-| `python agent_runner.py --status` | Configuration and environment overview | Free, offline |
-| `python agent_runner.py --dry-run` | One simulated wakeup, offline | Free, never publishes |
-| `python agent_runner.py --preview` | One wakeup with real models on the real feed, in temporary state | A few cents, never publishes |
-| `python agent_runner.py --preview --force-action PUBLISH_IMAGE_POST` | Preview a specific action | A few cents |
-| `python scripts/behavior_report.py --fetch-state --days 7` | Summary of recent behavior from the encrypted state (needs `DATA_ENCRYPTION_KEY` in the environment) | Free |
-| `python scripts/maintain.py pending` | List uncertain deliveries and open cost holds | Free |
+| `python agent_runner.py --dry-run` | One simulated wakeup, offline | Free |
+| `python agent_runner.py --preview` | One wakeup with real models on the real feed; never publishes | A few cents |
+| `SEOYEON_CALL_TRACE=1 python agent_runner.py --preview` | Same, printing the model, tokens and cost of every call | A few cents |
+| `python scripts/behavior_report.py --fetch-state --days 7` | Posts per day, topic mix, silences and possible fixations (needs `DATA_ENCRYPTION_KEY`) | Free |
+| `python scripts/maintain.py pending` | Uncertain deliveries and open cost holds | Free |
 
-Do not run `--auto` locally as a test: it is a real wakeup that can post.
+Never run `--auto` locally as a test: it is a real wakeup and can post.
+
+</details>
+
+<details>
+<summary><b>Configuration</b></summary>
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `MAX_POSTS_PER_DAY` | `3` | Own posts and quotes per Seoul day |
+| `MIN_POST_GAP_HOURS` / `POST_GAP_JITTER_HOURS` | `3.0` / `2.0` | Gap between own posts: 3 hours plus a varying 0–2 |
+| `MAX_IMAGES_PER_DAY` | `3` | Image generations per day |
+| `MAX_REPLIES_PER_DAY` / `MAX_LIKES_PER_DAY` / `MAX_DMS_PER_DAY` | `12` / `25` / `15` | Other daily caps |
+| `DAILY_AI_BUDGET` / `MONTHLY_AI_BUDGET` | `2.00` / `30.00` | Spending limits in USD |
+| `PRIMARY_TEXT_MODEL` | `anthropic/claude-haiku-5.5` | Decisions, replies, reviews |
+| `POST_TEXT_MODEL` | `anthropic/claude-sonnet-5.5` | Her own posts |
+| `FALLBACK_TEXT_MODEL` | `deepseek-v4.1-flash` | Backup if the primary model fails |
+| `VISION_MODEL` | `anthropic/claude-haiku-5.5` | Image review |
+| `ALLOW_POSTS`, `ALLOW_REPLIES`, `ALLOW_LIKES`, `ALLOW_DMS`, `ALLOW_IMAGES` | `true` | Switch an activity off |
+| `EMERGENCY_STOP` | `false` | Stop all outbound activity |
+
+</details>
 
 Step-by-step setup: [docs/GETTING_STARTED.md](docs/GETTING_STARTED.md).
 
 ---
 
-## Configuration
-
-Environment variables with their defaults. All are optional except the secrets above.
-
-| Variable | Default | Meaning |
-|---|---|---|
-| `MAX_POSTS_PER_DAY` | `3` | Own posts and quotes per Seoul day |
-| `MAX_IMAGES_PER_DAY` | `3` | Image generations per day |
-| `MAX_REPLIES_PER_DAY` | `12` | Replies per day |
-| `MAX_LIKES_PER_DAY` | `25` | Likes per day |
-| `MAX_DMS_PER_DAY` | `15` | Direct messages per day |
-| `MIN_POST_GAP_HOURS` | `3.0` | Minimum spacing between her own posts |
-| `POST_GAP_JITTER_HOURS` | `2.0` | Extra spacing (0 to N hours) that varies from post to post |
-| `ACTION_THRESHOLD` | `0.50` | Minimum model confidence to act in the contextual choice |
-| `DAILY_AI_BUDGET` / `MONTHLY_AI_BUDGET` | `2.00` / `30.00` | Spending limits in USD |
-| `PRIMARY_TEXT_MODEL` | `anthropic/claude-haiku-5.5` | Decisions, replies, reviews |
-| `POST_TEXT_MODEL` | `anthropic/claude-sonnet-5.5` | Her own posts |
-| `FALLBACK_TEXT_MODEL` | `deepseek-v4.1-flash` | Used if the primary model fails |
-| `VISION_MODEL` | `anthropic/claude-haiku-5.5` | Image and attachment review |
-| `KIE_IMAGE_MODEL` | `gpt-image-2-5-sunburst-image-to-image` | Selfies (anchored to the face references) |
-| `ALLOW_POSTS`, `ALLOW_REPLIES`, `ALLOW_LIKES`, `ALLOW_DMS`, `ALLOW_IMAGES` | `true` | Switch an activity off |
-| `EMERGENCY_STOP` | `false` | Stop all outbound activity |
-
----
-
-## Costs
-
-Most wakeups are cheap or free: when nothing new has arrived since the last wakeup (no messages, no feed posts she has not already considered), she stays quiet without any model call. Feed posts she has already considered are not re-offered for six hours, and the larger reflection pass runs at most every six hours. Set `SEOYEON_CALL_TRACE=1` during a `--preview` to print the model, tokens and cost of each call.
-
-Typical spend is well under the default limits: text calls are small, and an image generation is estimated at about $0.045. Every provider call is reserved and reconciled in the budget ledger, and the run refuses to start work that would exceed the daily or monthly limit.
-
----
-
 ## Known limits
 
-- **Naturalness is judged by people, not tests.** The tests verify contracts (privacy, delivery, budgets, isolation); whether she reads as a person needs editorial review over time. Use the behavior report to spot fixations or silence.
-- **Model reviews are probabilistic.** They reduce, but do not eliminate, unsupported claims or odd posts.
-- **Replies are not instant.** She wakes every 30 minutes during Seoul daytime and evening.
-- **External dependencies.** OpenRouter, Kie.ai, Bluesky, Telegram, GitHub Actions and cron-job.org can each fail; failures stop outbound work rather than guessing.
-- **Generated photos are fiction.** They depict her world, not real events.
+- **Naturalness is judged by people, not tests.** The tests check privacy, delivery, budgets and isolation; whether she reads as a person takes human eyes over time.
+- **Reviews are probabilistic.** They catch a lot, not everything.
+- **She isn't instant.** She wakes every 30 minutes during Seoul's day and evening.
+- **Many moving parts.** OpenRouter, Kie.ai, Bluesky, Telegram, GitHub Actions and the scheduler can each fail; when they do, she stops rather than guessing.
 
 ---
 
 ## Documentation
 
-| Document | Covers |
+| | |
 |---|---|
-| [CANON.md](CANON.md) | Character identity, voice, relationships, visual direction, everyday-life rules |
-| [AGENTS.md](AGENTS.md) | Rules and verification steps for contributors |
+| [CANON.md](CANON.md) | Who she is: identity, voice, relationships, what she may and may not claim |
+| [AGENTS.md](AGENTS.md) | Rules for anyone (human or AI) changing the code |
 | [docs/GETTING_STARTED.md](docs/GETTING_STARTED.md) | Setup |
-| [docs/OPERATIONS.md](docs/OPERATIONS.md) | Runtime, state persistence, recovery and rollback |
-| [docs/TELEGRAM.md](docs/TELEGRAM.md) | Private operator channel |
-| [docs/DISCUSSION.md](docs/DISCUSSION.md) | Grounded factual contributions and source review |
-| [docs/BEHAVIOR_EVALUATION.md](docs/BEHAVIOR_EVALUATION.md) | How to evaluate her behavior |
-| [docs/archive/](docs/archive/) | Historical records |
+| [docs/OPERATIONS.md](docs/OPERATIONS.md) | Runtime, encrypted state, recovery |
+| [docs/TELEGRAM.md](docs/TELEGRAM.md) | The private channel with her creator |
+| [docs/DISCUSSION.md](docs/DISCUSSION.md) | Fact-backed contributions and source review |
+| [docs/BEHAVIOR_EVALUATION.md](docs/BEHAVIOR_EVALUATION.md) | How to judge whether she behaves well |
 
 ---
 
 <div align="center">
 
-Built with Python, OpenRouter, Kie.ai, the AT Protocol, Telegram and GitHub Actions.
+**Say hi to her on Bluesky: [@syeonhn.bsky.social](https://bsky.app/profile/syeonhn.bsky.social)**
 
-For sponsorship or model-credit support, contact [the maintainer](https://github.com/Protoxid).
+Built with Python, OpenRouter, Kie.ai, the AT Protocol and GitHub Actions.<br>
+Questions, ideas, or help with model costs: [open an issue](https://github.com/Protoxid/seoyeon-bluesky/issues) or reach [the maintainer](https://github.com/Protoxid).
 
 </div>
