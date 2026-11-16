@@ -94,10 +94,10 @@ def _publish_thread(post_text):
     return first, uris
 
 
-def _generate_reviewed_photo(post_text, context, hint, index, total, is_dry):
+def _generate_reviewed_photo(post_text, context, hint, index, total, is_dry, image_kind="unspecified"):
     """Plan, generate and review one photo. Returns (bytes or None, alt_text, status)."""
     photo_hint = hint if total == 1 else f"{hint or ''}\n(photo {index + 1} of {total}: a different angle, object or moment of the same scene)"
-    scene_desc = generator.determine_image_scene(post_text, context, hint=photo_hint)
+    scene_desc = generator.determine_image_scene(post_text, context, hint=photo_hint, image_kind=image_kind)
     scene = getattr(generator, "last_scene", {}) or {}
     print(f"  Photo plan {index + 1}/{total}: {'selfie' if scene.get('is_selfie') else 'pov'}, location={scene.get('location')}")
     if not scene_desc:
@@ -216,7 +216,10 @@ def _execute_text_post(outcome, context, is_dry):
 def _execute_image_post(outcome, context, is_dry):
     executed = False
     result_details: Dict[str, Any] = {}
-    post_text, model_used = generator.generate_post(outcome.intent, context, topic_hint=outcome.target_data.get("topic_hint"), include_image=True, post_kind=outcome.target_data.get("post_kind", "moment"))
+    # The proposal step decides selfie vs first-person shot; anything else keeps the scene planner's choice.
+    image_kind = "selfie" if outcome.target_data.get("image_kind") == "selfie" else "unspecified"
+    post_text, model_used = generator.generate_post(outcome.intent, context, topic_hint=outcome.target_data.get("topic_hint"), include_image=True,
+                                                    post_kind=outcome.target_data.get("post_kind", "moment"), image_kind=image_kind)
     print(f"  Caption Draft ({model_used}, {getattr(generator, 'last_discussion_status', '')}): \"{post_text}\"")
     if not post_text:
         _log_draft_unavailable(is_dry)
@@ -227,13 +230,16 @@ def _execute_image_post(outcome, context, is_dry):
     except (TypeError, ValueError):
         wanted = 1
     photos, statuses = [], []
+    first_is_selfie = False
     for index in range(wanted):
         if index and not budget_manager.can_generate_image()[0]:
             break
         img_bytes, alt_text, status = _generate_reviewed_photo(post_text, context, outcome.target_data.get("topic_hint"),
-                                                               index, wanted, is_dry)
+                                                               index, wanted, is_dry, image_kind=image_kind if index == 0 else "unspecified")
         statuses.append(status)
         if img_bytes:
+            if index == 0:
+                first_is_selfie = bool((getattr(generator, "last_scene", {}) or {}).get("is_selfie"))
             photos.append((img_bytes, alt_text))
         elif index == 0 and status == "image_scene_unavailable":
             _log_draft_unavailable(is_dry, status)
@@ -247,8 +253,8 @@ def _execute_image_post(outcome, context, is_dry):
             res = bsky_client.publish_image_post(post_text, [b for b, _ in photos], alt_text=[a for _, a in photos])
         executed = bool(res.get("uri"))
         if executed and not is_dry:
-            memory_store.record_recent_post(post_text, topic="image_post", post_id=res["uri"], has_image=True)
-            _record_life(context, post_text, res["uri"], "photo")
+            memory_store.record_recent_post(post_text, topic="image_post", post_id=res["uri"], has_image=True, is_selfie=first_is_selfie)
+            _record_life(context, post_text, res["uri"], "selfie" if first_is_selfie else "photo")
         result_details = {"uri": res.get("uri"), "text": post_text, "alt_text": [a for _, a in photos],
                           "photos": len(photos), "photo_statuses": statuses,
                           "status": "delivered" if executed else "delivery_uncertain"}

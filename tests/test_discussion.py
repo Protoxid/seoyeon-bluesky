@@ -17,7 +17,8 @@ class TestDiscussion(unittest.TestCase):
         from agent.context_engine import build_environment_context
         post=ActionCandidate(ActionType.PUBLISH_TEXT_POST,.5,.9,"")
         quiet=ActionCandidate(ActionType.NO_ACTION,.5,.9,"")
-        outcome=DecisionOutcome(quiet.action,"",{},"",{},[post,quiet])
+        from feed_fixtures import fresh_feed_candidate
+        outcome=DecisionOutcome(quiet.action,"",{},"",{},[post,quiet,fresh_feed_candidate()])
         material={"drafts":[{"text":"a film idea","scope":"public"}],"observations":[]}
         contribution="a specific interpretation of the film idea"
         with execution_mode("live"), patch.object(ContinuityStore,"public_post_material",return_value=material), patch("agent.generator.generator._call_llm",return_value=(json.dumps({"candidate_id":0,"confidence":.95,"contribution":contribution}),"mock")) as model:
@@ -193,7 +194,8 @@ class TestDiscussion(unittest.TestCase):
         post=ActionCandidate(ActionType.PUBLISH_TEXT_POST,.9,.9,"")
         quiet=ActionCandidate(ActionType.NO_ACTION,.1,.9,"")
         for contribution,expected in [("",quiet.action),("a grounded reading of the supplied passage",post.action)]:
-            outcome=DecisionOutcome(post.action,"",{},"",{},[post,quiet])
+            from feed_fixtures import fresh_feed_candidate
+            outcome=DecisionOutcome(post.action,"",{},"",{},[post,quiet,fresh_feed_candidate()])
             with execution_mode("live"), patch("agent.generator.generator._call_llm",return_value=(json.dumps({"candidate_id":0,"confidence":.9,"contribution":contribution}),"mock")):
                 self.assertEqual(choose(outcome,build_environment_context()).selected_action,expected)
 

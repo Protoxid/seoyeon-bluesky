@@ -83,13 +83,15 @@ class AgentConfig:
     allow_images: bool = field(default_factory=lambda: _get_bool("ALLOW_IMAGES", True))
 
     # --- Activity & Cadence Limits ---
-    max_posts_per_day: int = field(default_factory=lambda: _get_int("MAX_POSTS_PER_DAY", 5))
+    max_posts_per_day: int = field(default_factory=lambda: _get_int("MAX_POSTS_PER_DAY", 3))
     max_replies_per_day: int = field(default_factory=lambda: _get_int("MAX_REPLIES_PER_DAY", 12))
     max_likes_per_day: int = field(default_factory=lambda: _get_int("MAX_LIKES_PER_DAY", 25))
     max_dms_per_day: int = field(default_factory=lambda: _get_int("MAX_DMS_PER_DAY", 15))
     max_images_per_day: int = field(default_factory=lambda: _get_int("MAX_IMAGES_PER_DAY", 3))
     # Minimum spacing between her own posts; a floor against bursts, not a target.
-    min_post_gap_hours: float = field(default_factory=lambda: _get_float("MIN_POST_GAP_HOURS", 2.0))
+    min_post_gap_hours: float = field(default_factory=lambda: _get_float("MIN_POST_GAP_HOURS", 3.0))
+    # Extra spacing (0..N hours) varied per post, so her own posts do not land on a fixed rhythm.
+    post_gap_jitter_hours: float = field(default_factory=lambda: _get_float("POST_GAP_JITTER_HOURS", 2.0))
     max_actions_per_tick: int = field(default_factory=lambda: _get_int("MAX_ACTIONS_PER_TICK", 2))
 
     # --- Budget & Safety Controls ---

@@ -200,6 +200,10 @@ class ContentGenerator:
                 budget_manager.release(reservation)
             elif request_id:
                 budget_manager.mark_submitted(reservation, request_id)
+            if os.environ.get("SEOYEON_CALL_TRACE") == "1":
+                # Cost diagnostics only: model, token counts and the first words of the instructions, never content.
+                purpose = " ".join(system_prompt.split()[:8])[:70]
+                print(f"[CallTrace] {model} prompt={pt} completion={ct} cost={cost} :: {purpose}")
             # An ambiguous billed request remains reserved until reconciled.
             if text:
                 return text, model
@@ -273,12 +277,18 @@ class ContentGenerator:
         operator = intent.startswith("master_order")
         sys_prompt = self._build_system_prompt(context, topic_hint=topic_hint or "")
         if include_image:
-            if image_kind == "selfie":
+            if image_kind == "selfie" and not operator:
+                img_instruction = (
+                    "This post will carry a selfie you just took (generated afterwards to match your caption). "
+                    "Write the caption people put under their own selfie: a few casual words about the moment, "
+                    "never a description of your face or the picture."
+                )
+            elif image_kind == "selfie":
                 img_instruction = (
                     "This post will be accompanied by a candid smartphone photo of you right now, "
                     "matching your operator's request and coherent with your current Seoul time, circadian phase, weather, and continuity."
                 )
-            elif image_kind == "pov":
+            elif image_kind == "pov" and operator:
                 img_instruction = (
                     "This post will be accompanied by a first-person POV photograph of what is around you or what your operator requested, "
                     "coherent with your current Seoul time, circadian phase, weather, and continuity."

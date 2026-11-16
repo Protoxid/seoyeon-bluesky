@@ -54,8 +54,8 @@ The authored identity lives in [CANON.md](CANON.md).
 
 | Activity | How it happens |
 |---|---|
-| **Her own posts** | Small moments, passing thoughts, questions, occasional more personal reflections. A normal day has roughly two to four, spread across waking hours; this is a rhythm she is told about, not a quota. |
-| **Photos** | Generated phone-style photos: first-person shots of her surroundings (food, the street, the studio, the sky) or selfies anchored to two fixed face references. Often about one a day; sometimes two or three photos of the same moment. |
+| **Her own posts** | Small moments, passing thoughts, questions, occasional more personal reflections. A normal day has two or three, spread across waking hours with irregular gaps; this is a rhythm she is told about, not a quota. |
+| **Photos** | Generated phone-style photos: first-person shots of her surroundings (food, the street, the studio, the sky) and, every few days, a selfie anchored to two fixed face references. Usually at most one or two a day; occasionally two or three photos of the same moment. |
 | **Short threads** | A reflection that needs more room can become up to three linked posts. |
 | **Replies and mentions** | Answers people who talk to her first; replies to feed posts when she has a natural reaction rather than an analysis. |
 | **Likes, reposts, quotes, follows** | Light-touch interactions chosen in context. |
@@ -135,7 +135,7 @@ Details: [docs/OPERATIONS.md](docs/OPERATIONS.md).
 | **Instruction boundary** | Posts, messages and web pages are treated as data. Recognised instruction-override attempts are quarantined before generation; only the authenticated operator can direct her. |
 | **Review before publishing** | Every draft passes a deterministic validator and an independent model review. Generated images are checked against the caption and, for selfies, the face references. A failed or unavailable review blocks publication. |
 | **Feed filter** | Skips spam, scams, adult content and electoral politics, plus languages she does not use. Exclusions are counted by category. |
-| **Activity caps** | Per day: 5 own posts, 3 images, 12 replies, 25 likes, 15 DMs; at least 2 hours between her own posts. |
+| **Activity caps** | Per day: 3 own posts, 3 images, 12 replies, 25 likes, 15 DMs; 3 to 5 hours between her own posts (a varying gap). |
 | **Budget** | Every model and image call reserves money first and is reconciled after; default $2/day and $30/month. |
 | **No duplicate sends** | Payloads are frozen with stable record keys; uncertain deliveries are verified or held, never blindly resent. |
 | **Recency** | She does not revive posts older than 72 hours. |
@@ -217,12 +217,13 @@ Environment variables with their defaults. All are optional except the secrets a
 
 | Variable | Default | Meaning |
 |---|---|---|
-| `MAX_POSTS_PER_DAY` | `5` | Own posts and quotes per Seoul day |
+| `MAX_POSTS_PER_DAY` | `3` | Own posts and quotes per Seoul day |
 | `MAX_IMAGES_PER_DAY` | `3` | Image generations per day |
 | `MAX_REPLIES_PER_DAY` | `12` | Replies per day |
 | `MAX_LIKES_PER_DAY` | `25` | Likes per day |
 | `MAX_DMS_PER_DAY` | `15` | Direct messages per day |
-| `MIN_POST_GAP_HOURS` | `2.0` | Minimum spacing between her own posts |
+| `MIN_POST_GAP_HOURS` | `3.0` | Minimum spacing between her own posts |
+| `POST_GAP_JITTER_HOURS` | `2.0` | Extra spacing (0 to N hours) that varies from post to post |
 | `ACTION_THRESHOLD` | `0.50` | Minimum model confidence to act in the contextual choice |
 | `DAILY_AI_BUDGET` / `MONTHLY_AI_BUDGET` | `2.00` / `30.00` | Spending limits in USD |
 | `PRIMARY_TEXT_MODEL` | `anthropic/claude-haiku-5.5` | Decisions, replies, reviews |
@@ -236,6 +237,8 @@ Environment variables with their defaults. All are optional except the secrets a
 ---
 
 ## Costs
+
+Most wakeups are cheap or free: when nothing new has arrived since the last wakeup (no messages, no feed posts she has not already considered), she stays quiet without any model call. Feed posts she has already considered are not re-offered for six hours, and the larger reflection pass runs at most every six hours. Set `SEOYEON_CALL_TRACE=1` during a `--preview` to print the model, tokens and cost of each call.
 
 Typical spend is well under the default limits: text calls are small, and an image generation is estimated at about $0.045. Every provider call is reserved and reconciled in the budget ledger, and the run refuses to start work that would exceed the daily or monthly limit.
 

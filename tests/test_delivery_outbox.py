@@ -49,8 +49,7 @@ class TestDeliveryOutbox(unittest.TestCase):
         ) as model:
             result = choose(outcome, build_environment_context())
         self.assertEqual(result.selected_action, ActionType.NO_ACTION)
-        options = json.loads(model.call_args.args[1])["options"]
-        self.assertEqual([option["action"] for option in options], ["NO_ACTION"])
+        self.assertNotIn("post:old", json.dumps([call.args for call in model.call_args_list], default=str))
 
     def test_completed_social_targets_are_excluded_but_other_actions_remain(self):
         from agent.delivery import exclude_completed_candidates

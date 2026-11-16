@@ -476,7 +476,25 @@ class MemoryStore:
         ctx["replied_dm_message_ids"] = list(dm_set)[-300:]
         write_json(self.recent_context_file, ctx)
 
-    def record_recent_post(self, text: str, topic: str, post_id: str = "", has_image: bool = False) -> None:
+    def record_offered_candidates(self, uris) -> None:
+        """Remember feed posts already shown to the chooser, so unchanged feeds do not cost another call."""
+        uris = [u for u in uris if u]
+        if not uris:
+            return
+        ctx = self.get_recent_context()
+        now = dt.datetime.now(dt.timezone.utc)
+        offered = ctx.get("offered_candidates", {})
+        for uri in uris:
+            offered[uri] = now.isoformat()
+        cutoff = (now - dt.timedelta(hours=24)).isoformat()
+        ctx["offered_candidates"] = {u: t for u, t in offered.items() if t >= cutoff}
+        write_json(self.recent_context_file, ctx)
+
+    def recently_offered(self, hours: float = 6.0) -> set:
+        cutoff = (dt.datetime.now(dt.timezone.utc) - dt.timedelta(hours=hours)).isoformat()
+        return {u for u, t in self.get_recent_context().get("offered_candidates", {}).items() if t >= cutoff}
+
+    def record_recent_post(self, text: str, topic: str, post_id: str = "", has_image: bool = False, is_selfie: bool = False) -> None:
         ctx = self.get_recent_context()
         posts = ctx.get("posts", [])
         if post_id and any(p.get("post_id") == post_id for p in posts):
@@ -487,7 +505,8 @@ class MemoryStore:
             "text": text,
             "topic": topic,
             "created_at": now_iso,
-            "has_image": has_image
+            "has_image": has_image,
+            "is_selfie": is_selfie,
         })
         # Keep last 25 posts
         ctx["posts"] = posts[:25]

@@ -26,18 +26,22 @@ def propose(generator, identity, context, material, recent_posts, allowed_format
         "No invented clients, credentials, real meetings with real users, named real businesses, or exercise advice. "
         "Do not copy another person's post. Do not default to how your body feels on waking; pick from the whole "
         "day (what you are eating, reading, watching, worrying about, someone you talked to, something outside).\n"
-        "pacing tells you about your own rhythm. A normal day for you has roughly two to four posts of your own spread "
-        "across waking hours, and often one photo; this is a rhythm, not a quota. If it has been several hours, "
-        "lean toward sharing something small. Decline (format=none) only with a concrete reason in decline_reason, "
-        "such as having just posted or it being an odd hour.\n"
+        "pacing tells you about your own rhythm. A normal day for you has two or three posts of your own spread "
+        "across waking hours, and at most one or two photos; this is a rhythm, not a quota. Some days are quieter. "
+        "If photos_today is already one or more, prefer text. Decline (format=none) with a concrete reason in "
+        "decline_reason when nothing is worth sharing yet.\n"
         "Prefer format=image when the idea is something you would naturally photograph (food, a street, the studio, "
-        "the sky, your desk, a mirror selfie after class). web_reading contains retrieved partial excerpts; "
+        "the sky, your desk). For an image also choose shot: pov (what you see, no people) or selfie (you in the frame: "
+        "a mirror selfie after class, getting ready to go out, a tired face on the bus, a new haircut or outfit). "
+        "People who post photos of their day are in some of them: a selfie every few days is normal, so when "
+        "days_since_last_selfie is null or above three and the moment suits being in the frame, choose shot=selfie. "
+        "web_reading contains retrieved partial excerpts; "
         "reference_topics are unread leads. For a web find set source_url to an exact supplied URL and claim no more "
         "than the excerpt supports.\n"
         "Rarely, a reflection needs more room: set thread=true to allow up to three short connected posts. "
         "Rarely, an image moment is better as two or three photos of the same outing or meal: set photos to 2 or 3.\n"
         "Return JSON {format:text|image|none,kind:moment|thought|reflection|question|web_find,idea:string,"
-        "source_url?:string,decline_reason?:string,thread?:boolean,photos?:integer}. idea is what the post is about in "
+        "source_url?:string,decline_reason?:string,thread?:boolean,photos?:integer,shot?:pov|selfie}. idea is what the post is about in "
         "at most 400 characters, not the final wording. Choose only an allowed format or none.",
         json.dumps(public_data({"identity": identity, "context": context, "life": life or {},
             "pacing": pacing or {}, "material": material, "recent_public_posts": recent_posts,
@@ -69,7 +73,10 @@ def propose(generator, identity, context, material, recent_posts, allowed_format
         thread = data.get("thread") is True and kind == "reflection" and data["format"] == "text"
         photos = data.get("photos") if data["format"] == "image" and type(data.get("photos")) is int else 1
         photos = max(1, min(photos, 3))
+        shot = "selfie" if data["format"] == "image" and data.get("shot") == "selfie" else "pov"
+        if shot == "selfie":
+            photos = 1  # one selfie per post; extra photos would each need identity review
         return {"format": data["format"], "idea": idea.strip(), "kind": kind, "source_url": url or "",
-                "thread": thread, "photos": photos}, "proposed"
+                "thread": thread, "photos": photos, "shot": shot}, "proposed"
     except (ValueError, TypeError, KeyError):
         return None, "invalid"

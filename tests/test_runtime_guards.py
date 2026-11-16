@@ -109,8 +109,9 @@ class TestRuntimeGuards(unittest.TestCase):
         from agent.decision_engine import ActionCandidate, ActionType, DecisionOutcome
         from agent.context_engine import build_environment_context
         from agent.memory_store import memory_store
+        from feed_fixtures import fresh_feed_candidate
         quiet = ActionCandidate(ActionType.NO_ACTION, .4, .9, "quiet")
-        outcome = DecisionOutcome(quiet.action, "", {}, "", {}, [quiet])
+        outcome = DecisionOutcome(quiet.action, "", {}, "", {}, [quiet, fresh_feed_candidate()])
         with execution_mode("live"), patch("agent.generator.generator._call_llm", return_value=('{}', "mock")) as call:
             result = choose(outcome, build_environment_context())
         packet = json.loads(call.call_args.args[1])
@@ -140,14 +141,15 @@ class TestRuntimeGuards(unittest.TestCase):
         from agent.choice import choose
         from agent.decision_engine import ActionCandidate, ActionType, DecisionOutcome
         from agent.context_engine import build_environment_context
+        from feed_fixtures import fresh_feed_candidate
         quiet = ActionCandidate(ActionType.NO_ACTION, .4, .9, "quiet")
-        outcome_unavail = DecisionOutcome(quiet.action, "", {}, "", {}, [quiet])
+        outcome_unavail = DecisionOutcome(quiet.action, "", {}, "", {}, [quiet, fresh_feed_candidate()])
         with execution_mode("live"), patch("agent.generator.generator._call_llm", return_value=(None, "failed")):
             res_unavail = choose(outcome_unavail, build_environment_context())
         self.assertEqual(res_unavail.discussion_diagnostics["selection"], "model_unavailable")
         self.assertIn("Model choice unavailable", res_unavail.reason)
 
-        outcome_silent = DecisionOutcome(quiet.action, "", {}, "", {}, [quiet])
+        outcome_silent = DecisionOutcome(quiet.action, "", {}, "", {}, [quiet, fresh_feed_candidate()])
         with execution_mode("live"), patch("agent.generator.generator._call_llm", return_value=('{"candidate_id":0,"confidence":0.9,"reason":"quiet","contribution":""}', "mock")):
             res_silent = choose(outcome_silent, build_environment_context())
         self.assertEqual(res_silent.discussion_diagnostics["selection"], "chosen_silence")

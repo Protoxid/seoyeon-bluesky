@@ -346,6 +346,9 @@ def learn_interaction(source_id, inbound, outgoing, subject, *, scope="public"):
         print("[Continuity] learning_status=validation_rejected; evidence retained.")
 
 
+REFLECTION_INTERVAL_HOURS = 6
+
+
 def reflect(context):
     """Optionally develop actual digital work from public evidence; never publish it here."""
     from .config import config
@@ -356,6 +359,15 @@ def reflect(context):
         return
     store = ContinuityStore()
     data = store.load()
+    # Reflection is a large call; run it at most every REFLECTION_INTERVAL_HOURS, not after every quiet wakeup.
+    import datetime as dt
+    now = dt.datetime.now(dt.timezone.utc)
+    try:
+        last = dt.datetime.fromisoformat(data.get("last_reflection_at", ""))
+        if now - last < dt.timedelta(hours=REFLECTION_INTERVAL_HOURS):
+            return
+    except (TypeError, ValueError):
+        pass
     # A generated artifact must not create its own next reflection trigger.
     events = [e for e in data["events"].values() if e["scope"] == "public" and e["kind"] != "artifact"][-12:]
     if not events:
@@ -382,7 +394,7 @@ def reflect(context):
         json.dumps(public_data({"identity":memory_store.format_identity_prompt(),"environment": context.to_prompt_context(), "evidence": events,
                     "existing": store.review_context("public", "self"),
                     "world": data.get("world") if data.get("world", {}).get("scope") == "public" else {},
-                    "drafts": {k:v for k,v in data["drafts"].items() if v["scope"] == "public"}}), ensure_ascii=False),
+                    "drafts": dict(list({k:v for k,v in data["drafts"].items() if v["scope"] == "public"}.items())[-15:])}), ensure_ascii=False),
         max_tokens=1600)
     if raw:
         try:
@@ -390,3 +402,7 @@ def reflect(context):
             store.apply(proposal_id, proposal, [e["id"] for e in events], scope="public", subject="self")
         except (ValueError, TypeError, KeyError):
             print("[Continuity] Reflection did not pass provenance checks; no state changed.")
+    if raw:
+        latest = store.load()
+        latest["last_reflection_at"] = now.isoformat()
+        store._save(latest)

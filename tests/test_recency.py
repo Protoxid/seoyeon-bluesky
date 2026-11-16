@@ -76,5 +76,5 @@ class TestRecency(unittest.TestCase):
         with execution_mode("live"), patch("agent.generator.generator._call_llm", return_value=(json.dumps({"candidate_id": 0, "confidence": .9}), "mock")) as call:
             result = choose(outcome, build_environment_context())
         self.assertEqual(result.selected_action, ActionType.NO_ACTION)
-        self.assertNotIn("a current question", call.call_args.args[1])
+        self.assertNotIn("a current question", json.dumps([c.args for c in call.call_args_list], default=str))
         self.assertEqual(result.discussion_diagnostics["recency_exclusions"], {"stale": 1})
