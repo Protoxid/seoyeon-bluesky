@@ -862,13 +862,12 @@ class BlueskyClient:
         })
         val = existing.get("value", {}) if isinstance(existing, dict) else {}
 
-        record: Dict[str, Any] = {
-            "$type": "app.bsky.actor.profile",
-            "displayName": display_name if display_name is not None else val.get("displayName", ""),
-            "description": description if description is not None else val.get("description", ""),
-        }
-        if "labels" in val:
-            record["labels"] = val["labels"]
+        # Start from the full existing record so fields this method does not manage (links, labels,
+        # pinned post, ...) are preserved rather than silently dropped.
+        record: Dict[str, Any] = dict(val)
+        record["$type"] = "app.bsky.actor.profile"
+        record["displayName"] = display_name if display_name is not None else val.get("displayName", "")
+        record["description"] = description if description is not None else val.get("description", "")
         if "createdAt" in val:
             record["createdAt"] = val["createdAt"]
         else:
