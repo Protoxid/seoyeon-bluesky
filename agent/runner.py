@@ -110,7 +110,7 @@ def _generate_reviewed_photo(post_text, context, hint, index, total, is_dry, ima
     budget_manager.mark_submitted(img_res_id)
     try:
         img_bytes, _, _ = image_engine.generate_image(scene_desc, is_selfie=scene.get("is_selfie"),
-                                                      location=scene.get("location"), dry_run=is_dry)
+                                                      location=scene.get("location"), place=scene.get("place"), dry_run=is_dry)
         if not img_bytes:
             if getattr(image_engine, "last_outcome", "uncertain") in {"not_sent", "rejected"}:
                 budget_manager.release(img_res_id)

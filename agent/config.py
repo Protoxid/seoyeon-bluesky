@@ -159,6 +159,10 @@ class AgentConfig:
     master_telegram_handle: str = field(
         default_factory=lambda: os.environ.get("MASTER_TELEGRAM_HANDLE", "my master")
     )
+    # Where she lives (CANON.md). Used only when a scene does not say where she is; travel scenes set their own place.
+    home_place: str = field(
+        default_factory=lambda: os.environ.get("HOME_PLACE", "Seongsu-dong, Seoul, South Korea")
+    )
     # Language of her private Telegram messages to the operator (check-ins; fallback for replies).
     operator_language: str = field(
         default_factory=lambda: os.environ.get("OPERATOR_LANGUAGE", "English")

@@ -215,6 +215,7 @@ Never run `--auto` locally as a test: it is a real wakeup and can post.
 | `VISION_MODEL` | `anthropic/claude-haiku-5.5` | Image review |
 | `ALLOW_POSTS`, `ALLOW_REPLIES`, `ALLOW_LIKES`, `ALLOW_DMS`, `ALLOW_IMAGES` | `true` | Switch an activity off |
 | `OPERATOR_LANGUAGE` | `English` | Language of her private Telegram check-ins to her creator |
+| `HOME_PLACE` | `Seongsu-dong, Seoul, South Korea` | Where photos are set when a scene doesn't say otherwise (trips set their own place) |
 | `EMERGENCY_STOP` | `false` | Stop all outbound activity |
 
 </details>

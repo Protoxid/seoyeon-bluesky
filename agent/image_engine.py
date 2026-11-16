@@ -152,6 +152,7 @@ class ImageEngine:
         is_selfie: Optional[bool] = None,
         dry_run: Optional[bool] = None,
         location: Optional[str] = None,
+        place: Optional[str] = None,
     ) -> Tuple[Optional[bytes], str, Optional[str]]:
         """
         Generates an authentic image through Kie.ai API.
@@ -183,7 +184,7 @@ class ImageEngine:
 
         loc_path = location_reference_path(location) if location else None
         self.last_location = loc_path.parent.name if loc_path else None
-        prompt = build_image_prompt(scene_description, mood=mood, is_selfie=is_selfie, location_ref=bool(loc_path))
+        prompt = build_image_prompt(scene_description, mood=mood, is_selfie=is_selfie, location_ref=bool(loc_path), place=place)
 
         if is_dry:
             print(f"[DRY-RUN Kie ImageEngine] Model: {config.kie_image_model}")
@@ -217,7 +218,7 @@ class ImageEngine:
             print("[ImageEngine] Location reference unavailable; continuing without it.")
             loc_path = None
             self.last_location = None
-            prompt = build_image_prompt(scene_description, mood=mood, is_selfie=is_selfie)
+            prompt = build_image_prompt(scene_description, mood=mood, is_selfie=is_selfie, place=place)
         if loc_url:
             ref_urls.append(loc_url)
         use_i2i = bool(ref_urls)

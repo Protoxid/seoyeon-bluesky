@@ -36,7 +36,7 @@ Personal memories retain their source and conversation scope. Private messages n
 
 Canonical face references: `personas/seoyeon/master/a/a1_front.png` and `personas/seoyeon/master/c/c5_relax_front.png`. Identity/body reference assets remain the visual anchors. Both references are required for selfies; POV images omit them.
 
-Scene composition follows caption and supplied continuity. Anonymous outdoor framing or close detail can reduce inconsistency, but no hour requires a bed selfie and no caption keyword forces a stock scene. Review delivered pixels against caption and references, and derive alt text from visible content. Generated pictures are fictional depictions, not proof of real events.
+Scene composition follows caption and supplied continuity. Every picture is set in the place where the scene actually happens (usually her home neighbourhood in Seoul; elsewhere when she visits family or travels), with details true to that place rather than a generic stock-photo or Western default. Anonymous outdoor framing or close detail can reduce inconsistency, but no hour requires a bed selfie and no caption keyword forces a stock scene. Review delivered pixels against caption and references, and derive alt text from visible content. Generated pictures are fictional depictions, not proof of real events.
 
 ## Knowledge and contribution
 

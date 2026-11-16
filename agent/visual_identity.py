@@ -45,12 +45,28 @@ class VisualCanon:
 
 VISUAL_CANON = VisualCanon()
 
+def place_setting(place: Optional[str] = None) -> str:
+    """Anchor a picture in the place where the scene actually happens.
+
+    Without an explicit place, image models default to generic (often Western) streets, kitchens and packaging.
+    The place comes from the scene planner (her home, a family visit, a trip); her home is only the fallback.
+    """
+    from .config import config
+    where = (place or "").strip() or config.home_place
+    return (
+        f"Setting: {where}, present day. Every visible detail is true to that place, not a generic stock-photo look: "
+        "its architecture, streets and interiors, local food and packaging, and any readable text in the local "
+        "language and script (for a place in Korea: Korean, not Western, details and Hangul text). "
+        "No real brand names or logos."
+    )
+
 
 def build_image_prompt(
     scene_description: str,
     mood: Optional[str] = None,
     is_selfie: bool = True,
     location_ref: bool = False,
+    place: Optional[str] = None,
 ) -> str:
     """
     Synthesizes a short, punchy photographic prompt for OpenAI GPT Image 2.5 on Kie.ai.
@@ -60,7 +76,10 @@ def build_image_prompt(
     """
     clean_scene = scene_description.strip().rstrip(".")
     mood_str = f", {mood}" if mood else ""
+    return _base_prompt(clean_scene, mood_str, is_selfie, location_ref) + " " + place_setting(place)
 
+
+def _base_prompt(clean_scene: str, mood_str: str, is_selfie: bool, location_ref: bool) -> str:
     if location_ref:
         place = (
             "The last reference image shows her real place: keep the same room, furniture, layout, materials and light character. "

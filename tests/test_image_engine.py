@@ -17,15 +17,42 @@ class TestImageEngine(unittest.TestCase):
         self.assertIn(scene, prompt)
         self.assertIn("quiet morning", prompt)
         self.assertIn("smartphone selfie", prompt)
-        # Verify prompt is kept concise (under 250 characters instead of a huge paragraph)
-        self.assertLess(len(prompt), 300)
+        # Contract change (2026-11-16): every prompt ends with a setting for the place the scene happens in
+        # (her home by default) so images are not generic; the scene-specific part itself stays concise.
+        from agent.visual_identity import place_setting
+        setting = place_setting()
+        self.assertTrue(prompt.endswith(setting))
+        self.assertLess(len(prompt) - len(setting), 300)
 
         # Environmental POV prompt check
         pov_prompt = build_image_prompt("Seongsu-dong red brick street corner at golden hour dusk in autumn", is_selfie=False)
         self.assertIn("35mm film photograph", pov_prompt)
         self.assertIn("Seongsu-dong red brick street corner", pov_prompt)
         self.assertNotIn("Seo-yeon", pov_prompt)
-        self.assertLess(len(pov_prompt), 250)
+        self.assertTrue(pov_prompt.endswith(setting))
+        self.assertLess(len(pov_prompt) - len(setting), 250)
+
+    def test_every_prompt_variant_names_its_place(self):
+        from agent.config import config
+        for is_selfie in (True, False):
+            for location_ref in (True, False):
+                home = build_image_prompt("a bowl of rice on a small table", is_selfie=is_selfie, location_ref=location_ref)
+                self.assertIn(f"Setting: {config.home_place}", home)
+                away = build_image_prompt("a bowl of rice on a small table", is_selfie=is_selfie, location_ref=location_ref,
+                                          place="Haeundae, Busan, South Korea")
+                self.assertIn("Setting: Haeundae, Busan, South Korea", away)
+                self.assertNotIn(config.home_place, away)
+                self.assertIn("local language and script", away)
+
+    def test_scene_place_is_kept_and_bounded(self):
+        from unittest.mock import patch
+        from agent.context_engine import build_environment_context
+        from agent.generator import generator
+        reply = '{"description":"a beach boardwalk, no people","is_selfie":false,"location":null,"place":"Haeundae, Busan, South Korea"}'
+        with patch.object(generator, "_call_llm", return_value=(reply, "mock")), \
+             patch("agent.life.LifeJournal.prompt_data", return_value={}):
+            generator.determine_image_scene("visiting mom in busan", build_environment_context())
+        self.assertEqual(generator.last_scene["place"], "Haeundae, Busan, South Korea")
 
     def test_image_engine_auto_detect_pov_vs_selfie(self):
         engine = ImageEngine(api_key="test_key")

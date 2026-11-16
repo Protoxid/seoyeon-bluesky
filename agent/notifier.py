@@ -294,7 +294,8 @@ class MasterNotifier:
             if not is_dry:
                 budget_manager.mark_submitted(img_res_id)
             img_bytes, prompt_used, err = image_engine.generate_image(scene_desc, dry_run=is_dry, is_selfie=generator.last_scene.get("is_selfie", True),
-                                                                     location=generator.last_scene.get("location"))
+                                                                     location=generator.last_scene.get("location"),
+                                                                     place=generator.last_scene.get("place"))
 
         if img_bytes:
             # Decouple billing: Image was successfully rendered by provider
