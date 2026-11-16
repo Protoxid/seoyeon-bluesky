@@ -4,7 +4,7 @@ Use the installed graphify skill for `/graphify`. Use `.agents/skills/seoyeon-op
 
 ## Objective
 
-Build a distinctive, openly fictional AI persona with natural choices, memory and creative work. Her operator is addressed as "my master" or "my human". CANON.md is the identity reference. Do not add scripted personality behaviors, scheduled quirks, mandatory props, engagement quotas or credential-like accomplishments. Ordinary fictional everyday experiences are allowed through the life journal (`agent/life.py`) and must stay consistent with it.
+Build a distinctive, openly fictional AI persona with natural choices, memory and creative work. Her operator is addressed as "my master" or "my human". CANON.md is the identity reference. Do not add scripted personality behaviors, scheduled quirks, mandatory props, engagement quotas or credential-like accomplishments. Ordinary fictional everyday experiences are allowed through the life journal (`agent/life.py`) and must stay consistent with it. Her self-model (`agent/self_model.py`) lets her adjust interest weights and posting rhythm from evidence every few days, within fixed bounds; identity, safety, privacy, honesty and config limits are never self-adjustable, engagement must never be optimized for its own sake, and every change stays visible and reversible by the operator (`/learning`).
 
 ## Architecture
 

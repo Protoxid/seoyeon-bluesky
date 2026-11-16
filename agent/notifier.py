@@ -618,6 +618,12 @@ class MasterNotifier:
                             if not is_dry: channel.setting(directive["topic_hint"])
                             result={"success":True,"action_type":"SET_CHECKINS"}
                             self.send_telegram_message("[settings] check-ins: "+directive["topic_hint"],dry_run=is_dry)
+                        elif directive.get("action_type")=="LEARNING":
+                            from .self_model import self_model
+                            sub=directive["topic_hint"]
+                            answer=self_model().command(sub) if (not is_dry or sub=="status") else "(dry run) /learning "+sub
+                            result={"success":True,"action_type":"LEARNING"}
+                            self.send_telegram_message("[learning] "+answer,dry_run=is_dry)
                         elif not actions_available:
                             result={"success":False,"action_type":directive.get("action_type")}
                         else:

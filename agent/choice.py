@@ -13,7 +13,17 @@ def _candidate_uri(candidate):
     return ((data.get("post") or {}).get("uri")) or ""
 
 
-def required_post_gap(recent_posts, config):
+def _learned(config):
+    """Her self-adjusted rhythm and interests (agent/self_model.py), bounded by config; defaults on any error."""
+    try:
+        from .self_model import self_model
+        model = self_model()
+        return model.post_cap(config), model.min_gap_hours(config), model.prompt_data()
+    except Exception:
+        return config.max_posts_per_day, config.min_post_gap_hours, {}
+
+
+def required_post_gap(recent_posts, config, min_gap=None):
     """Minimum spacing before the next own post: a floor plus a per-post variation (0..jitter hours).
 
     The variation is derived from the last post's timestamp, so it is stable across wakeups but differs
@@ -22,7 +32,8 @@ def required_post_gap(recent_posts, config):
     import hashlib
     last = (recent_posts[0].get("created_at", "") if recent_posts else "") or ""
     fraction = int(hashlib.sha256(last.encode()).hexdigest()[:8], 16) / 0xFFFFFFFF
-    return config.min_post_gap_hours + fraction * max(config.post_gap_jitter_hours, 0.0)
+    floor = max(config.min_post_gap_hours, min_gap or 0.0)
+    return floor + fraction * max(config.post_gap_jitter_hours, 0.0)
 
 
 def _days_since_last_selfie(recent_posts):
@@ -53,10 +64,11 @@ def choose(outcome, context):
     dated_candidates = [(c, candidate_recency(c)) for c in outcome.all_candidates]
     excluded_dates = Counter(status for _, status in dated_candidates if status != "recent")
     outcome.all_candidates = [c for c, status in dated_candidates if status == "recent"]
+    learned_cap, learned_gap, learned_habits = _learned(config)
     post_actions = {ActionType.PUBLISH_TEXT_POST, ActionType.PUBLISH_IMAGE_POST, ActionType.QUOTE_POST}
     reply_actions = {ActionType.REPLY_COMMENT, ActionType.ANSWER_MENTION, ActionType.BROWSE_AND_REPLY}
     outcome.all_candidates = [c for c in outcome.all_candidates if
-        not (c.action in post_actions and context.posts_today >= config.max_posts_per_day)
+        not (c.action in post_actions and context.posts_today >= learned_cap)
         and not (c.action in reply_actions and context.replies_today >= config.max_replies_per_day)
         and not (c.action == ActionType.ANSWER_DM and context.dms_today >= config.max_dms_per_day)
         and not (c.action == ActionType.BROWSE_AND_LIKE and context.likes_today >= config.max_likes_per_day)]
@@ -106,7 +118,7 @@ def choose(outcome, context):
     original_formats = {ActionType.PUBLISH_TEXT_POST: "text", ActionType.PUBLISH_IMAGE_POST: "image"}
     allowed_formats = [original_formats[c.action] for c in outcome.all_candidates if c.action in original_formats]
     original_status = "ineligible"
-    if allowed_formats and context.hours_since_last_post < required_post_gap(recent_post_rows, config):
+    if allowed_formats and context.hours_since_last_post < required_post_gap(recent_post_rows, config, learned_gap):
         original_status = "recent_post_gap"
         # A floor against bursts, not a target: drop own-post options until the gap has passed.
         outcome.all_candidates = [c for c in outcome.all_candidates if c.action not in original_formats]
@@ -123,6 +135,7 @@ def choose(outcome, context):
         pacing = {"hours_since_last_post": round(context.hours_since_last_post, 1), "own_posts_today": context.posts_today,
                   "photos_today": sum(1 for p in recent_post_rows if p.get("has_image") and str(p.get("created_at", ""))[:10] == context.date_display),
                   "days_since_last_selfie": _days_since_last_selfie(recent_post_rows),
+                  "your_posts_per_day": learned_cap, "learned_habits": learned_habits,
                   "seoul_time": context.seoul_time_display, "phase": context.circadian_phase}
         try:
             life_data = journal().prompt_data(context, generator)

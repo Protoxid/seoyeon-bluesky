@@ -184,6 +184,12 @@ def _execute_no_action(outcome, context, is_dry):
     if not is_dry and selection_status != "model_unavailable":
         from .continuity import reflect
         reflect(context)
+        try:
+            # Every few days she reviews how her posts went and may adjust her own habits (bounded).
+            from .self_model import self_model
+            self_model().maybe_review(context)
+        except Exception as exc:
+            print(f"[SelfModel] Review skipped: {type(exc).__name__}")
     return True, {"action": "NO_ACTION", "reason": outcome.reason}
 
 

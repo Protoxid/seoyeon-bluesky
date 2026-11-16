@@ -28,6 +28,8 @@ def propose(generator, identity, context, material, recent_posts, allowed_format
         "day (what you are eating, reading, watching, worrying about, someone you talked to, something outside).\n"
         "pacing tells you about your own rhythm. A normal day for you has two or three posts of your own spread "
         "across waking hours, and at most one or two photos; this is a rhythm, not a quota. Some days are quieter. "
+        "pacing.your_posts_per_day and pacing.learned_habits are habits you adjusted yourself from how your posts "
+        "went: lean toward interests weighted above 1 and away from those below 1, without dropping any entirely. "
         "If photos_today is already one or more, prefer text. Decline (format=none) with a concrete reason in "
         "decline_reason when nothing is worth sharing yet.\n"
         "Prefer format=image when the idea is something you would naturally photograph (food, a street, the studio, "

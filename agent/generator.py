@@ -533,6 +533,11 @@ class ContentGenerator:
             if mode in {"meaningful","daily","off"}:
                 return {"is_order":True,"action_type":"SET_CHECKINS","topic_hint":mode}
             return {**quiet,"needs_clarification":True}
+        if parts and parts[0].lower()=="/learning":
+            sub=parts[1].strip().lower() if len(parts)>1 else "status"
+            if sub in {"status","undo","pause","resume"}:
+                return {"is_order":True,"action_type":"LEARNING","topic_hint":sub}
+            return {**quiet,"needs_clarification":True}
         if parts and parts[0].lower() in commands:
             return {"is_order":True,"action_type":commands[parts[0].lower()], "topic_hint":parts[1] if len(parts)>1 else ""}
         from .operator_channel import OperatorChannel, CAPABILITIES

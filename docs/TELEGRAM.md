@@ -18,6 +18,14 @@ A prepared reply and directive are frozen before sending. The action does not st
 
 Use `python scripts/maintain.py pending` to see interrupted update IDs without private message bodies. Review the relevant outbox/provider receipts, resolve uncertain deliveries as documented in [operations](OPERATIONS.md), then use `python scripts/maintain.py resolve-operator UPDATE_ID --evidence REVIEW_REFERENCE`. This closes the command without executing it again. Persist updated encrypted state before the next production runner. Personal conversation remains available while commands are held, subject to Telegram/model availability and normal budget limits.
 
+## Learning controls
+
+Every few days (at most every 60 hours, only with at least four recent posts) she reviews her own recent posts with their public reply, quote, repost and like counts and may adjust interest weights and her posting rhythm (`agent/self_model.py`). Each change needs two cited posts and is bounded. When something changes she sends a `[learning]` note with what changed and why.
+
+- `/learning` or `/learning status` — current interest weights, rhythm and last review.
+- `/learning undo` — revert the most recent set of changes.
+- `/learning pause` / `/learning resume` — stop or restart self-adjustment.
+
 ## Check-in preference
 
 Default: **meaningful**. New confirmed public posts or replies may prompt a model to decide whether a private note is worth sharing. Routine activity can remain unreported. An unchanged activity set is not repeatedly reconsidered after a silence decision, and no catch-up message is manufactured just because yesterday passed. This first version does not initiate notes solely from private reflections or unfinished work.

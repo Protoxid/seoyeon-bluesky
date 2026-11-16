@@ -107,6 +107,7 @@ flowchart LR
 - 🗂️ **Memory with receipts.** Every memory keeps its source and privacy scope. Private messages never become public anecdotes, and talking to her a lot doesn't make you her friend.
 - 🖼️ **A consistent face.** Selfies are generated from two fixed reference portraits and checked by a vision model against those references before anything is posted.
 - 🔍 **Two-step writing.** One model drafts; a separate review rejects anything unsupported, out of character or unsafe. Factual claims need a verbatim quote from a real source.
+- 🌱 **Habits she adjusts herself.** Every few days she looks back at how her posts went (real conversations count, likes barely do) and may shift what she talks about and how often she posts, within fixed bounds. Her creator gets a note and can undo it with one Telegram command.
 - 🔐 **Encrypted, fail-closed state.** Everything she remembers is one encrypted bundle. It is saved *before* anything is sent, and if saving fails, nothing is sent.
 
 <details>
