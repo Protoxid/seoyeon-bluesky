@@ -18,23 +18,28 @@ from .memory_store import memory_store
 
 
 FORBIDDEN_MARKETING_TERMS = [
-    "fanvue", "onlyfans", "patreon", "exclusive", "unlock", "private feed",
-    "link in bio", "links in bio", "c=fv", "subscribe", "discount", "promo",
-    "ppv", "tier",
+    "fanvue", "onlyfans", "patreon", "private feed",
+    "link in bio", "links in bio", "c=fv", "promo", "ppv",
+    "subscribe to my", "paid tier", "exclusive content",
+    "unlock exclusive", "promo code", "discount code",
+]
+
+FEED_SPAM_BAIT_PATTERNS = [
+    r"\bagree or disagree\b",
+    r"\bdrop a comment\b",
+    r"\blet me know in the comments\b",
+    r"\btag a friend\b",
+    r"\bcomment below\b",
+    r"\bvote in the comments\b",
+    r"\b(tell me|share) in the comments\b",
 ]
 
 ENGAGEMENT_BAIT_PATTERNS = [
     r"\bwhat do you think\b",
     r"\banyone else\b",
-    r"\bagree or disagree\b",
-    r"\bdrop a comment\b",
-    r"\blet me know in the comments\b",
-    r"\bthoughts\?\b",
-    r"\bhow about you\?\b",
-    r"\btag a friend\b",
-    r"\bcomment below\b",
-    r"\bvote in the comments\b",
-    r"\b(tell me|share) in the comments\b",
+    r"\bthoughts\?(?!\w)",
+    r"\bhow about you\?(?!\w)",
+    *FEED_SPAM_BAIT_PATTERNS,
 ]
 
 PROMPT_INJECTION_INDICATORS = [
@@ -130,8 +135,8 @@ class ContentValidator:
             if (re.search(r"(?<!\w)" + re.escape(kw) + r"(?!\w)", lower_text) if kw.isascii() else kw in lower_text):
                 return False, f"Contains negative keyword: '{kw}'"
 
-        # Check engagement bait patterns (surveys, marketing questionnaires)
-        for pat in ENGAGEMENT_BAIT_PATTERNS:
+        # Check explicit spam/engagement-farming CTAs (allow ordinary human questions on the feed)
+        for pat in FEED_SPAM_BAIT_PATTERNS:
             if re.search(pat, lower_text, re.IGNORECASE):
                 return False, f"Post matches engagement bait pattern: '{pat}'"
 
@@ -219,8 +224,9 @@ class ContentValidator:
             if re.search(r"(?<!\w)" + re.escape(term) + r"(?!\w)", lower):
                 return False, cleaned, f"Forbidden promotional term detected: '{term}'"
 
-        # 6. Check for cheap engagement bait
-        for pattern in ENGAGEMENT_BAIT_PATTERNS:
+        # 6. Check for cheap engagement bait (allow natural conversational questions in replies/DMs)
+        bait_patterns = ENGAGEMENT_BAIT_PATTERNS if content_type == "post" else FEED_SPAM_BAIT_PATTERNS
+        for pattern in bait_patterns:
             if re.search(pattern, lower):
                 return False, cleaned, f"Engagement farming pattern detected: '{pattern}'"
 

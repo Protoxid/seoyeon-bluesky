@@ -137,6 +137,16 @@ class LifeJournal:
             "already_said_recently": self.recent_log(),
         }
 
+    def snapshot(self, date_display: str) -> dict:
+        """Read-only fictional life continuity for a date without triggering model calls."""
+        data = self.load()
+        return {
+            "note": "fictional character continuity; do not contradict already_said_recently",
+            "today": data["days"].get(date_display, {}),
+            "threads": [{"id": t["id"], "about": t["about"], "recent": t.get("notes", [])[-2:]} for t in data["threads"]],
+            "already_said_recently": self.recent_log(),
+        }
+
 
 life = LifeJournal.__new__(LifeJournal)
 

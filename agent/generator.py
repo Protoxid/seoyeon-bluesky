@@ -340,7 +340,7 @@ class ContentGenerator:
                 "You are Han Seo-yeon, 26, in seongsu-dong, retraining as a pilates instructor after quitting marketing, "
                 "living alone on limited savings. Write in whichever language the idea comes to you in (Korean or English). "
                 "Use the life data for consistency; do not narrate it wholesale or cram several moments into one post. "
-                "No invented clients, credentials or advice. No exclamation marks. Output O\nY the post text."
+                "No invented clients, credentials or advice. No exclamation marks. Output ONLY the post text."
             )
 
         has_link = bool(re.search(r"https?://", topic_hint or ""))
@@ -386,6 +386,11 @@ class ContentGenerator:
             user_prompt += "\nAttached image(s) from the quoted post are provided for visual inspection. Linked material (unread until retrieved): " + source_context
         else:
             user_prompt += "\nLinked material (unread until retrieved; images uninspected): " + source_context
+        from .life import journal
+        try:
+            life_snapshot = journal().snapshot(context.date_display)
+        except Exception:
+            life_snapshot = {}
         from .discussion import grounded_draft
         return grounded_draft(
             self,
@@ -395,6 +400,8 @@ class ContentGenerator:
             private=False,
             evidence_text=target_text + "\n" + source_context,
             image_data_urls=image_data_urls or None,
+            life=life_snapshot,
+            model=config.reply_text_model or None,
         )
 
     def generate_reply(
@@ -434,7 +441,27 @@ class ContentGenerator:
                     post_summary += f" [Attached image user alt description: {alt_desc}]"
                 if p.get("media_urls") and image_data_urls:
                     post_summary += " [Attached image provided for visual inspection]"
+                embed = p.get("embed_summary") or {}
+                if embed.get("quoted_post"):
+                    qp = embed["quoted_post"]
+                    post_summary += f" [Quoted @{qp.get('author', 'unknown')}: \"{qp.get('text', '')}\"]"
+                if embed.get("external_card"):
+                    ec = embed["external_card"]
+                    card_bits = [b for b in (ec.get("title"), ec.get("description"), ec.get("uri")) if b]
+                    if card_bits:
+                        post_summary += f" [Link card: {' | '.join(card_bits)}]"
                 chain_info += post_summary + "\n"
+
+        sibling_replies = (thread_context or {}).get("sibling_replies") or []
+        if sibling_replies:
+            sibling_lines = []
+            for sr in sibling_replies[:3]:
+                sa = sr.get("author") or "someone"
+                st = ContentValidator.sanitize_untrusted_input(sr.get("text", ""))
+                if st:
+                    sibling_lines.append(f"- @{sa}: \"{st}\"")
+            if sibling_lines:
+                chain_info += "\nOther replies already in this thread (avoid repeating their exact point):\n" + "\n".join(sibling_lines) + "\n"
 
         if thread_context:
             chain_info += "\nLinked sources (not yet read), and media availability: " + json.dumps([
@@ -447,10 +474,24 @@ class ContentGenerator:
                 for p in chain_posts
             ]) + "\n"
 
+        from .memory_store import memory_store
+        history_rows = memory_store.get_public_history_for_user(user_profile.handle, did=user_profile.did, limit=2)
+        history_info = ""
+        if history_rows:
+            hist_bits = []
+            for h in history_rows:
+                in_t = ContentValidator.sanitize_untrusted_input(str(h.get("user", ""))[:100])
+                my_t = ContentValidator.sanitize_untrusted_input(str(h.get("agent", ""))[:100])
+                if in_t or my_t:
+                    hist_bits.append(f"- they said \"{in_t}\" -> you replied \"{my_t}\"")
+            if hist_bits:
+                history_info = "Recent public exchanges with them:\n" + "\n".join(hist_bits) + "\n"
+
         user_info = (
             f"Interlocutor: @{user_profile.handle}\n"
             f"Legacy relationship label (not evidence of trust): {user_profile.relationship}\n"
             "Only evidence-scoped memories below may supply personal facts.\n"
+            f"{history_info}"
         )
         from .continuity import ContinuityStore
         loop_context = ContinuityStore().context(target_text, scope="public", subject=user_profile.did or user_profile.handle)
@@ -470,6 +511,11 @@ class ContentGenerator:
             f"{'Write in relaxed conversational Korean (해요체 with strangers), natural punctuation, no exclamation marks.' if is_korean else 'Write in natural English (all lowercase, no exclamation marks).'}"
         )
 
+        from .life import journal
+        try:
+            life_snapshot = journal().snapshot(context.date_display)
+        except Exception:
+            life_snapshot = {}
         from .discussion import grounded_draft
         return grounded_draft(
             self,
@@ -479,6 +525,8 @@ class ContentGenerator:
             private=False,
             evidence_text=target_text + "\n" + chain_info,
             image_data_urls=image_data_urls or None,
+            life=life_snapshot,
+            model=config.reply_text_model or None,
         )
 
     def generate_dm_reply(

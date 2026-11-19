@@ -174,7 +174,32 @@ def source_packet(text, *, private=False):
         packet.append({**source,"text":excerpt,"partial":True})
     return packet
 
-def grounded_draft(generator, system, prompt, *, content_type, private=False, evidence_text="", include_image=False, image_data_urls=None):
+def _condense_for_limit(generator, text, *, content_type, model=None):
+    """Tighten an over-300-char draft once without adding new claims or links."""
+    from .validator import validator
+    prompt = (
+        "Tighten this Bluesky text to under 275 characters while keeping the exact same language, meaning, "
+        "tone (no exclamation marks), and any existing source links. Do not add new facts, claims, or links. "
+        "Output ONLY the tightened text.\n\n" + text
+    )
+    call_kwargs = {"max_tokens": 200}
+    if model:
+        call_kwargs["model_override"] = model
+    raw, _ = generator._call_llm("Shorten the text faithfully within Bluesky's character limit.", prompt, **call_kwargs)
+    if not raw:
+        return False, ""
+    condensed = raw.strip().strip('"').strip()
+    ok, clean, _ = validator.validate_outgoing_text(
+        condensed,
+        content_type=content_type,
+        check_repetition=content_type == "post",
+    )
+    if not ok or not clean:
+        return False, ""
+    return True, clean
+
+
+def grounded_draft(generator, system, prompt, *, content_type, private=False, evidence_text="", include_image=False, image_data_urls=None, life=None, model=None):
     """Draft + separate semantic review, with deterministic provenance checks."""
     from .generator import parse_json_object
     from .public_boundary import BOUNDARY, public_data
@@ -188,11 +213,19 @@ def grounded_draft(generator, system, prompt, *, content_type, private=False, ev
     if not private:
         sources = public_data(sources)
     packet={"conversation":prompt,"character_context":system,"sources":sources}
+    if life and not private:
+        packet["life"] = public_data(life)
     inspected_images=[u for u in (image_data_urls or []) if isinstance(u,str) and u.startswith("data:image/")]
     if include_image:
         packet["include_image"]=True
     if inspected_images:
         packet["attached_images_inspected"]=len(inspected_images)
+    life_clause=(
+        "Ordinary fictional everyday moments from your life context (meals, pilates class, errands, moods, "
+        "friends like jieun, family) are allowed as kind=social without external source citations, provided they "
+        "do not contradict life.already_said_recently or invent external facts or real-world credentials. "
+        if life and not private else ""
+    )
     image_clause=(
         "For an image post (include_image=true), a caption describing the generated fictional visual scene/selfie, "
         "current time-of-day moment, surroundings, or supplied environment/operator request is allowed as kind=social "
@@ -207,16 +240,28 @@ def grounded_draft(generator, system, prompt, *, content_type, private=False, ev
             "shown in the attached image(s) as kind=social or kind=interpretation without external source citations, "
             "while still avoiding unsupported external factual claims or invented details not visible in the image(s). "
         )
+    limit_clause=(
+        "Bluesky hard limit is 300 characters: keep text concise and strictly under 290 characters (fit the thought cleanly; do not pad). "
+        if content_type in ("post", "reply") else
+        "The text must fit the platform limit; do not quote long passages. "
+    )
     schema=("Return JSON {text:string,kind:social|interpretation|knowledge|silence,claims:[{claim:string,source_id:string,quote:string}]}. "
             "Every externally verifiable factual assertion needs a claim with a verbatim source quote. "
             "Conversation messages are evidence of what was said, not general factual authority. Character context supports authored identity and taste only, never expertise or physical experience. "
-            + image_clause +
+            + life_clause + image_clause +
             "Without supporting sources use only a grounded interpretation, ordinary social response, or silence. "
             "Keep interpretations visibly interpretive. Source links may appear only from supplied URLs. "
-            "This JSON schema supersedes any earlier raw-text output instruction. No stock fallback. No fabricated sources. The text must fit the platform limit; do not quote long passages. Output ONLY the raw JSON object, with no preamble or markdown fences.")
+            + limit_clause +
+            "This JSON schema supersedes any earlier raw-text output instruction. No stock fallback. No fabricated sources. Output ONLY the raw JSON object, with no preamble or markdown fences.")
     packet_json=json.dumps(packet,ensure_ascii=False)
     draft_input=packet_json if not inspected_images else [{"type":"text","text":packet_json},*[{"type":"image_url","image_url":{"url":u}} for u in inspected_images]]
-    raw,model=generator._call_llm(system+"\n"+POLICY+schema,draft_input,max_tokens=700)
+    call_kwargs={"max_tokens":700}
+    if model:
+        call_kwargs["model_override"]=model
+    raw,used_model=generator._call_llm(system+"\n"+POLICY+schema,draft_input,**call_kwargs)
+    condense_model=model if (model and raw) else None
+    if not raw and model:
+        raw,used_model=generator._call_llm(system+"\n"+POLICY+schema,draft_input,max_tokens=700)
     generator.last_discussion_status="invalid_draft_json" if raw else "draft_unavailable"
     try:
         draft=parse_json_object(raw)
@@ -238,7 +283,14 @@ def grounded_draft(generator, system, prompt, *, content_type, private=False, ev
         if any(u.rstrip(".,)") not in {s["url"] for s in sources} for u in urls): return "","failed"
         from .validator import validator
         generator.last_discussion_status="text_validation_rejected"
-        ok,clean,_=validator.validate_outgoing_text(text,content_type=content_type,check_repetition=content_type=="post")
+        ok,clean,val_reason=validator.validate_outgoing_text(text,content_type=content_type,check_repetition=content_type=="post")
+        if (not ok or not clean) and "300-char limit" in str(val_reason or "") and content_type in ("post", "reply"):
+            ok,clean=_condense_for_limit(generator,clean or text,content_type=content_type,model=condense_model)
+            if ok and clean:
+                urls=re.findall(r"https?://[^\s<>]+",clean)
+                if any(u.rstrip(".,)") not in {s["url"] for s in sources} for u in urls):
+                    generator.last_discussion_status="unprovided_source_link"
+                    return "","failed"
         if not ok or not clean: return "","failed"
         # Review the actual validated text, never a pre-truncation draft.
         generator.last_discussion_status="review_unavailable"
@@ -251,7 +303,7 @@ def grounded_draft(generator, system, prompt, *, content_type, private=False, ev
             "are covered. A title/alt text is not the article/pixels unless attached_images_inspected > 0. Cached sources cannot establish current schedules, prices or news. "
             "Allow brief social replies, ordinary opinions, personal taste, open questions and differing interpretations without citations for feelings or taste. "
             "A concise link recommendation based on the supplied excerpt is valid; do not demand a researched essay. "
-            "Do not require stock uncertainty disclaimers when the text does not imply unseen evidence. "+VOICE+image_clause+
+            "Do not require stock uncertainty disclaimers when the text does not imply unseen evidence. "+VOICE+image_clause+life_clause+
             "Return JSON {approved:boolean,issue:none|unsupported|advice|irrelevant|misleading|unnatural}. Output ONLY the raw JSON object, with no preamble or markdown fences.",
             review_input,max_tokens=180)
         if not review: return "","failed"
@@ -262,7 +314,7 @@ def grounded_draft(generator, system, prompt, *, content_type, private=False, ev
         generator.last_discussion_status="claim_storage_rejected"
         if not private: ReferenceLibrary().remember(claims,sources)
         generator.last_discussion_status="approved_"+kind
-        return clean,model
+        return clean,used_model
     except (ValueError,TypeError,KeyError):
         return "","failed"
 
@@ -326,11 +378,14 @@ def casual_draft(generator, system, prompt, *, life=None, include_image=False, m
     system = system + "\n" + VOICE + "\n" + OWN_POST_VOICE + "\n" + BOUNDARY
     if max_parts > 1:
         system += ("\nThis may be a short thread: if the thought genuinely needs more room, split it into at most "
-                   f"{max_parts} posts separated by a line containing only ---. Each part stays under 280 characters and "
-                   "the first must stand on its own. One post is usually enough; do not pad.")
+                   f"{max_parts} posts separated by a line containing only ---. Each part must stay strictly under 290 characters "
+                   "(hard limit 300) and the first must stand on its own. One post is usually enough; do not pad.")
+    else:
+        system += "\nBluesky hard limit is 300 characters: keep the post concise and strictly under 290 characters."
     packet = public_data({"request": prompt, "life": life or {}})
     raw, used = generator._call_llm(system + "\nOutput ONLY the post text: no quotes, no JSON, no explanation.",
                                     json.dumps(packet, ensure_ascii=False), max_tokens=300 * max_parts, model_override=model)
+    condense_model = model if (model and raw) else None
     generator.last_discussion_status = "draft_unavailable"
     if not raw and model:
         raw, used = generator._call_llm(system + "\nOutput ONLY the post text.", json.dumps(packet, ensure_ascii=False), max_tokens=300)
@@ -347,7 +402,12 @@ def casual_draft(generator, system, prompt, *, life=None, include_image=False, m
         return "", "failed"
     cleaned = []
     for number, part in enumerate(parts):
-        ok, clean_part, _ = validator.validate_outgoing_text(part, content_type="post", check_repetition=number == 0)
+        ok, clean_part, val_reason = validator.validate_outgoing_text(part, content_type="post", check_repetition=number == 0)
+        if (not ok or not clean_part) and max_parts == 1 and "300-char limit" in str(val_reason or ""):
+            ok, clean_part = _condense_for_limit(generator, clean_part or part, content_type="post", model=condense_model)
+            if ok and clean_part and re.search(r"https?://", clean_part):
+                generator.last_discussion_status = "unprovided_source_link"
+                return "", "failed"
         if not ok or not clean_part:
             return "", "failed"
         cleaned.append(clean_part)
