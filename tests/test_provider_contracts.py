@@ -18,8 +18,24 @@ class TestProviderContracts(unittest.TestCase):
         with patch("agent.image_engine.urllib.request.urlopen", return_value=response({"code": 422, "data": {}})) as request:
             image, _, error = engine.generate_image("a chair", is_selfie=False, dry_run=False)
         payload = json.loads(request.call_args.args[0].data)
-        self.assertEqual(payload["model"], "gpt-image-2-5-sunburst-text-to-image")
+        self.assertEqual(payload["model"], "gpt-image-2-6/sunburst-text-to-image")
         self.assertNotIn("input_urls", payload["input"])
+        self.assertEqual(payload["input"]["resolution"], "1K")
+        self.assertEqual(payload["input"]["quality"], "medium")
+        self.assertEqual(payload["input"]["background"], "opaque")
+        self.assertIsNone(image)
+        self.assertEqual(engine.last_outcome, "rejected")
+
+    def test_selfie_uses_exact_documented_i2i_route(self):
+        engine = ImageEngine(api_key="dummy")
+        with patch("agent.image_engine.get_or_upload_master_reference", side_effect=["https://example.com/a1", "https://example.com/c5"]), \
+             patch("agent.image_engine.urllib.request.urlopen", return_value=response({"code": 422, "data": {}})) as request:
+            image, _, error = engine.generate_image("morning selfie", is_selfie=True, dry_run=False)
+        payload = json.loads(request.call_args.args[0].data)
+        self.assertEqual(payload["model"], "gpt-image-2-6/sunburst-image-to-image")
+        self.assertEqual(payload["input"]["input_urls"], ["https://example.com/a1", "https://example.com/c5"])
+        self.assertEqual(payload["input"]["resolution"], "1K")
+        self.assertEqual(payload["input"]["quality"], "medium")
         self.assertEqual(payload["input"]["background"], "opaque")
         self.assertIsNone(image)
         self.assertEqual(engine.last_outcome, "rejected")

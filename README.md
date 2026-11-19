@@ -215,6 +215,8 @@ Never run `--auto` locally as a test: it is a real wakeup and can post.
 | `REPLY_TEXT_MODEL` | `` *(empty)* | Optional override for replies, quote commentary and DMs (defaults to `PRIMARY_TEXT_MODEL`) |
 | `FALLBACK_TEXT_MODEL` | `deepseek-v4.1-flash` | Backup if the primary model fails |
 | `VISION_MODEL` | `anthropic/claude-haiku-5.5` | Image review |
+| `KIE_IMAGE_MODEL` / `KIE_POV_MODEL` | `gpt-image-2-6/sunburst-image-to-image` / `gpt-image-2-6/sunburst-text-to-image` | Image-to-image (selfies/location refs) and text-to-image (POV) models on Kie.ai |
+| `KIE_RESOLUTION` / `KIE_QUALITY` | `1K` / `medium` | Kie.ai image output resolution and quality tier |
 | `BSKY_CUSTOM_FEEDS` / `ENABLE_CUSTOM_FEED_DISCOVERY` | `` / `true` | Optional comma-separated `at://` feed URIs and popular-feed discovery fallback |
 | `ALLOW_POSTS`, `ALLOW_REPLIES`, `ALLOW_LIKES`, `ALLOW_REPOSTS`, `ALLOW_FOLLOWS`, `ALLOW_DMS`, `ALLOW_IMAGES` | `true` | Switch an activity off |
 | `OPERATOR_LANGUAGE` | `English` | Language of her private Telegram check-ins to her creator |

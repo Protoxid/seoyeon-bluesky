@@ -75,7 +75,7 @@ class TestBudgetManager(unittest.TestCase):
         self.assertEqual(summary["monthly_tokens"], 600)
 
     def test_record_image_spend(self):
-        cost = self.mgr.record_image_spend(model="gpt-image-2-5-sunburst", details="street selfie")
+        cost = self.mgr.record_image_spend(model="gpt-image-2-6/sunburst-image-to-image", details="street selfie")
         self.assertEqual(cost, 0.045)
         summary = self.mgr.get_summary()
         self.assertEqual(summary["daily_images_count"], 1)

@@ -2,7 +2,7 @@
 agent/image_engine.py — Kie.ai Image Generator with Canonical Reference Conditioning.
 
 Generates photorealistic, identity-locked images of Han Seo-yeon through Kie.ai:
-  - Model: gpt-image-2-5-sunburst-image-to-image (project canon)
+  - Models: gpt-image-2-6/sunburst-image-to-image (I2I) and gpt-image-2-6/sunburst-text-to-image (T2I/POV)
   - References: Conditioned on personas/seoyeon/master/a/a1_front.png via Kie file host
   - Aspect: 3:4 portrait (or 1:1) at 1K resolution (clean sensor grain, fast, budget-efficient)
   - Supports DRY_RUN mode (simulates full pipeline without consuming Kie credits)
@@ -187,7 +187,8 @@ class ImageEngine:
         prompt = build_image_prompt(scene_description, mood=mood, is_selfie=is_selfie, location_ref=bool(loc_path), place=place)
 
         if is_dry:
-            print(f"[DRY-RUN Kie ImageEngine] Model: {config.kie_image_model}")
+            dry_model = config.kie_image_model if (is_selfie or loc_path) else config.kie_pov_model
+            print(f"[DRY-RUN Kie ImageEngine] Model: {dry_model}")
             if is_selfie:
                 print(f"[DRY-RUN Kie ImageEngine] Master Ref: {MASTER_A1_PATH.name}")
             else:
@@ -231,9 +232,10 @@ class ImageEngine:
             "resolution": config.kie_resolution,
             "background": "opaque",
         }
+        if config.kie_quality:
+            task_input["quality"] = config.kie_quality
         if use_i2i and "image-to-image" in model:
             task_input["input_urls"] = ref_urls
-            task_input["background"] = "opaque"
             print(f"[Kie ImageEngine] Model: {model} | References Fed: {len(ref_urls)} URLs (location ref: {'yes' if loc_url else 'no'})")
         else:
             print(f"[Kie ImageEngine] Model: {model} | Notice: Running {'text-to-image POV' if not is_selfie else 'text-to-image'}")

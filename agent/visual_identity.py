@@ -2,7 +2,7 @@
 agent/visual_identity.py — Permanent Visual Identity Specification & Prompt Synthesizer.
 
 Defines the unchanging visual canon for Han Seo-yeon to preserve identity continuity
-across all OpenAI GPT Image 2.5 generations:
+across all OpenAI GPT Image 2.6 Sunburst generations:
   - Korean ethnicity, 26 years old in prompt prompts.
   - Heart-shaped sculpted jawline, high cheekbones, large amber-hazel irises with dark limbal rings, pronounced aegyo-sal.
   - Salon balayage: deep espresso roots graduating into warm honey-blonde waves, curtain bangs.
@@ -69,7 +69,7 @@ def build_image_prompt(
     place: Optional[str] = None,
 ) -> str:
     """
-    Synthesizes a short, punchy photographic prompt for OpenAI GPT Image 2.5 on Kie.ai.
+    Synthesizes a short, punchy photographic prompt for OpenAI GPT Image 2.6 Sunburst on Kie.ai.
     When is_selfie=True: Identity is anchored via reference images (a1 + c5 in input_urls).
     Photorealism embraces natural imperfections, varied hairstyles, and candid everyday framing.
     When is_selfie=False: Direct 35mm film POV environmental observation.

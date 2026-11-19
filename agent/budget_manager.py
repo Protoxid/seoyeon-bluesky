@@ -40,7 +40,7 @@ MODEL_PRICING: Dict[str, Dict[str, float]] = {
     # Default fallback rate for other LLMs
     "_default": {"input_per_m": 1.00, "output_per_m": 3.00},
 }
-IMAGE_GEN_COST = 0.045  # Kie.ai GPT Image 2.5 per generation (~$0.045)
+IMAGE_GEN_COST = 0.045  # Kie.ai GPT Image 2.6 Sunburst estimated per-generation tariff
 
 
 class BudgetManager:

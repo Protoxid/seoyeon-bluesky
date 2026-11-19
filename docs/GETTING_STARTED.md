@@ -24,7 +24,7 @@ See [grounded discussion](DISCUSSION.md) for source review and `reference-status
 
 Use local `.env` or GitHub Secrets. Never commit keys. Required for live operation: `BSKY_HANDLE`, `BSKY_APP_PASSWORD`, `OPENROUTER_API_KEY`. Images additionally require `KIE_API_KEY`; Telegram requires `TELEGRAM_BOT_TOKEN` and a numeric private `TELEGRAM_CHAT_ID` matching the sender. Prefer a dedicated `DATA_ENCRYPTION_KEY` (or `VAULT_KEY`). The existing workflow retains credential-derived key compatibility; rotating credentials without preserving that key can lock out the vault.
 
-Model IDs are configurable through `PRIMARY_TEXT_MODEL`, `FALLBACK_TEXT_MODEL`, `VISION_MODEL`, `KIE_IMAGE_MODEL`, `KIE_POV_MODEL`, and `KIE_RESOLUTION`. Text uses OpenRouter exclusively. POV images use `gpt-image-2-5-sunburst-text-to-image`; selfies use `gpt-image-2-5-sunburst-image-to-image` with both canonical references. Availability and tariffs are external dependencies, not test guarantees.
+Model IDs are configurable through `PRIMARY_TEXT_MODEL`, `FALLBACK_TEXT_MODEL`, `VISION_MODEL`, `KIE_IMAGE_MODEL`, `KIE_POV_MODEL`, `KIE_RESOLUTION`, and `KIE_QUALITY`. Text uses OpenRouter exclusively. POV images use `gpt-image-2-6/sunburst-text-to-image`; selfies use `gpt-image-2-6/sunburst-image-to-image` with both canonical references. Availability and tariffs are external dependencies, not test guarantees.
 
 Spending defaults: $2/day and $30/month, one generated image/day. `MAX_POSTS_PER_DAY`, `MAX_REPLIES_PER_DAY`, `MAX_DMS_PER_DAY`, `MAX_LIKES_PER_DAY` are ceilings, never targets. `ACTION_THRESHOLD` defaults to 0.50 for model choice confidence; it is not a calibrated probability of naturalness.
 

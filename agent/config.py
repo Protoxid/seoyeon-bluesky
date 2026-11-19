@@ -122,13 +122,14 @@ class AgentConfig:
     fallback_text_model: str = field(
         default_factory=lambda: os.environ.get("FALLBACK_TEXT_MODEL", "deepseek-v4.1-flash")
     )
-    # Image generator model via Kie.ai API (gpt-image-2.5-sunburst i2i)
+    # Image generator models via Kie.ai API (GPT Image 2.6 Sunburst)
     kie_image_model: str = field(
-        default_factory=lambda: os.environ.get("KIE_IMAGE_MODEL", "gpt-image-2-5-sunburst-image-to-image")
+        default_factory=lambda: os.environ.get("KIE_IMAGE_MODEL", "gpt-image-2-6/sunburst-image-to-image")
     )
     kie_pov_model: str = field(default_factory=lambda: os.environ.get(
-        "KIE_POV_MODEL", "gpt-image-2-5-sunburst-text-to-image"))
+        "KIE_POV_MODEL", "gpt-image-2-6/sunburst-text-to-image"))
     kie_resolution: str = field(default_factory=lambda: os.environ.get("KIE_RESOLUTION", "1K"))
+    kie_quality: str = field(default_factory=lambda: os.environ.get("KIE_QUALITY", "medium"))
     action_threshold: float = field(default_factory=lambda: _get_float("ACTION_THRESHOLD", 0.50))
     enable_continuity: bool = field(default_factory=lambda: _get_bool("ENABLE_CONTINUITY", True))
     vision_model: str = field(default_factory=lambda: os.environ.get("VISION_MODEL", "anthropic/claude-haiku-5.5"))
