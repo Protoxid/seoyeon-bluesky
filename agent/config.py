@@ -79,6 +79,8 @@ class AgentConfig:
     allow_posts: bool = field(default_factory=lambda: _get_bool("ALLOW_POSTS", True))
     allow_replies: bool = field(default_factory=lambda: _get_bool("ALLOW_REPLIES", True))
     allow_likes: bool = field(default_factory=lambda: _get_bool("ALLOW_LIKES", True))
+    allow_reposts: bool = field(default_factory=lambda: _get_bool("ALLOW_REPOSTS", True))
+    allow_follows: bool = field(default_factory=lambda: _get_bool("ALLOW_FOLLOWS", True))
     allow_dms: bool = field(default_factory=lambda: _get_bool("ALLOW_DMS", True))
     allow_images: bool = field(default_factory=lambda: _get_bool("ALLOW_IMAGES", True))
 
@@ -107,6 +109,10 @@ class AgentConfig:
     # Her own posts are few, so they can use a stronger writer than high-volume replies.
     post_text_model: str = field(
         default_factory=lambda: os.environ.get("POST_TEXT_MODEL", "anthropic/claude-sonnet-5.5")
+    )
+    # Optional override for direct replies/quotes/DMs (empty defaults to primary_text_model).
+    reply_text_model: str = field(
+        default_factory=lambda: os.environ.get("REPLY_TEXT_MODEL", "")
     )
     # OpenRouter API Endpoint (supports https://openrouter.ai/api/v1 or https://eu.openrouter.ai/api/v1)
     openrouter_base_url: str = field(
@@ -146,6 +152,16 @@ class AgentConfig:
             "독립영화", "영화 추천", "책 추천", "translated literature", "indie music", "플레이리스트",
             "seoul cafe", "seoul walk", "graphic design",
         ]
+    )
+    custom_feed_uris: List[str] = field(
+        default_factory=lambda: [
+            u.strip()
+            for u in os.environ.get("BSKY_CUSTOM_FEEDS", "").split(",")
+            if u.strip().startswith("at://")
+        ]
+    )
+    enable_custom_feed_discovery: bool = field(
+        default_factory=lambda: _get_bool("ENABLE_CUSTOM_FEED_DISCOVERY", True)
     )
 
     # --- Outbound Master Communication (Telegram) ---

@@ -77,7 +77,7 @@ Her story moves forward slowly: the anatomy flashcards, the first time she gets 
 |---|---|
 | ✍️ **Posts** | Two or three small posts a day at irregular times: moments, thoughts, the occasional honest reflection, sometimes a short thread |
 | 📷 **Photos** | Phone-style pictures of her day (food, the street, the studio, rain on the window) and, every few days, a selfie |
-| 💬 **Conversations** | Replies to people who talk to her, joins feed conversations when she has a real reaction, answers DMs |
+| 💬 **Conversations** | Replies to people who talk to her (comments, mentions, and quote-posts), joins feed conversations when she has a real reaction, answers DMs |
 | ❤️ **Light touches** | Likes, reposts, quotes, follows |
 | 🤫 **Silence** | Doing nothing is always an option, and often the right one |
 
@@ -102,7 +102,7 @@ flowchart LR
 
 **Under the hood:**
 
-- 🧠 **Contextual judgment, not rules.** Language models choose among real options (reply, like, post, stay silent), and every choice is validated against strict limits.
+- 🧠 **Contextual judgment, not rules.** Language models choose among real options (reply, like, post, stay silent), drawing from her timeline, Bluesky custom feeds, recent posts from new followers, and public topic searches. Every choice is validated against strict limits, and one wakeup can pair up to two compatible actions (such as answering a reply and liking or following) as a natural session.
 - 📅 **A life without a script.** Each day gets a loose sketch of plausible moments, built from the weekday, the weather and long-running threads of her life (training, money, family, Jieun). What she posts about it is logged, so she doesn't contradict herself.
 - 🗂️ **Memory with receipts.** Every memory keeps its source and privacy scope. Private messages never become public anecdotes, and talking to her a lot doesn't make you her friend.
 - 🖼️ **A consistent face.** Selfies are generated from two fixed reference portraits and checked by a vision model against those references before anything is posted.
@@ -208,12 +208,15 @@ Never run `--auto` locally as a test: it is a real wakeup and can post.
 | `MIN_POST_GAP_HOURS` / `POST_GAP_JITTER_HOURS` | `3.0` / `2.0` | Gap between own posts: 3 hours plus a varying 0–2 |
 | `MAX_IMAGES_PER_DAY` | `3` | Image generations per day |
 | `MAX_REPLIES_PER_DAY` / `MAX_LIKES_PER_DAY` / `MAX_DMS_PER_DAY` | `12` / `25` / `15` | Other daily caps |
+| `MAX_ACTIONS_PER_TICK` | `2` | Maximum social actions in one wakeup session |
 | `DAILY_AI_BUDGET` / `MONTHLY_AI_BUDGET` | `2.00` / `30.00` | Spending limits in USD |
 | `PRIMARY_TEXT_MODEL` | `anthropic/claude-haiku-5.5` | Decisions, replies, reviews |
 | `POST_TEXT_MODEL` | `anthropic/claude-sonnet-5.5` | Her own posts |
+| `REPLY_TEXT_MODEL` | `` *(empty)* | Optional override for replies, quote commentary and DMs (defaults to `PRIMARY_TEXT_MODEL`) |
 | `FALLBACK_TEXT_MODEL` | `deepseek-v4.1-flash` | Backup if the primary model fails |
 | `VISION_MODEL` | `anthropic/claude-haiku-5.5` | Image review |
-| `ALLOW_POSTS`, `ALLOW_REPLIES`, `ALLOW_LIKES`, `ALLOW_DMS`, `ALLOW_IMAGES` | `true` | Switch an activity off |
+| `BSKY_CUSTOM_FEEDS` / `ENABLE_CUSTOM_FEED_DISCOVERY` | `` / `true` | Optional comma-separated `at://` feed URIs and popular-feed discovery fallback |
+| `ALLOW_POSTS`, `ALLOW_REPLIES`, `ALLOW_LIKES`, `ALLOW_REPOSTS`, `ALLOW_FOLLOWS`, `ALLOW_DMS`, `ALLOW_IMAGES` | `true` | Switch an activity off |
 | `OPERATOR_LANGUAGE` | `English` | Language of her private Telegram check-ins to her creator |
 | `HOME_PLACE` | `Seongsu-dong, Seoul, South Korea` | Where photos are set when a scene doesn't say otherwise (trips set their own place) |
 | `EMERGENCY_STOP` | `false` | Stop all outbound activity |

@@ -96,12 +96,17 @@ class SelfModel:
         if MODE.get() != "live" or not self.due():
             return []
         from .memory_store import memory_store
+        recent_ctx = memory_store.get_recent_context()
         since = (_now() - dt.timedelta(hours=REVIEW_INTERVAL_HOURS * 2)).isoformat()
-        posts = [p for p in memory_store.get_recent_context().get("posts", [])
+        posts = [p for p in recent_ctx.get("posts", [])
                  if p.get("post_id") and str(p.get("created_at", "")) >= since]
         if len(posts) < MIN_POSTS_FOR_REVIEW:
             return []
-        engagement = fetch_engagement([p["post_id"] for p in posts])
+        recent_replies = [
+            r for r in recent_ctx.get("replies", [])
+            if isinstance(r, dict) and r.get("uri") and str(r.get("created_at", "")) >= since
+        ][-10:]
+        engagement = fetch_engagement([p["post_id"] for p in posts] + [r["uri"] for r in recent_replies])
         evidence = []
         for index, post in enumerate(posts):
             stats = engagement.get(post["post_id"], {})
@@ -109,20 +114,36 @@ class SelfModel:
                              "selfie": bool(post.get("is_selfie")), "created_at": post.get("created_at"),
                              "replies": stats.get("replyCount", 0), "reposts": stats.get("repostCount", 0),
                              "quotes": stats.get("quoteCount", 0), "likes": stats.get("likeCount", 0)})
+        conversations = [
+            {
+                "text": r.get("reply_text", "")[:180],
+                "target": r.get("target_handle", ""),
+                "replied_back": engagement.get(r["uri"], {}).get("replyCount", 0),
+                "likes": engagement.get(r["uri"], {}).get("likeCount", 0),
+            }
+            for r in recent_replies
+        ]
         if generator is None:
             from .generator import generator
-        changes, summary = self._propose(generator, evidence)
+        changes, summary = self._propose(generator, evidence, conversations=conversations or None)
         applied = self.apply(changes, summary, {e["id"] for e in evidence})
         if applied and notify:
             self._notify(applied, summary)
         return applied
 
-    def _propose(self, generator, evidence):
+    def _propose(self, generator, evidence, conversations=None):
         from .config import config
         from .generator import parse_json_object
         from .public_boundary import BOUNDARY, public_data
         from .life import SEED_THREADS
         data = self.load()
+        payload = {
+            "current": {"interests": data["interests"], "rhythm": data["rhythm"]},
+            "interest_meanings": {t["id"]: t["about"] for t in SEED_THREADS},
+            "recent_posts": evidence,
+        }
+        if conversations:
+            payload["recent_conversations"] = conversations
         raw, _ = generator._call_llm(
             BOUNDARY + "You are Han Seo-yeon looking back at how your own recent posts went, to adjust a few of your "
             "own habits. Conversations matter most: replies and quotes mean someone wanted to talk. Likes are a weak "
@@ -137,9 +158,7 @@ class SelfModel:
             "explaining what you changed and why (or that you changed nothing). "
             "Return JSON {changes:[{field:interest|posts_per_day|min_gap_hours,topic?:string,delta?:number,"
             "value?:number,evidence:[string],why:string}],summary:string}. Output ONLY the raw JSON object.",
-            json.dumps(public_data({"current": {"interests": data["interests"], "rhythm": data["rhythm"]},
-                                    "interest_meanings": {t["id"]: t["about"] for t in SEED_THREADS},
-                                    "recent_posts": evidence}), ensure_ascii=False),
+            json.dumps(public_data(payload), ensure_ascii=False),
             max_tokens=600)
         try:
             proposal = parse_json_object(raw)
@@ -251,11 +270,18 @@ def format_status(data):
 
 
 def fetch_engagement(uris):
-    """Public reply/repost/quote/like counts for her own posts (AppView, no private data)."""
+    """Public non-self reply and repost/quote/like counts for her posts (AppView, no private data)."""
     if MODE.get() == "offline" or not uris:
         return {}
     import urllib.parse
     import urllib.request
+    my_did = ""
+    for u in uris:
+        if isinstance(u, str) and u.startswith("at://"):
+            parts = u.split("/")
+            if len(parts) > 2 and parts[2]:
+                my_did = parts[2]
+                break
     result = {}
     for start in range(0, len(uris), 25):
         query = urllib.parse.urlencode([("uris", u) for u in uris[start:start + 25]])
@@ -265,6 +291,34 @@ def fetch_engagement(uris):
                     result[post.get("uri")] = {k: post.get(k, 0) for k in ("replyCount", "repostCount", "quoteCount", "likeCount")}
         except Exception:
             return result
+
+    def _count_non_self_replies(nodes):
+        total = 0
+        for node in nodes or []:
+            if not isinstance(node, dict):
+                continue
+            author_did = ((node.get("post") or {}).get("author") or {}).get("did") or ""
+            if author_did and author_did != my_did:
+                total += 1
+            total += _count_non_self_replies(node.get("replies"))
+        return total
+
+    if my_did and result:
+        checked = 0
+        for uri, stats in result.items():
+            if checked >= 8:
+                break
+            if (stats.get("replyCount") or 0) <= 0 or not isinstance(uri, str) or not uri.startswith("at://"):
+                continue
+            checked += 1
+            try:
+                t_query = urllib.parse.urlencode({"uri": uri, "depth": 2})
+                with urllib.request.urlopen(f"https://public.api.bsky.app/xrpc/app.bsky.feed.getPostThread?{t_query}", timeout=10) as resp:
+                    thread_data = json.loads(resp.read().decode("utf-8")).get("thread", {})
+                    if isinstance(thread_data, dict) and "replies" in thread_data:
+                        stats["replyCount"] = _count_non_self_replies(thread_data.get("replies"))
+            except Exception:
+                pass
     return result
 
 

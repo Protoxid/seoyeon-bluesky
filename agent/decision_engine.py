@@ -192,13 +192,14 @@ class DecisionEngine:
                     break  # Only consider top unread DM per tick
 
         # -------------------------------------------------------------
-        # 3. Notifications (Replies & Mentions)
+        # 3. Notifications (Replies, Mentions & Quotes)
         # -------------------------------------------------------------
         if config.allow_replies and notifications:
             valid_notif_candidates: List[ActionCandidate] = []
+            seen_follow_dids = set()
             for notif in notifications[:20]:
                 reason = notif.get("reason")
-                if reason not in ("reply", "mention"):
+                if reason not in ("reply", "mention", "quote"):
                     continue
 
                 notif_uri = notif.get("uri", "")
@@ -208,6 +209,7 @@ class DecisionEngine:
 
                 author = notif.get("author", {})
                 author_handle = (author.get("handle") or "").lower().lstrip("@")
+                author_did = author.get("did", "")
                 my_handle = (config.bsky_handle or "").lower().lstrip("@")
                 if author_handle == my_handle:
                     continue
@@ -222,13 +224,18 @@ class DecisionEngine:
                 if is_inj:
                     continue
 
-                profile = ms.get_user_profile(author.get("handle", ""))
+                profile = ms.get_user_profile(author.get("handle", ""), did=author_did)
 
                 if reason == "reply":
                     # Comment under her post
                     action_type = ActionType.REPLY_COMMENT
                     score = 0.70 if profile.relationship != "stranger" else 0.58
                     intent = "acknowledge_and_converse"
+                elif reason == "quote":
+                    # Quote-post of her post
+                    action_type = ActionType.REPLY_COMMENT
+                    score = 0.68 if profile.relationship != "stranger" else 0.62
+                    intent = "respond_to_quote"
                 else:
                     # Tagged in a post or mention
                     action_type = ActionType.ANSWER_MENTION
@@ -245,11 +252,33 @@ class DecisionEngine:
                         score=score,
                         confidence=0.75,
                         reason=f"{reason.capitalize()} from @{author.get('handle')}: \"{user_text[:40]}...\"",
-                        target_data={"notification": notif, "profile": profile, "text": user_text},
+                        target_data={
+                            "notification": notif,
+                            "profile": profile,
+                            "text": user_text,
+                            "notification_reason": reason,
+                            "source": f"notification:{reason}",
+                        },
                         intent=intent,
                     )
                 )
-                if len(valid_notif_candidates) >= 3:
+                if config.allow_follows and author_did and author_did not in seen_follow_dids and not (author.get("viewer") or {}).get("following"):
+                    seen_follow_dids.add(author_did)
+                    candidates.append(
+                        ActionCandidate(
+                            action=ActionType.FOLLOW,
+                            score=0.52,
+                            confidence=0.65,
+                            reason=f"Consider following @{author.get('handle')} after {reason} interaction.",
+                            target_data={
+                                "did": author_did,
+                                "handle": author_handle,
+                                "post": notif,
+                                "source": f"notification:{reason}",
+                            },
+                        )
+                    )
+                if len(valid_notif_candidates) >= 5:
                     break
 
             candidates.extend(valid_notif_candidates)
@@ -342,10 +371,11 @@ class DecisionEngine:
                 if ms.has_replied_to_post(post_uri): feed_diagnostics["already_replied"] += 1
 
                 evaluated_count += 1
+                item_source = item.get("source", "feed") if isinstance(item, dict) else "feed"
                 if author_did and not author.get("viewer", {}).get("following"):
                     candidates.append(ActionCandidate(action=ActionType.FOLLOW, score=0.50, confidence=0.65,
                         reason="Consider following this public author if their work is worth returning to.",
-                        target_data={"did": author_did, "handle": author_handle, "post": post}))
+                        target_data={"did": author_did, "handle": author_handle, "post": post, "source": item_source}))
 
                 # User profile and memory context
                 author_profile = ms.get_user_profile(author_handle, did=author_did)
@@ -388,7 +418,7 @@ class DecisionEngine:
                         score=reply_score,
                         confidence=0.70,
                         reason=f"Thoughtful reply to post by @{author.get('handle')}: \"{text[:40]}...\"",
-                        target_data={"post": post},
+                        target_data={"post": post, "source": item_source},
                         intent="add_perspective",
                     )
                     candidates.append(cand)
@@ -409,7 +439,7 @@ class DecisionEngine:
                         score=like_score,
                         confidence=0.65,
                         reason=f"Quietly like post by @{author.get('handle')} during feed browsing.",
-                        target_data={"post": post},
+                        target_data={"post": post, "source": item_source},
                     )
                     candidates.append(cand)
 
@@ -428,7 +458,7 @@ class DecisionEngine:
                         score=min(0.80, round(quote_score, 3)),
                         confidence=0.65,
                         reason=f"Quote-post thought by @{author.get('handle')}: \"{text[:40]}...\"",
-                        target_data={"post": post},
+                        target_data={"post": post, "source": item_source},
                         intent="quote_with_perspective",
                     )
                     candidates.append(cand)
@@ -444,7 +474,7 @@ class DecisionEngine:
                         score=0.55,
                         confidence=0.60,
                         reason=f"Quietly repost visual snapshot by @{author.get('handle')}.",
-                        target_data={"post": post},
+                        target_data={"post": post, "source": item_source},
                     )
                     candidates.append(cand)
 

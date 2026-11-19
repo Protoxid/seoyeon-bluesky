@@ -44,6 +44,8 @@ class BlueskyClient:
         self.jwt: Optional[str] = None
         self.did: Optional[str] = None
         self.dm_available: bool = True  # Track if app password has DM permission
+        self._did_cache: Dict[str, Optional[str]] = {}
+        self._saved_feed_uris: Optional[List[str]] = None
 
     def authenticate(self) -> bool:
         """Establishes an AT Protocol session."""
@@ -197,16 +199,79 @@ class BlueskyClient:
         res = self.xrpc_get("app.bsky.feed.searchPosts", {"q": query, "limit": limit, "sort":"latest", "since":since})
         return res.get("posts", [])
 
-    def get_discovery_feed(self, limit: int = 25, topics: Optional[List[str]] = None) -> List[Dict[str, Any]]:
+    def get_saved_feed_uris(self) -> List[str]:
+        """Retrieves pinned/saved Bluesky custom feed URIs from actor preferences (cached per session)."""
+        from .runtime import MODE
+        if MODE.get() == "offline":
+            return []
+        if self._saved_feed_uris is not None:
+            return list(self._saved_feed_uris)
+        res = self.xrpc_get("app.bsky.actor.getPreferences")
+        prefs = res.get("preferences", []) if isinstance(res, dict) else []
+        pinned: List[str] = []
+        saved: List[str] = []
+        for pref in prefs:
+            if not isinstance(pref, dict):
+                continue
+            ptype = pref.get("$type", "")
+            if ptype == "app.bsky.actor.defs#savedFeedsPrefV2":
+                for item in pref.get("items", []):
+                    if not isinstance(item, dict) or item.get("type") != "feed":
+                        continue
+                    val = item.get("value", "")
+                    if isinstance(val, str) and val.startswith("at://"):
+                        if item.get("pinned"):
+                            pinned.append(val)
+                        else:
+                            saved.append(val)
+            elif ptype == "app.bsky.actor.defs#savedFeedsPref":
+                for val in pref.get("pinned", []):
+                    if isinstance(val, str) and val.startswith("at://"):
+                        pinned.append(val)
+                for val in pref.get("saved", []):
+                    if isinstance(val, str) and val.startswith("at://"):
+                        saved.append(val)
+        uris = list(dict.fromkeys(pinned + saved))
+        self._saved_feed_uris = uris
+        return list(uris)
+
+    def get_custom_feed(self, feed_uri: str, limit: int = 10) -> List[Dict[str, Any]]:
+        """Retrieves posts from a Bluesky custom feed generator."""
+        if not feed_uri:
+            return []
+        res = self.xrpc_get("app.bsky.feed.getFeed", {"feed": feed_uri, "limit": limit})
+        return res.get("feed", []) if isinstance(res, dict) else []
+
+    def discover_popular_feeds(self, query: str, limit: int = 3) -> List[Dict[str, Any]]:
+        """Finds popular Bluesky custom feed generators matching a topic query."""
+        if not query:
+            return []
+        res = self.xrpc_get("app.bsky.unspecced.getPopularFeedGenerators", {"query": query, "limit": limit})
+        return res.get("feeds", []) if isinstance(res, dict) else []
+
+    def get_author_feed(self, actor: str, limit: int = 4) -> List[Dict[str, Any]]:
+        """Retrieves recent original posts for an author (posts_no_replies)."""
+        if not actor:
+            return []
+        res = self.xrpc_get("app.bsky.feed.getAuthorFeed", {"actor": actor, "limit": limit, "filter": "posts_no_replies"})
+        return res.get("feed", []) if isinstance(res, dict) else []
+
+    def get_discovery_feed(
+        self,
+        limit: int = 25,
+        topics: Optional[List[str]] = None,
+        follower_dids: Optional[List[str]] = None,
+    ) -> List[Dict[str, Any]]:
         """
         Retrieves discovery feed posts:
-        Combines timeline posts from followed accounts with dynamic, culturally rich topic searches
-        (Korean indie cinema, exhibitions, design, books, architecture, Seoul urban textures).
+        Combines timeline posts from followed accounts with custom feeds, new-follower posts,
+        and dynamic topic searches.
         Returns normalized list of candidate items [{'post': post_dict, 'source': ...}, ...].
         """
         items: List[Dict[str, Any]] = []
         seen_uris: Set[str] = set()
         from .recency import post_recency
+        from .runtime import MODE
 
         # 1. Timeline posts from followed accounts
         timeline = self.get_timeline(limit=15)
@@ -220,6 +285,41 @@ class BlueskyClient:
         # Optional curiosity derived only from public continuity, never a random topic rotation.
         from .discussion import discovery_queries
         chosen_topics = topics[:2] if topics is not None else discovery_queries()
+
+        # 2. Custom feeds (configured or saved; fallback to popular feed discovery if none configured)
+        if topics is None and MODE.get() != "offline":
+            feed_entries: List[Tuple[str, str]] = []
+            seen_feed_uris: Set[str] = set()
+            for uri in list(config.custom_feed_uris) + self.get_saved_feed_uris():
+                if isinstance(uri, str) and uri.startswith("at://") and uri not in seen_feed_uris:
+                    seen_feed_uris.add(uri)
+                    label = uri.rstrip("/").split("/")[-1][:24] or "custom"
+                    feed_entries.append((uri, label))
+
+            selected_feeds: List[Tuple[str, str]] = []
+            if feed_entries:
+                if len(feed_entries) <= 2:
+                    selected_feeds = feed_entries
+                else:
+                    slot = int(dt.datetime.now(dt.timezone.utc).timestamp() // 3600) % len(feed_entries)
+                    selected_feeds = [feed_entries[slot], feed_entries[(slot + 1) % len(feed_entries)]]
+            elif config.enable_custom_feed_discovery and chosen_topics:
+                for fg in self.discover_popular_feeds(chosen_topics[0], limit=2):
+                    uri = fg.get("uri", "") if isinstance(fg, dict) else ""
+                    if isinstance(uri, str) and uri.startswith("at://"):
+                        label = str(fg.get("displayName") or uri.rstrip("/").split("/")[-1])[:24]
+                        selected_feeds.append((uri, label))
+                        break
+
+            for feed_uri, label in selected_feeds:
+                for fp in self.get_custom_feed(feed_uri, limit=8):
+                    p = fp.get("post", fp) if isinstance(fp, dict) else {}
+                    u = p.get("uri") if isinstance(p, dict) else None
+                    if u and u not in seen_uris and post_recency(p) == "recent":
+                        seen_uris.add(u)
+                        items.append({"post": p, "source": f"feed:{label}"})
+
+        # 3. Topic search posts
         for topic in chosen_topics:
             search_res = self.search_posts(topic, limit=8)
             for p in search_res:
@@ -227,6 +327,19 @@ class BlueskyClient:
                 if u and u not in seen_uris and post_recency(p) == "recent":
                     seen_uris.add(u)
                     items.append({"post": p, "source": f"search:{topic}"})
+
+        # 4. Recent posts from newly arrived followers
+        if follower_dids and MODE.get() != "offline":
+            for did in list(dict.fromkeys(follower_dids))[:2]:
+                if not did:
+                    continue
+                for ap in self.get_author_feed(did, limit=2):
+                    p = ap.get("post", ap) if isinstance(ap, dict) else {}
+                    u = p.get("uri") if isinstance(p, dict) else None
+                    if u and u not in seen_uris and post_recency(p) == "recent":
+                        seen_uris.add(u)
+                        items.append({"post": p, "source": "new_follower"})
+                        break
 
         # Interleave observation sources so a full timeline cannot hide all discovery results.
         from itertools import zip_longest
@@ -377,10 +490,52 @@ class BlueskyClient:
                         alt_texts.append(ContentValidator.sanitize_untrusted_input(alt))
         return alt_texts
 
+    @classmethod
+    def extract_embed_summary(cls, post_dict: Dict[str, Any]) -> Dict[str, Any]:
+        """Safely extracts readable quoted-post text and external link-card metadata from a post embed."""
+        if not isinstance(post_dict, dict):
+            return {}
+        embed = post_dict.get("embed") or {}
+        if not isinstance(embed, dict):
+            return {}
+
+        from .validator import ContentValidator
+        summary: Dict[str, Any] = {}
+
+        rec_container = embed.get("record")
+        if isinstance(rec_container, dict):
+            view_rec = rec_container.get("record") if isinstance(rec_container.get("record"), dict) else rec_container
+            if isinstance(view_rec, dict):
+                val = view_rec.get("value") if isinstance(view_rec.get("value"), dict) else view_rec.get("record")
+                q_text = val.get("text", "") if isinstance(val, dict) else ""
+                if isinstance(q_text, str) and q_text.strip():
+                    q_author = (view_rec.get("author") or {}).get("handle", "")
+                    summary["quoted_post"] = {
+                        "author": str(q_author),
+                        "text": ContentValidator.sanitize_untrusted_input(q_text)[:350],
+                        "uri": str(view_rec.get("uri") or ""),
+                    }
+
+        ext = embed.get("external")
+        if not isinstance(ext, dict) and isinstance(embed.get("media"), dict):
+            ext = embed["media"].get("external")
+        if isinstance(ext, dict):
+            title = str(ext.get("title") or "").strip()
+            desc = str(ext.get("description") or "").strip()
+            uri = str(ext.get("uri") or "").strip()
+            if title or desc or uri:
+                summary["external_card"] = {
+                    "title": ContentValidator.sanitize_untrusted_input(title)[:140],
+                    "description": ContentValidator.sanitize_untrusted_input(desc)[:220],
+                    "uri": uri,
+                }
+
+        return summary
+
     def get_thread_context(self, uri: str, depth: int = 4) -> Dict[str, Any]:
         """
         Retrieves thread details to obtain complete conversation context
-        including root post, intermediate parents, and author details.
+        including root post, intermediate parents, sibling replies, and embed summaries.
         """
         encoded_uri = urllib.parse.quote(uri)
         res = self.xrpc_get("app.bsky.feed.getPostThread", {"uri": uri, "depth": depth})
@@ -402,6 +557,7 @@ class BlueskyClient:
                     "media_present_not_inspected": bool(p.get("embed")),
                     "media_alt_texts": self.extract_image_alt_texts(p),
                     "media_urls": self.extract_image_urls(p),
+                    "embed_summary": self.extract_embed_summary(p),
                 })
             parent_node = curr.get("parent")
             if parent_node and parent_node.get("$type") == "app.bsky.feed.defs#threadViewPost":
@@ -411,11 +567,36 @@ class BlueskyClient:
 
         # Reverse chain so it goes Root -> Parent -> Current
         posts_chain.reverse()
+
+        sibling_replies: List[Dict[str, str]] = []
+        raw_replies = thread.get("replies") if isinstance(thread, dict) else None
+        if isinstance(raw_replies, list):
+            from .validator import ContentValidator
+            ranked_siblings = []
+            for rep in raw_replies:
+                if not isinstance(rep, dict) or rep.get("$type") != "app.bsky.feed.defs#threadViewPost":
+                    continue
+                rp = rep.get("post", {})
+                r_text = (rp.get("record") or {}).get("text", "") if isinstance(rp, dict) else ""
+                if not isinstance(r_text, str) or not r_text.strip():
+                    continue
+                likes = rp.get("likeCount", 0) or 0
+                ranked_siblings.append((
+                    likes,
+                    {
+                        "author": str((rp.get("author") or {}).get("handle", "")),
+                        "text": ContentValidator.sanitize_untrusted_input(r_text)[:240],
+                    },
+                ))
+            ranked_siblings.sort(key=lambda item: item[0], reverse=True)
+            sibling_replies = [item[1] for item in ranked_siblings[:3]]
+
         return {
             "thread": thread,
             "chain": posts_chain,
             "root": posts_chain[0] if posts_chain else None,
             "current": posts_chain[-1] if posts_chain else None,
+            "sibling_replies": sibling_replies,
         }
 
     def can_reply_to_thread(
@@ -544,6 +725,25 @@ class BlueskyClient:
 
     # --- Publishing & Likes ---
     @staticmethod
+    def detect_langs(text: str) -> List[str]:
+        """Infers Bluesky language tags from outgoing text without mislabeling single-language posts."""
+        if not isinstance(text, str) or not text.strip():
+            return ["ko", "en"]
+        stripped = re.sub(r"https?://[^\s]+", " ", text)
+        stripped = re.sub(r"@[a-zA-Z0-9._-]+", " ", stripped)
+        hangul = len(re.findall(r"[\uac00-\ud7a3]", stripped))
+        latin = len(re.findall(r"[A-Za-z]", stripped))
+        if hangul > 0 and latin == 0:
+            return ["ko"]
+        if latin > 0 and hangul == 0:
+            return ["en"]
+        if hangul > 0 and latin > 0:
+            if hangul >= 3 and latin >= 15:
+                return ["ko", "en"]
+            return ["ko"] if hangul >= 3 else ["en"]
+        return ["ko", "en"]
+
+    @staticmethod
     def parse_facets(text: str) -> List[Dict[str, Any]]:
         """Parses hashtags and URLs, formatting them as AT Protocol facets with UTF-8 byte offsets."""
         facets = []
@@ -573,6 +773,36 @@ class BlueskyClient:
                 "features": [{"$type": "app.bsky.richtext.facet#link", "uri": url_val}],
             })
 
+        facets.sort(key=lambda f: f["index"]["byteStart"])
+        return facets
+
+    def build_facets(self, text: str) -> List[Dict[str, Any]]:
+        """Builds hashtag, link, and @mention facets (DID resolution skipped when offline or dry-run)."""
+        facets = self.parse_facets(text)
+        from .runtime import MODE
+        mention_pattern = re.compile(
+            r'(?:^|(?<=[\s(]))(@([a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+))'
+        )
+        for match in mention_pattern.finditer(text):
+            handle = match.group(2).lower()
+            start_char = match.start(1)
+            end_char = match.end(1)
+            start_byte = len(text[:start_char].encode("utf-8"))
+            end_byte = len(text[:end_char].encode("utf-8"))
+            if any(f["index"]["byteStart"] <= start_byte < f["index"]["byteEnd"] for f in facets):
+                continue
+            if handle in self._did_cache:
+                did = self._did_cache[handle]
+            elif MODE.get() != "offline" and not self.dry_run:
+                did = self.resolve_handle(handle)
+                self._did_cache[handle] = did
+            else:
+                did = None
+            if did:
+                facets.append({
+                    "index": {"byteStart": start_byte, "byteEnd": end_byte},
+                    "features": [{"$type": "app.bsky.richtext.facet#mention", "did": did}],
+                })
         facets.sort(key=lambda f: f["index"]["byteStart"])
         return facets
 
@@ -630,9 +860,9 @@ class BlueskyClient:
             "$type": "app.bsky.feed.post",
             "text": text,
             "createdAt": now_iso,
-            "langs": langs or ["ko", "en"],
+            "langs": langs or self.detect_langs(text),
         }
-        facets = self.parse_facets(text)
+        facets = self.build_facets(text)
         if facets:
             record["facets"] = facets
 
@@ -679,13 +909,13 @@ class BlueskyClient:
             "$type": "app.bsky.feed.post",
             "text": text,
             "createdAt": now_iso,
-            "langs": langs or ["ko", "en"],
+            "langs": langs or self.detect_langs(text),
             "embed": {
                 "$type": "app.bsky.embed.images",
                 "images": embeds,
             },
         }
-        facets = self.parse_facets(text)
+        facets = self.build_facets(text)
         if facets:
             record["facets"] = facets
 
@@ -735,12 +965,15 @@ class BlueskyClient:
             "$type": "app.bsky.feed.post",
             "text": reply_text,
             "createdAt": now_iso,
-            "langs": langs or ["ko", "en"],
+            "langs": langs or self.detect_langs(reply_text),
             "reply": {
                 "root": {"uri": root_uri, "cid": root_cid},
                 "parent": {"uri": parent_uri, "cid": parent_cid},
             },
         }
+        facets = self.build_facets(reply_text)
+        if facets:
+            record["facets"] = facets
 
         if self.dry_run:
             print(f"[DRY-RUN] Would publish reply: \"{reply_text}\" to {parent_uri}")
@@ -806,13 +1039,13 @@ class BlueskyClient:
             "$type": "app.bsky.feed.post",
             "text": text,
             "createdAt": now_iso,
-            "langs": langs or ["ko", "en"],
+            "langs": langs or self.detect_langs(text),
             "embed": {
                 "$type": "app.bsky.embed.record",
                 "record": {"uri": target_uri, "cid": target_cid},
             },
         }
-        facets = self.parse_facets(text)
+        facets = self.build_facets(text)
         if facets:
             record["facets"] = facets
 

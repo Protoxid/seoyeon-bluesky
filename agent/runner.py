@@ -41,7 +41,7 @@ from .context_engine import build_environment_context, get_seoul_datetime
 from .memory_store import memory_store
 from .bsky_client import bsky_client
 from .budget_manager import budget_manager
-from .decision_engine import ActionType, decision_engine
+from .decision_engine import ActionType, DecisionOutcome, decision_engine
 from .generator import generator
 from .image_engine import image_engine
 from .narrative_engine import narrative_engine
@@ -260,6 +260,8 @@ def _execute_image_post(outcome, context, is_dry):
         executed = bool(res.get("uri"))
         if executed and not is_dry:
             memory_store.record_recent_post(post_text, topic="image_post", post_id=res["uri"], has_image=True, is_selfie=first_is_selfie)
+            from .continuity import learn_interaction
+            learn_interaction(res["uri"], "", post_text, "self")
             _record_life(context, post_text, res["uri"], "selfie" if first_is_selfie else "photo")
         result_details = {"uri": res.get("uri"), "text": post_text, "alt_text": [a for _, a in photos],
                           "photos": len(photos), "photo_statuses": statuses,
@@ -303,15 +305,27 @@ def _execute_reply_comment(outcome, context, is_dry, auth_ok):
         return _EARLY_EXIT
 
     # 3. Draft in-character reply
-    reply_text, model_used = generator.generate_reply(target_author, user_text, thread_ctx, profile, context)
+    reply_text, model_used = generator.generate_reply(
+        target_author,
+        user_text,
+        thread_ctx,
+        profile,
+        context,
+        intent=outcome.intent or "friendly_reply",
+    )
     print(f"  Draft Reply ({model_used}): \"{reply_text}\"")
 
     if not reply_text or model_used in ("failed", "fallback"):
         print(f"  [RESTRAINT ABORT] Could not formulate authentic contextual reply. Remaining silent.")
-        memory_store.mark_notification_handled(notif.get("uri", ""), target_post_uri=target_uri)
-        if auth_ok:
-            bsky_client.update_seen()
-        result_details = {"status": "aborted_generation_failed", "target_uri": target_uri}
+        status = getattr(generator, "last_discussion_status", "")
+        should_retire = (status == "chosen_silence") or (
+            not is_dry and bool(target_uri) and memory_store.record_notification_attempt(target_uri) >= 2
+        )
+        if should_retire:
+            memory_store.mark_notification_handled(notif.get("uri", ""), target_post_uri=target_uri)
+            if auth_ok:
+                bsky_client.update_seen()
+        result_details = {"status": "aborted_generation_failed", "discussion_status": status, "retired": should_retire, "target_uri": target_uri}
         _log_abort(context, is_dry, f"Restraint abort: could not formulate authentic contextual reply to {target_author}.", result_details)
         return _EARLY_EXIT
 
@@ -324,9 +338,13 @@ def _execute_reply_comment(outcome, context, is_dry, auth_ok):
     res = bsky_client.publish_reply(reply_text, target_uri, target_cid, root_uri, root_cid)
     if res.get("uri"):
         print(f"  [SUCCESS] Published Reply: {res.get('uri')}")
-        # Optionally like user's comment
-        if config.allow_likes and not is_dry:
-            bsky_client.like_post(target_uri, target_cid)
+        if not is_dry:
+            memory_store.clear_notification_attempt(target_uri)
+        # Optionally like user's comment unless the chooser set like_target=False
+        if config.allow_likes and not is_dry and outcome.target_data.get("like_target", True) is not False:
+            like_res = bsky_client.like_post(target_uri, target_cid)
+            if isinstance(like_res, dict) and like_res.get("uri"):
+                memory_store.record_recent_like(target_uri, target_author)
 
         if not is_dry:
             memory_store.record_user_interaction(target_author, user_text, reply_text, "reply", did=notif.get("author", {}).get("did", ""))
@@ -566,6 +584,13 @@ def _execute_quote(outcome, context, is_dry):
         print(f"  [SUCCESS] Published Quote Post: {res.get('uri')}")
         if not is_dry:
             memory_store.record_recent_post(quote_comment, topic="quote_post", post_id=res.get("uri", ""))
+            author_did = post.get("author", {}).get("did", "")
+            memory_store.record_user_interaction(target_author, user_text, quote_comment, "quote", did=author_did)
+            notif_uri = (outcome.target_data.get("notification") or {}).get("uri", "")
+            memory_store.mark_notification_handled(notif_uri, target_post_uri=target_uri)
+            from .continuity import learn_interaction
+            learn_interaction(res["uri"], user_text, quote_comment, author_did or target_author)
+            _record_life(context, quote_comment, res["uri"], "quote")
         executed = True
         result_details = {"uri": res.get("uri"), "text": quote_comment, "target_uri": target_uri}
     return executed, result_details
@@ -623,6 +648,29 @@ def _execute_action(outcome, context, is_dry, auth_ok):
     if action == ActionType.FOLLOW:
         return _execute_follow(outcome, context, is_dry)
     return False, {}
+
+
+def _companion_eligible(companion) -> bool:
+    if companion is None or companion.action == ActionType.NO_ACTION:
+        return False
+    from .recency import candidate_recency
+    if candidate_recency(companion) != "recent":
+        return False
+    posts_today, replies_today, dms_today, likes_today = memory_store.get_activity_counts_today()
+    act = companion.action
+    if act in (ActionType.PUBLISH_TEXT_POST, ActionType.PUBLISH_IMAGE_POST, ActionType.QUOTE_POST):
+        return False
+    if act in (ActionType.REPLY_COMMENT, ActionType.ANSWER_MENTION, ActionType.BROWSE_AND_REPLY):
+        return bool(config.allow_replies and replies_today < config.max_replies_per_day)
+    if act == ActionType.ANSWER_DM:
+        return bool(config.allow_dms and dms_today < config.max_dms_per_day)
+    if act == ActionType.BROWSE_AND_LIKE:
+        return bool(config.allow_likes and likes_today < config.max_likes_per_day)
+    if act == ActionType.REPOST:
+        return bool(config.allow_reposts)
+    if act == ActionType.FOLLOW:
+        return bool(config.allow_follows)
+    return False
 
 
 def run_tick(
@@ -721,7 +769,26 @@ def run_tick(
     if auth_ok:
         notifications = bsky_client.list_notifications(limit=30)
         dms = bsky_client.list_convos(limit=10)
-        feed_items = bsky_client.get_discovery_feed(limit=25)
+        seen_recent = memory_store.recently_inspected_followers(days=7.0)
+        follower_dids: List[str] = []
+        for n in notifications:
+            if n.get("reason") != "follow":
+                continue
+            author = n.get("author") or {}
+            did = author.get("did", "")
+            if not did or did in seen_recent or did in follower_dids:
+                continue
+            if (author.get("viewer") or {}).get("following"):
+                continue
+            follower_dids.append(did)
+            if len(follower_dids) >= 2:
+                break
+        if follower_dids:
+            feed_items = bsky_client.get_discovery_feed(limit=25, follower_dids=follower_dids)
+            if not is_dry:
+                memory_store.record_inspected_followers(follower_dids)
+        else:
+            feed_items = bsky_client.get_discovery_feed(limit=25)
     elif is_dry and os.environ.get("SEOYEON_REPLAY_FILE"):
         fixture = json.loads(pathlib.Path(os.environ["SEOYEON_REPLAY_FILE"]).read_text(encoding="utf-8"))
         notifications, dms, feed_items = fixture.get("notifications", []), fixture.get("dms", []), fixture.get("feed", [])
@@ -788,6 +855,7 @@ def run_tick(
     print(f"  Reasoning:        {outcome.reason}")
 
     # 7. Action Execution Stage
+    companion = outcome.target_data.pop("_companion_candidate", None)
     executed, result_details = False, {}
     action_result = _execute_action(outcome, context, is_dry, auth_ok)
     if action_result is _EARLY_EXIT:
@@ -815,6 +883,53 @@ def run_tick(
             state_manager.consume_interaction(outcome.selected_action.value)
         except Exception:
             pass
+
+    if (
+        executed
+        and not force_action
+        and outcome.selected_action != ActionType.NO_ACTION
+        and config.max_actions_per_tick >= 2
+        and _companion_eligible(companion)
+    ):
+        print(f"\n[Session Check] Running companion action: {companion.action.value}")
+        comp_target = companion.target_data or {}
+        comp_post = comp_target.get("post") or comp_target.get("notification") or {}
+        bsky_client.action_identity = companion.action.value + ":" + (
+            comp_target.get("last_message_id")
+            or comp_post.get("uri")
+            or comp_target.get("did")
+            or (context.date_display + ":" + previous_id)
+        )
+        companion_outcome = DecisionOutcome(
+            selected_action=companion.action,
+            reason=f"Session companion: {companion.reason}",
+            target_data=comp_target,
+            intent=companion.intent,
+            candidate_scores=outcome.candidate_scores,
+            all_candidates=outcome.all_candidates,
+        )
+        generator.last_discussion_status = "not_attempted"
+        comp_result = _execute_action(companion_outcome, context, is_dry, auth_ok)
+        if comp_result is not _EARLY_EXIT:
+            comp_executed, comp_details = comp_result
+            log_tick({
+                "ts": dt.datetime.now(dt.timezone.utc).isoformat(),
+                "seoul_time": context.seoul_time_display,
+                "action": companion_outcome.selected_action.value,
+                "reason": companion_outcome.reason,
+                "dry_run": is_dry,
+                "executed": comp_executed,
+                "details": comp_details,
+                "discussion_status": getattr(generator, "last_discussion_status", "not_attempted"),
+                "budget": budget_manager.get_summary(),
+                "session_companion": True,
+            })
+            if comp_executed and not is_dry:
+                try:
+                    from .state_manager import state_manager
+                    state_manager.consume_interaction(companion_outcome.selected_action.value)
+                except Exception:
+                    pass
 
     print("\n[Budget & Resource Status]")
     summary = budget_manager.get_summary()

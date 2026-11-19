@@ -113,6 +113,27 @@ class ContinuityStore:
             result.append({"collection": "fictional_world", **world})
         return json.dumps(result, ensure_ascii=False)
 
+    def subject_context(self, subject: str, query: str = "", *, scope: str = "public", limit: int = 4) -> list:
+        """Return only memories and open commitments belonging to a specific subject."""
+        if not subject or limit <= 0:
+            return []
+        data = self.load()
+        words = set(re.findall(r"\w+", query.lower()))
+        items = []
+        for collection in ("memories", "commitments"):
+            for key, item in data[collection].items():
+                if not self.visible(item, scope):
+                    continue
+                if item.get("subject") != subject:
+                    continue
+                if collection == "commitments" and item.get("status") != "open":
+                    continue
+                text = json.dumps(prompt_item(item), ensure_ascii=False)
+                overlap = len(words & set(re.findall(r"\w+", text.lower())))
+                items.append((overlap, item.get("updated_at", ""), {"collection": collection, "id": key, **prompt_item(item)}))
+        items.sort(key=lambda item: (item[0], item[1]), reverse=True)
+        return [i[2] for i in items[:limit]]
+
     def public_post_material(self, limit=6):
         """Unpublished draft candidates and recent external observations, never private data.
 

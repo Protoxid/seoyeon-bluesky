@@ -300,6 +300,18 @@ class MemoryStore:
 
         self.save_user_profile(prof)
 
+    def get_public_history_for_user(self, handle_or_did: str, did: str = "", limit: int = 3) -> List[Dict[str, Any]]:
+        """Returns recent public exchanges with an interlocutor, strictly excluding private DMs."""
+        if limit <= 0:
+            return []
+        prof = self.get_user_profile(handle_or_did, did=did)
+        public_rows = [
+            {"type": h.get("type", "reply"), "user": h.get("user", ""), "agent": h.get("agent", "")}
+            for h in (prof.history or [])
+            if isinstance(h, dict) and h.get("type") != "dm"
+        ]
+        return public_rows[-limit:]
+
     # --- Opinion & Preferences Memory ---
     def get_opinions(self) -> Dict[str, Dict[str, Any]]:
         try:
@@ -493,6 +505,52 @@ class MemoryStore:
     def recently_offered(self, hours: float = 6.0) -> set:
         cutoff = (dt.datetime.now(dt.timezone.utc) - dt.timedelta(hours=hours)).isoformat()
         return {u for u, t in self.get_recent_context().get("offered_candidates", {}).items() if t >= cutoff}
+
+    def record_notification_attempt(self, uri: str) -> int:
+        """Tracks transient generation/delivery attempts for a direct notification."""
+        if not uri:
+            return 0
+        ctx = self.get_recent_context()
+        attempts = dict(ctx.get("notification_attempts", {}))
+        count = int(attempts.pop(uri, 0)) + 1
+        attempts[uri] = count
+        if len(attempts) > 200:
+            attempts = dict(list(attempts.items())[-200:])
+        ctx["notification_attempts"] = attempts
+        write_json(self.recent_context_file, ctx)
+        return count
+
+    def clear_notification_attempt(self, uri: str) -> None:
+        if not uri:
+            return
+        ctx = self.get_recent_context()
+        attempts = ctx.get("notification_attempts", {})
+        if uri in attempts:
+            attempts = dict(attempts)
+            attempts.pop(uri, None)
+            ctx["notification_attempts"] = attempts
+            write_json(self.recent_context_file, ctx)
+
+    def recently_inspected_followers(self, days: float = 7.0) -> Set[str]:
+        cutoff = (dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=days)).isoformat()
+        inspected = self.get_recent_context().get("inspected_followers", {})
+        return {d for d, ts in inspected.items() if isinstance(ts, str) and ts >= cutoff}
+
+    def record_inspected_followers(self, dids) -> None:
+        clean = [d for d in (dids or []) if isinstance(d, str) and d]
+        if not clean:
+            return
+        ctx = self.get_recent_context()
+        now = dt.datetime.now(dt.timezone.utc)
+        inspected = dict(ctx.get("inspected_followers", {}))
+        for did in clean:
+            inspected[did] = now.isoformat()
+        cutoff = (now - dt.timedelta(days=7)).isoformat()
+        filtered = {d: ts for d, ts in inspected.items() if isinstance(ts, str) and ts >= cutoff}
+        if len(filtered) > 200:
+            filtered = dict(list(filtered.items())[-200:])
+        ctx["inspected_followers"] = filtered
+        write_json(self.recent_context_file, ctx)
 
     def record_recent_post(self, text: str, topic: str, post_id: str = "", has_image: bool = False, is_selfie: bool = False) -> None:
         ctx = self.get_recent_context()
