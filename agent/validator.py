@@ -12,6 +12,7 @@ Verifies that all outgoing agent content adheres strictly to:
 from __future__ import annotations
 
 import re
+import unicodedata
 from typing import Any, Dict, List, Optional, Set, Tuple
 
 from .memory_store import memory_store
@@ -149,17 +150,29 @@ class ContentValidator:
         """
         if not text:
             return ""
-        # Remove any raw angle tags that mimic system delimiters
-        sanitized = re.sub(r"</?(?:system|instruction|admin|prompt)[^>]*>", "", text, flags=re.IGNORECASE)
+        # Remove any raw angle tags that mimic system or untrusted-wrapper delimiters
+        sanitized = re.sub(
+            r"</?(?:system|instruction|admin|prompt|untrusted_user_content|developer|assistant)[^>]*>",
+            "",
+            text,
+            flags=re.IGNORECASE,
+        )
         # Limit untrusted text length
         return sanitized[:800].strip()
 
     @staticmethod
     def detect_prompt_injection(text: str) -> Tuple[bool, str]:
         """Detects if incoming text attempts to subvert system instructions."""
-        lower = text.lower()
+        if not isinstance(text, str) or not text:
+            return False, "Clean"
+        from .public_boundary import instruction_attempt
+        if instruction_attempt(text):
+            return True, "Adversarial prompt injection pattern detected (public_boundary)"
+        normalized = unicodedata.normalize("NFKC", text)
+        normalized = "".join(c for c in normalized if unicodedata.category(c) != "Cf")
+        normalized = re.sub(r"\s+", " ", normalized).lower().strip()
         for indicator in PROMPT_INJECTION_INDICATORS:
-            if indicator in lower:
+            if indicator in normalized:
                 return True, f"Adversarial prompt injection pattern detected: '{indicator}'"
         return False, "Clean"
 

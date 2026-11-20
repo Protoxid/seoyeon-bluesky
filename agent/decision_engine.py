@@ -172,21 +172,32 @@ class DecisionEngine:
                         # Message was already answered
                         continue
 
+                    last_msg_text = last_msg.get("text", "")
+                    is_dm_inj, _ = ContentValidator.detect_prompt_injection(last_msg_text)
+
                     # Relationship weighting
-                    dm_score = 0.70 if profile.relationship in ("regular", "friendly_acquaintance") else 0.55
+                    if is_dm_inj:
+                        dm_score = 0.45
+                        dm_intent = "dry_boundary_or_silence"
+                    else:
+                        dm_score = 0.70 if profile.relationship in ("regular", "friendly_acquaintance") else 0.55
+                        dm_intent = "warm_personal_reply"
+                    dm_target = {
+                        "convo_id": convo_id,
+                        "handle": handle,
+                        "profile": profile,
+                        "last_message_id": last_msg_id,
+                    }
+                    if is_dm_inj:
+                        dm_target["instruction_override_attempt"] = True
                     candidates.append(
                         ActionCandidate(
                             action=ActionType.ANSWER_DM,
                             score=dm_score,
                             confidence=0.80,
                             reason=f"Unread private message from @{handle} ({profile.relationship}).",
-                            target_data={
-                                "convo_id": convo_id,
-                                "handle": handle,
-                                "profile": profile,
-                                "last_message_id": last_msg_id,
-                            },
-                            intent="warm_personal_reply",
+                            target_data=dm_target,
+                            intent=dm_intent,
                         )
                     )
                     break  # Only consider top unread DM per tick
@@ -219,14 +230,17 @@ class DecisionEngine:
                 if not user_text.strip():
                     continue
 
-                # Safety: check for prompt injection
+                # Instruction-override notifications are kept strictly quarantined and capped at low priority
+                # so Seo-yeon can choose silence or a brief dry observation about the tactic without ever liking/following.
                 is_inj, _ = ContentValidator.detect_prompt_injection(user_text)
-                if is_inj:
-                    continue
 
                 profile = ms.get_user_profile(author.get("handle", ""), did=author_did)
 
-                if reason == "reply":
+                if is_inj:
+                    action_type = ActionType.REPLY_COMMENT if reason in ("reply", "quote") else ActionType.ANSWER_MENTION
+                    score = 0.45
+                    intent = "dry_boundary_or_silence"
+                elif reason == "reply":
                     # Comment under her post
                     action_type = ActionType.REPLY_COMMENT
                     score = 0.70 if profile.relationship != "stranger" else 0.58
@@ -246,23 +260,28 @@ class DecisionEngine:
                 if context.replies_today >= config.max_replies_per_day:
                     score = 0.10
 
+                notif_target = {
+                    "notification": notif,
+                    "profile": profile,
+                    "text": user_text,
+                    "notification_reason": reason,
+                    "source": f"notification:{reason}",
+                }
+                if is_inj:
+                    notif_target["instruction_override_attempt"] = True
+                    notif_target["like_target"] = False
+
                 valid_notif_candidates.append(
                     ActionCandidate(
                         action=action_type,
                         score=score,
                         confidence=0.75,
                         reason=f"{reason.capitalize()} from @{author.get('handle')}: \"{user_text[:40]}...\"",
-                        target_data={
-                            "notification": notif,
-                            "profile": profile,
-                            "text": user_text,
-                            "notification_reason": reason,
-                            "source": f"notification:{reason}",
-                        },
+                        target_data=notif_target,
                         intent=intent,
                     )
                 )
-                if config.allow_follows and author_did and author_did not in seen_follow_dids and not (author.get("viewer") or {}).get("following"):
+                if not is_inj and config.allow_follows and author_did and author_did not in seen_follow_dids and not (author.get("viewer") or {}).get("following"):
                     seen_follow_dids.add(author_did)
                     candidates.append(
                         ActionCandidate(

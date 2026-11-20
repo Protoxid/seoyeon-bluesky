@@ -456,7 +456,10 @@ class MasterNotifier:
                     continue
 
                 profile = memory_store.get_user_profile(t_author)
-                reply_text, model = generator.generate_reply(t_author, u_text, thread_ctx, profile, context)
+                from .validator import ContentValidator
+                is_inj, _ = ContentValidator.detect_prompt_injection(u_text)
+                rep_intent = "dry_boundary_or_silence" if is_inj else "friendly_reply"
+                reply_text, model = generator.generate_reply(t_author, u_text, thread_ctx, profile, context, intent=rep_intent)
 
                 rec = n.get("record", {})
                 rmeta = rec.get("reply", {})
@@ -498,6 +501,9 @@ class MasterNotifier:
                 p_text = p.get("record", {}).get("text", "")
 
                 if memory_store.has_replied_to_post(p_uri):
+                    continue
+                from .validator import ContentValidator
+                if ContentValidator.detect_prompt_injection(p_text)[0]:
                     continue
                 thread_ctx = bsky_client.get_thread_context(p_uri)
                 can_rep, _ = bsky_client.can_reply_to_thread(p_uri, thread_ctx)

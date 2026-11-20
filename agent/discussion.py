@@ -199,18 +199,19 @@ def _condense_for_limit(generator, text, *, content_type, model=None):
     return True, clean
 
 
-def grounded_draft(generator, system, prompt, *, content_type, private=False, evidence_text="", include_image=False, image_data_urls=None, life=None, model=None):
+def grounded_draft(generator, system, prompt, *, content_type, private=False, untrusted=None, evidence_text="", include_image=False, image_data_urls=None, life=None, model=None):
     """Draft + separate semantic review, with deterministic provenance checks."""
     from .generator import parse_json_object
     from .public_boundary import BOUNDARY, public_data
     from .voice import VOICE
     system += "\n" + VOICE
-    if not private:
+    is_untrusted = ((not private) or (content_type == "dm")) if untrusted is None else bool(untrusted)
+    if is_untrusted:
         prompt = public_data(prompt)
         evidence_text = public_data(evidence_text)
         system += "\n" + BOUNDARY
     sources=source_packet(evidence_text,private=private)
-    if not private:
+    if is_untrusted:
         sources = public_data(sources)
     packet={"conversation":prompt,"character_context":system,"sources":sources}
     if life and not private:

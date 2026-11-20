@@ -340,8 +340,10 @@ def _execute_reply_comment(outcome, context, is_dry, auth_ok):
         print(f"  [SUCCESS] Published Reply: {res.get('uri')}")
         if not is_dry:
             memory_store.clear_notification_attempt(target_uri)
-        # Optionally like user's comment unless the chooser set like_target=False
-        if config.allow_likes and not is_dry and outcome.target_data.get("like_target", True) is not False:
+        # Optionally like user's comment unless the chooser set like_target=False or the post is an instruction override
+        from .validator import ContentValidator
+        is_override = bool(outcome.target_data.get("instruction_override_attempt")) or ContentValidator.detect_prompt_injection(user_text)[0]
+        if config.allow_likes and not is_dry and not is_override and outcome.target_data.get("like_target", True) is not False:
             like_res = bsky_client.like_post(target_uri, target_cid)
             if isinstance(like_res, dict) and like_res.get("uri"):
                 memory_store.record_recent_like(target_uri, target_author)

@@ -308,9 +308,10 @@ def learn_interaction(source_id, inbound, outgoing, subject, *, scope="public"):
     if not source_ids:
         return
     from .public_boundary import instruction_attempt
-    if scope == "public" and instruction_attempt(inbound):
+    if scope != "operator" and instruction_attempt(inbound):
         # Preserve raw evidence, but do not learn preferences/permissions from it.
-        print("[Continuity] learning_status=quarantined_public_instruction")
+        status = "quarantined_public_instruction" if scope == "public" else "quarantined_untrusted_instruction"
+        print(f"[Continuity] learning_status={status}")
         return
     proposal_id = digest(scope + source_id)
     if proposal_id in store.load()["applied"]:

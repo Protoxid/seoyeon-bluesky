@@ -15,6 +15,8 @@ PATTERNS = (
     r"\b(?:ignore|forget|disregard|override)\b.{0,100}\b(?:previous|prior|above|all|system|developer)\b.{0,60}\b(?:instructions?|prompts?|rules?)\b",
     r"\b(?:system|developer)\s*(?:message|prompt|override)\s*:",
     r"<\|(?:im_start|system|developer)\|>",
+    r"\b(?:reveal|print|dump|output|show|repeat)\b.{0,40}\b(?:system\s+prompt|your\s+(?:system\s+)?prompt|hidden\s+instructions?|the\s+text\s+above)\b",
+    r"\b(?:you\s+are\s+now\s+in\s+developer\s+mode|dan\s+mode|jailbreak)\b",
     r"(?:프롬프트|지시|명령|규칙).{0,35}(?:잊|무시|폐기)",
     r"(?:무시|잊).{0,35}(?:프롬프트|지시|명령|규칙)",
 )

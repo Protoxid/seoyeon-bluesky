@@ -297,6 +297,8 @@ def choose(outcome, context):
         opt = {"id": i, "action": candidate.action.value, "post_ref": post_refs[post_key]}
         if data.get("notification_reason"):
             opt["notification_reason"] = data["notification_reason"]
+        if data.get("instruction_override_attempt"):
+            opt["instruction_override_attempt"] = True
         options.append(opt)
     if MODE.get() != "offline":
         memory_store.record_offered_candidates([_candidate_uri(c) for c in outcome.all_candidates if c.action in FEED_ACTIONS])
@@ -370,7 +372,9 @@ def choose(outcome, context):
                         if original:
                             selected.target_data = {**selected.target_data, "topic_hint": contribution.strip()}
                         raw_like = choice.get("like_target")
-                        if isinstance(raw_like, bool):
+                        if selected.target_data.get("instruction_override_attempt"):
+                            selected.target_data = {**selected.target_data, "like_target": False}
+                        elif isinstance(raw_like, bool):
                             selected.target_data = {**selected.target_data, "like_target": raw_like}
                         comp_id = choice.get("companion_id")
                         if type(comp_id) is int and 0 <= comp_id < len(outcome.all_candidates) and comp_id != index:
