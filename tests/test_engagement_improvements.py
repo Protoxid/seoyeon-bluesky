@@ -879,6 +879,113 @@ class TestRunnerAndSelfModel(unittest.TestCase):
             supplied = json.loads(gen._call_llm.call_args.args[1])
             self.assertEqual(supplied["recent_conversations"][0]["replied_back"], 1)
 
+    def test_scene_planner_selfie_mode_and_choice_photo_language_pacing(self):
+        from agent.choice import _days_since_last_photo, _recent_post_languages, _seoul_date_of, choose
+        from agent.memory_store import memory_store
+
+        # 1. determine_image_scene respects image_kind="selfie" without POV contradiction
+        gen = ContentGenerator()
+        ctx = _make_context()
+        with patch("agent.image_engine.available_locations", return_value=[]), \
+             patch("agent.continuity.ContinuityStore.context", return_value=""), \
+             patch("agent.visual_identity.wardrobe_subset", return_value=[]), \
+             patch.object(gen, "_call_llm", return_value=(json.dumps({
+                 "description": "candid front-camera selfie walking in Seongsu",
+                 "is_selfie": True,
+                 "location": None,
+                 "place": "Seongsu-dong, Seoul, South Korea",
+             }), "mock")) as call_selfie:
+            scene_selfie = gen.determine_image_scene("tired face on the bus home", ctx, image_kind="selfie")
+        self.assertIn("candid front-camera selfie", scene_selfie)
+        self.assertNotIn("Prefer a first-person POV shot", call_selfie.call_args.args[0])
+        self.assertIn("is_selfie=true", call_selfie.call_args.args[0])
+
+        # Mismatched is_selfie still rejected
+        with patch("agent.image_engine.available_locations", return_value=[]), \
+             patch("agent.continuity.ContinuityStore.context", return_value=""), \
+             patch("agent.visual_identity.wardrobe_subset", return_value=[]), \
+             patch.object(gen, "_call_llm", return_value=(json.dumps({
+                 "description": "coffee cup no people",
+                 "is_selfie": False,
+                 "location": None,
+                 "place": "Seongsu-dong, Seoul, South Korea",
+             }), "mock")):
+            self.assertEqual(gen.determine_image_scene("coffee", ctx, image_kind="selfie"), "")
+
+        # Unspecified keeps default POV guidance
+        with patch("agent.image_engine.available_locations", return_value=[]), \
+             patch("agent.continuity.ContinuityStore.context", return_value=""), \
+             patch("agent.visual_identity.wardrobe_subset", return_value=[]), \
+             patch.object(gen, "_call_llm", return_value=(json.dumps({
+                 "description": "coffee cup, no people",
+                 "is_selfie": False,
+                 "location": None,
+                 "place": "Seongsu-dong, Seoul, South Korea",
+             }), "mock")) as call_unspec:
+            gen.determine_image_scene("coffee", ctx, image_kind="unspecified")
+        self.assertIn("Prefer a first-person POV shot", call_unspec.call_args.args[0])
+
+        # 2. KST date crossing + photo/language helpers + propose pacing
+        self.assertEqual(_seoul_date_of("2026-11-19T16:30:00Z"), "2026-11-20")
+        self.assertEqual(_seoul_date_of("2026-11-19T08:00:00Z"), "2026-11-19")
+        three_days_ago = (dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=3)).isoformat().replace("+00:00", "Z")
+        rows = [
+            {"text": "오늘 수업 끝", "created_at": "2026-11-19T16:30:00Z", "has_image": False, "is_selfie": False},
+            {"text": "한 줄 메모", "created_at": three_days_ago, "has_image": True, "is_selfie": False},
+            {"text": "quiet coffee", "created_at": three_days_ago, "has_image": False, "is_selfie": False},
+        ]
+        self.assertEqual(_days_since_last_photo(rows), 3.0)
+        self.assertEqual(_recent_post_languages(rows), {"ko": 2, "en": 1})
+
+        recent_photo_rows = [
+            {"text": "오늘 산책", "created_at": "2026-11-19T16:30:00Z", "has_image": True, "is_selfie": False},
+            {"text": "두번째 메모", "created_at": three_days_ago, "has_image": False, "is_selfie": False},
+        ]
+        c_text = ActionCandidate(ActionType.PUBLISH_TEXT_POST, 0.7, 0.8, "text")
+        c_img = ActionCandidate(ActionType.PUBLISH_IMAGE_POST, 0.7, 0.8, "img")
+        c_quiet = ActionCandidate(ActionType.NO_ACTION, 0.4, 0.9, "quiet")
+        with execution_mode("live"), \
+             patch.object(memory_store, "get_recent_context", return_value={"posts": recent_photo_rows, "likes": []}), \
+             patch("agent.continuity.ContinuityStore.public_post_material", return_value={"drafts": [], "observations": []}), \
+             patch("agent.reading.public_reading", return_value=[]), \
+             patch("agent.life.LifeJournal.prompt_data", return_value={}), \
+             patch("agent.original_ideas.propose", return_value=(None, "declined")) as prop_call:
+            choose(DecisionOutcome(c_quiet.action, "", {}, "", {}, [c_text, c_img, c_quiet]), _make_context(date_display="2026-11-20", hours_since_last_post=8.0))
+        pacing_arg = prop_call.call_args.kwargs["pacing"]
+        recent_arg = prop_call.call_args.args[4]
+        self.assertEqual(pacing_arg["photos_today"], 1)
+        self.assertAlmostEqual(pacing_arg["days_since_last_photo"], 0.0, delta=2.0)
+        self.assertEqual(pacing_arg["recent_post_languages"], {"ko": 2, "en": 0})
+        self.assertTrue(recent_arg[0]["has_image"])
+        self.assertFalse(recent_arg[0]["is_selfie"])
+
+    def test_quote_and_repost_candidates_unstarved_and_respect_allow_reposts(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            sm = StateManager(state_file=Path(tmp) / "state.json")
+            sm.save_state(AgentState(social_battery=0.9, physical_fatigue=0.1))
+            engine = DecisionEngine(state_mgr=sm)
+            mixed_post = _make_post(
+                "at://did:plc:carol/app.bsky.feed.post/rm1",
+                "afternoon light through the studio blinds lasted five minutes",
+                handle="carol.bsky.social",
+                did="did:plc:carol",
+                embed={"$type": "app.bsky.embed.recordWithMedia#view", "media": {"images": []}},
+            )
+            ctx = _make_context(hours_since_last_post=2.0, hours_since_last_action=2.0, posts_today=1, replies_today=1)
+            with patch.object(config, "allow_reposts", True), \
+                 patch.object(engine.memory_store, "has_replied_to_post", return_value=False), \
+                 patch.object(engine.memory_store, "get_user_profile", return_value=UserProfile(handle="carol.bsky.social", did="did:plc:carol")):
+                out = engine.evaluate(ctx, [], [], [{"post": mixed_post, "source": "timeline"}], can_image=False)
+            self.assertEqual(out.selected_action, ActionType.BROWSE_AND_REPLY)
+            self.assertTrue(any(c.action == ActionType.QUOTE_POST for c in out.all_candidates))
+            self.assertTrue(any(c.action == ActionType.REPOST for c in out.all_candidates))
+
+            with patch.object(config, "allow_reposts", False), \
+                 patch.object(engine.memory_store, "has_replied_to_post", return_value=False), \
+                 patch.object(engine.memory_store, "get_user_profile", return_value=UserProfile(handle="carol.bsky.social", did="did:plc:carol")):
+                out_no_rp = engine.evaluate(ctx, [], [], [{"post": mixed_post, "source": "timeline"}], can_image=False)
+            self.assertFalse(any(c.action == ActionType.REPOST for c in out_no_rp.all_candidates))
+
 
 if __name__ == "__main__":
     unittest.main()

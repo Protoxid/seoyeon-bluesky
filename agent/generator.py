@@ -338,7 +338,7 @@ class ContentGenerator:
                 f"Now: {context.seoul_time_display} ({context.day_of_week}, {context.circadian_phase}), {context.weather.summary()}.\n"
                 f"{img_instruction}\n"
                 "You are Han Seo-yeon, 26, in seongsu-dong, retraining as a pilates instructor after quitting marketing, "
-                "living alone on limited savings. Write in whichever language the idea comes to you in (Korean or English). "
+                "living alone on limited savings. Match the language of the Post idea (natural lowercase English if the idea is in English, casual Korean if the idea is in Korean). "
                 "Use the life data for consistency; do not narrate it wholesale or cram several moments into one post. "
                 "No invented clients, credentials or advice. No exclamation marks. Output ONLY the post text."
             )
@@ -794,6 +794,23 @@ class ContentGenerator:
         }
         if operator_kind:
             payload["requested_image_kind"] = image_kind
+        if image_kind == "selfie":
+            shot_rule = (
+                "4. This post is a selfie (is_selfie=true). Describe a natural candid smartphone selfie of Seo-yeon in frame "
+                "(mirror selfie after class, casual front-camera shot on the bus, walking in Seongsu, or at home) "
+                "matching the caption's mood and moment. Real selfie captions rarely describe the person's face; "
+                "do not switch to POV just because the caption is casual. "
+            )
+        elif image_kind == "pov":
+            shot_rule = (
+                "4. This post is a first-person POV shot (is_selfie=false; include 'no people' in the description) "
+                "showing what she is looking at in that moment. "
+            )
+        else:
+            shot_rule = (
+                "4. Prefer a first-person POV shot (is_selfie=false, include 'no people' in the description). Use is_selfie=true only when the caption is "
+                "clearly about her own appearance or being in the frame. "
+            )
         raw, _ = self._call_llm(
             "Synthesize a realistic phone-photo scene description for this persona's post, the kind of picture she "
             "would casually take and share. "
@@ -807,8 +824,7 @@ class ContentGenerator:
             "Set place to that neighbourhood/city and country, and describe the concrete local details that make it "
             "recognisably that place rather than a generic stock-photo setting (local dishes, signs and packaging in the "
             "local script, local interiors, streets and transit). No real brand or shop names. "
-            "4. Prefer a first-person POV shot (is_selfie=false, include 'no people' in the description). Use is_selfie=true only when the caption is "
-            "clearly about her own appearance or being in the frame. "
+            + shot_rule +
             "5. For a selfie, name one plausible outfit from wardrobe_if_selfie (or similar) in the description. "
             "6. available_locations are rooms and places of her own home life; if the scene happens in one of them, set location to that exact name; "
             "use null for streets, outdoors, anywhere else, and whenever she is away from home. "

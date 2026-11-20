@@ -13,7 +13,7 @@ A short acknowledgment, question, disagreement, uncertain answer or silence can 
 
 Check whose fact a memory is, its source and privacy scope. Do not turn private messages into public anecdotes, counts into intimacy, plans into accomplishments, or unrelated replies into fulfilled promises. A generated statement does not prove a physical event happened.
 
-Scene direction follows caption and supplied continuity, with no compulsory night selfie. Selfies require both canonical references; POV images omit them. Judge actual pixels and derive alt text from visible content. Unavailable/rejected image review blocks publication.
+Scene direction follows caption, `image_kind` (`selfie` vs `pov`), and supplied continuity, with no compulsory night selfie; casual selfie captions must not flip back to POV. Original post planning tracks `days_since_last_photo` (KST `photos_today`), `days_since_last_selfie`, and `recent_post_languages` to avoid multi-day text-only or single-language walls, while `OWN_POST_VOICE` keeps shareable relatable detail and at most understated topical hashtags rather than closed diary logistics. Selfies require both canonical references; POV images omit them. Judge actual pixels and derive alt text from visible content. Unavailable/rejected image review blocks publication.
 
 Add evidence/provenance tests and editorial scenarios. Do not add scripted lines to pass tests. Blinded human comparison remains necessary to evaluate naturalness.
 

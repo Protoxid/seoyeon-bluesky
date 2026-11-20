@@ -58,16 +58,60 @@ def _relative_age(created_at):
         return ""
 
 
+def _seoul_date_of(ts_str):
+    import datetime as dt
+    if not isinstance(ts_str, str) or not ts_str.strip():
+        return ""
+    try:
+        parsed = dt.datetime.fromisoformat(ts_str.strip().replace("Z", "+00:00"))
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=dt.timezone.utc)
+        kst = dt.timezone(dt.timedelta(hours=9))
+        return parsed.astimezone(kst).date().isoformat()
+    except (ValueError, TypeError, OverflowError):
+        return str(ts_str)[:10]
+
+
 def _days_since_last_selfie(recent_posts):
     import datetime as dt
     for post in recent_posts:
         if post.get("is_selfie"):
             try:
-                created = dt.datetime.fromisoformat(post["created_at"])
+                created = dt.datetime.fromisoformat(str(post["created_at"]).replace("Z", "+00:00"))
+                if created.tzinfo is None:
+                    created = created.replace(tzinfo=dt.timezone.utc)
                 return round((dt.datetime.now(dt.timezone.utc) - created).total_seconds() / 86400, 1)
             except (KeyError, ValueError, TypeError):
                 return None
     return None  # no selfie among recent posts
+
+
+def _days_since_last_photo(recent_posts):
+    import datetime as dt
+    for post in recent_posts:
+        if post.get("has_image"):
+            try:
+                created = dt.datetime.fromisoformat(str(post["created_at"]).replace("Z", "+00:00"))
+                if created.tzinfo is None:
+                    created = created.replace(tzinfo=dt.timezone.utc)
+                return round((dt.datetime.now(dt.timezone.utc) - created).total_seconds() / 86400, 1)
+            except (KeyError, ValueError, TypeError):
+                return None
+    return None  # no photo among recent posts
+
+
+def _recent_post_languages(recent_posts):
+    import re
+    ko_n, en_n = 0, 0
+    for post in recent_posts[:8]:
+        text = post.get("text", "") if isinstance(post, dict) else ""
+        if not text:
+            continue
+        if re.search(r"[\uac00-\ud7a3]", text):
+            ko_n += 1
+        elif re.search(r"[A-Za-z]", text):
+            en_n += 1
+    return {"ko": ko_n, "en": en_n}
 
 
 def choose(outcome, context):
@@ -144,7 +188,14 @@ def choose(outcome, context):
     identity = memory_store.format_identity_prompt()
     material = store.public_post_material()
     recent_post_rows = memory_store.get_recent_context().get("posts", [])
-    recent_posts = [{"text": p.get("text", "")} for p in recent_post_rows[:8]]
+    recent_posts = [
+        {
+            "text": p.get("text", ""),
+            "has_image": bool(p.get("has_image")),
+            "is_selfie": bool(p.get("is_selfie")),
+        }
+        for p in recent_post_rows[:8]
+    ]
     original_formats = {ActionType.PUBLISH_TEXT_POST: "text", ActionType.PUBLISH_IMAGE_POST: "image"}
     allowed_formats = [original_formats[c.action] for c in outcome.all_candidates if c.action in original_formats]
     original_status = "ineligible"
@@ -163,8 +214,10 @@ def choose(outcome, context):
         from .original_ideas import propose
         from .life import journal
         pacing = {"hours_since_last_post": round(context.hours_since_last_post, 1), "own_posts_today": context.posts_today,
-                  "photos_today": sum(1 for p in recent_post_rows if p.get("has_image") and str(p.get("created_at", ""))[:10] == context.date_display),
+                  "photos_today": sum(1 for p in recent_post_rows if p.get("has_image") and _seoul_date_of(p.get("created_at", "")) == context.date_display),
+                  "days_since_last_photo": _days_since_last_photo(recent_post_rows),
                   "days_since_last_selfie": _days_since_last_selfie(recent_post_rows),
+                  "recent_post_languages": _recent_post_languages(recent_post_rows),
                   "your_posts_per_day": learned_cap, "learned_habits": learned_habits,
                   "seoul_time": context.seoul_time_display, "phase": context.circadian_phase}
         try:
@@ -311,7 +364,7 @@ def choose(outcome, context):
         "to show you saw something you enjoyed. An unanswered message does not obligate a reply. "
         "Direct replies, mentions, quotes of your posts, and unread DMs from real people come first. "
         "Among feed posts, prefer recent, human-scale conversations from real individuals (low-to-moderate reply counts where a reply will actually be seen) "
-        "over crowded viral threads or automated/institutional announcements. QUOTE_POST works well when a concise 1-line reaction adds an angle worth sharing with your own followers too. "
+        "over crowded viral threads or automated/institutional announcements. REPOST a striking photo or sharp post that fits your taste; QUOTE_POST works well when a concise 1-line reaction adds an angle worth sharing with your own followers too. "
         "Notice direct questions, corrections, shared interests, and unfinished exchanges. Reply when you have a natural "
         "reaction a friend might type (agreement, a joke, a small story of your own, a question); do not reply just to "
         "analyse someone's wording or explain their post back to them. Do not hijack venting with advice. "

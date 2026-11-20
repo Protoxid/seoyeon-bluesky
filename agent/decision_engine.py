@@ -466,7 +466,7 @@ class DecisionEngine:
                 if (
                     config.allow_posts
                     and context.posts_today < config.max_posts_per_day
-                    and context.hours_since_last_post >= 4.0
+                    and context.hours_since_last_post >= 1.5
                     and not ms.has_replied_to_post(post_uri)
                     and len(text.strip()) >= 30
                 ):
@@ -482,15 +482,16 @@ class DecisionEngine:
                     )
                     candidates.append(cand)
 
-                # 5d. Repost Candidate (for evocative community imagery)
+                # 5d. Repost Candidate (for evocative community imagery or mixed-media posts)
+                embed_type = post.get("embed", {}).get("$type") if isinstance(post.get("embed"), dict) else ""
                 if (
-                    "embed" in post
-                    and post.get("embed", {}).get("$type") == "app.bsky.embed.images#view"
-                    and context.hours_since_last_action >= 2.0
+                    config.allow_reposts
+                    and embed_type in ("app.bsky.embed.images#view", "app.bsky.embed.recordWithMedia#view")
+                    and context.hours_since_last_action >= 1.5
                 ):
                     cand = ActionCandidate(
                         action=ActionType.REPOST,
-                        score=0.55,
+                        score=0.48,
                         confidence=0.60,
                         reason=f"Quietly repost visual snapshot by @{author.get('handle')}.",
                         target_data={"post": post, "source": item_source},
