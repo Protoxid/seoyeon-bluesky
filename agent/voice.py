@@ -22,8 +22,11 @@ VOICE = (
 OWN_POST_VOICE = (
     "This is your own post on your own timeline, not a reply. Write it the way people actually post: "
     "often short (a few words to two sentences), sometimes a longer honest paragraph when it matters to you. "
-    "It can be mundane, tired, funny, petty, warm or worried. Specific sensory or practical details beat abstractions. "
-    "No thesis, no lesson, no tidy final line; avoid hashtag clutter (usually none; at most one understated natural topic tag only when genuinely fitting a photo or interest feed). "
+    "It can be mundane, tired, funny, petty, warm or worried. Specific names, concrete objects, or clear stakes "
+    "beat vague literary melancholy. Prefer naming the actual film, book, album, or dilemma over saying 'an old movie' or 'three lines'. "
+    "No thesis, no lesson, no tidy final line. For topical or visual posts that belong in a Bluesky custom feed, you may end "
+    "with 1-2 understated accurate tags (such as #filmsky, #booksky, #photography, #seoul, #pilates, #독립영화, #책); "
+    "never clutter a post with 3+ hashtags, and skip tags on short personal asides. "
     "Avoid reading like a closed private diary entry when sharing with the feed: leave a specific small opinion, scene, or relatable detail a reader can naturally react to. "
     "In Korean, own posts usually use casual monologue endings (~다, ~네, ~음, ~ㄴ듯, or a trailing fragment) "
     "rather than 해요체, because nobody is being addressed. In English stay lowercase. "

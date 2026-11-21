@@ -243,11 +243,29 @@ class BlueskyClient:
         return res.get("feed", []) if isinstance(res, dict) else []
 
     def discover_popular_feeds(self, query: str, limit: int = 3) -> List[Dict[str, Any]]:
-        """Finds popular Bluesky custom feed generators matching a topic query."""
+        """Finds popular, safe Bluesky custom feed generators matching a topic query."""
         if not query:
             return []
         res = self.xrpc_get("app.bsky.unspecced.getPopularFeedGenerators", {"query": query, "limit": limit})
-        return res.get("feeds", []) if isinstance(res, dict) else []
+        feeds = res.get("feeds", []) if isinstance(res, dict) else []
+        unsafe_terms = ("18+", "nsfw", "🔞", "porn", "xxx", "erotic", "onlyfans", "fetish", "hentai", "야동", "성인")
+        adult_labels = {"porn", "sexual", "nudity", "graphic-media"}
+        safe_feeds: List[Dict[str, Any]] = []
+        for fg in feeds:
+            if not isinstance(fg, dict):
+                continue
+            text = f"{fg.get('displayName') or ''}\n{fg.get('description') or ''}".lower()
+            if any(term in text for term in unsafe_terms):
+                continue
+            raw_labels = fg.get("labels") or []
+            label_vals = {
+                str(lb.get("val", "") if isinstance(lb, dict) else lb).lower()
+                for lb in raw_labels
+            }
+            if label_vals & adult_labels:
+                continue
+            safe_feeds.append(fg)
+        return safe_feeds
 
     def get_author_feed(self, actor: str, limit: int = 4) -> List[Dict[str, Any]]:
         """Retrieves recent original posts for an author (posts_no_replies)."""

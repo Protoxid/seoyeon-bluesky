@@ -84,6 +84,8 @@ class ContentValidator:
         text: str,
         author_handle: str = "",
         langs: Optional[List[str]] = None,
+        author_bio: str = "",
+        author_name: str = "",
     ) -> Tuple[bool, str]:
         """
         Validates whether a community feed post is eligible for Seo-yeon to engage with.
@@ -96,6 +98,39 @@ class ContentValidator:
         is_inj, inj_reason = ContentValidator.detect_prompt_injection(text)
         if is_inj:
             return False, inj_reason
+
+        # Account-quality checks: skip bridge mirrors, declared bot/AI accounts, and affiliate link farms
+        clean_handle = (author_handle or "").strip().lower().lstrip("@")
+        if clean_handle.endswith(".brid.gy"):
+            return False, "Account filter: bridged mirror account"
+        if clean_handle and (
+            clean_handle.endswith("bot.bsky.social")
+            or re.search(r"(?:^|[._-])bot(?:$|[._-])", clean_handle)
+        ):
+            return False, "Account filter: bot handle"
+
+        lower_name = (author_name or "").strip().lower()
+        if lower_name and re.search(r"(?:^|[\s._\-|/()\[\]])bot(?:$|[\s._\-|/()\[\]])", lower_name):
+            return False, "Account filter: bot display name"
+
+        bio_and_name = f"{author_bio or ''}\n{author_name or ''}".lower()
+        if bio_and_name.strip():
+            if re.search(r"\bai\s*(?:agent|bot|character)\b", bio_and_name):
+                return False, "Account filter: self-declared AI agent/bot bio"
+            account_bio_markers = (
+                "ai 에이전트", "ai 봇", "automated account", "automated bot",
+                "i am a bot", "auto-post", "rss feed", "뉴스 봇", "자동 봇",
+                "봇 계정", "mirror bot",
+                "구매 링크", "제품 구매", "살림 꿀템", "파트너스 활동",
+                "쿠팡 파트너스", "inpock.co.kr", "link.coupang.com",
+                "affiliate link", "shop my links",
+            )
+            if any(marker in bio_and_name for marker in account_bio_markers):
+                return False, "Account filter: automated/bot or affiliate bio"
+
+        lower_text = text.lower()
+        if "inpock.co.kr" in lower_text or "link.coupang.com" in lower_text:
+            return False, "Account filter: affiliate farm link in post"
 
         # Check explicit post record language tags
         if langs:
@@ -116,8 +151,6 @@ class ContentValidator:
         # CJK ideographs without Hangul: almost certainly Chinese or Kanji-only Japanese
         if re.search(r"[\u4e00-\u9fff]", text) and not re.search(r"[\uac00-\ud7a3]", text):
             return False, "Non-target language: CJK ideographs without Hangul"
-
-        lower_text = text.lower()
 
         # Non-English Latin-script detection (Spanish, French, German, Portuguese)
         if not langs and not re.search(r"[\uac00-\ud7a3]", text):

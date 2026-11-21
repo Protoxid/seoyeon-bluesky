@@ -456,6 +456,32 @@ class MemoryStore:
                 return True
         return False
 
+    def has_replied_to_author_recently(self, handle: str, hours: float = 48.0) -> bool:
+        """Checks whether Seo-yeon already replied to this author within the last ``hours``."""
+        target = (handle or "").lstrip("@").lower().strip()
+        if not target:
+            return False
+        ctx = self.get_recent_context()
+        now = dt.datetime.now(dt.timezone.utc)
+        window_seconds = max(0.0, float(hours)) * 3600.0
+        for row in ctx.get("replies", []):
+            row_handle = (row.get("target_handle") or "").lstrip("@").lower().strip()
+            if row_handle != target:
+                continue
+            ts_raw = row.get("created_at")
+            if not isinstance(ts_raw, str) or not ts_raw.strip():
+                continue
+            try:
+                created = dt.datetime.fromisoformat(ts_raw.strip().replace("Z", "+00:00"))
+                if created.tzinfo is None:
+                    created = created.replace(tzinfo=dt.timezone.utc)
+                age_seconds = (now - created).total_seconds()
+                if -300.0 <= age_seconds <= window_seconds:
+                    return True
+            except (ValueError, TypeError, OverflowError):
+                continue
+        return False
+
     def mark_notification_handled(self, notif_uri: str, target_post_uri: str = "") -> None:
         if not notif_uri and not target_post_uri:
             return

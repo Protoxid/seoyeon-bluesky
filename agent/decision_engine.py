@@ -373,16 +373,24 @@ class DecisionEngine:
                 if not text or not text.strip():
                     continue
 
-                # Content filter (prompt injection, spam, ads, crypto, politics, bots/news, language)
+                # Content filter (prompt injection, bridge/bot/affiliate accounts, spam, ads, crypto, politics, language)
                 langs = record.get("langs", []) if isinstance(record, dict) else []
-                is_eligible, filter_reason = ContentValidator.filter_feed_post(text, author_handle, langs=langs)
+                is_eligible, filter_reason = ContentValidator.filter_feed_post(
+                    text,
+                    author_handle,
+                    langs=langs,
+                    author_bio=author.get("description", "") or "",
+                    author_name=author.get("displayName", "") or "",
+                )
                 if not is_eligible:
                     feed_diagnostics["filtered"] += 1
-                    # Counts by category only (keyword or language family), never the post text.
+                    # Counts by category only (keyword, account filter or language family), never the post text.
                     reason = str(filter_reason)
                     kw = re.search(r"negative keyword: '([^']+)'", reason)
-                    category = ("keyword:" + kw.group(1)) if kw else ("language" if "language" in reason.lower() else
-                                ("injection" if "inject" in reason.lower() else "other"))
+                    category = ("keyword:" + kw.group(1)) if kw else (
+                                "account" if "account filter" in reason.lower() else (
+                                "language" if "language" in reason.lower() else (
+                                "injection" if "inject" in reason.lower() else "other")))
                     reasons = feed_diagnostics.setdefault("filter_reasons", {})
                     reasons[category] = reasons.get(category, 0) + 1
                     continue
@@ -401,11 +409,15 @@ class DecisionEngine:
                 is_connected_user = author_profile.relationship in ("regular", "trusted_friend", "friendly_acquaintance")
                 open_loops = ne.get_open_loops_for_user(author_did, author_handle)
 
-                # 5a. Thoughtful Reply Candidate Evaluation
+                # 5a. Thoughtful Reply Candidate Evaluation (with per-author cooldown on unsolicited feed replies)
+                author_cooled_down = ms.has_replied_to_author_recently(author_handle, hours=48.0)
+                if author_cooled_down:
+                    feed_diagnostics["author_cooldown"] = feed_diagnostics.get("author_cooldown", 0) + 1
                 if (
                     config.allow_replies
                     and context.replies_today < config.max_replies_per_day
                     and not ms.has_replied_to_post(post_uri)
+                    and not author_cooled_down
                 ):
                     # Base pacing by time of day & hours of downtime
                     if context.circadian_phase in ("morning", "afternoon", "evening"):

@@ -68,6 +68,23 @@ def _get_float(key: str, default: float) -> float:
         return default
 
 
+# Verified active, safe Bluesky custom feeds matching Seo-yeon's interests
+DEFAULT_CUSTOM_FEED_URIS: List[str] = [
+    "at://did:plc:2hwwem55ce6djnk6bn62cstr/app.bsky.feed.generator/aaaotdzmoni2q",  # Film
+    "at://did:plc:geoqe3qls5mwezckxxsewys2/app.bsky.feed.generator/aaabrbjcg4hmk",  # BookSky
+    "at://did:plc:ojisdwhv5b7tzitkipo3yx3f/app.bsky.feed.generator/aaao3rw3oxwku",  # Photography
+    "at://did:plc:lyvh35oonxn4rkcdx7wsph4q/app.bsky.feed.generator/aaamsaqurkzls",  # Korean (SkyFeed)
+    "at://did:plc:6tzfuqqmrh6nwlkfsryucfk6/app.bsky.feed.generator/aaalvwgbybtqe",  # Pilates
+]
+
+
+def _default_custom_feeds() -> List[str]:
+    raw = os.environ.get("BSKY_CUSTOM_FEEDS", "").strip()
+    if raw:
+        return [u.strip() for u in raw.split(",") if u.strip().startswith("at://")]
+    return list(DEFAULT_CUSTOM_FEED_URIS)
+
+
 @dataclass
 class AgentConfig:
     # --- Master Switches ---
@@ -154,13 +171,7 @@ class AgentConfig:
             "seoul cafe", "seoul walk", "graphic design",
         ]
     )
-    custom_feed_uris: List[str] = field(
-        default_factory=lambda: [
-            u.strip()
-            for u in os.environ.get("BSKY_CUSTOM_FEEDS", "").split(",")
-            if u.strip().startswith("at://")
-        ]
-    )
+    custom_feed_uris: List[str] = field(default_factory=_default_custom_feeds)
     enable_custom_feed_discovery: bool = field(
         default_factory=lambda: _get_bool("ENABLE_CUSTOM_FEED_DISCOVERY", True)
     )

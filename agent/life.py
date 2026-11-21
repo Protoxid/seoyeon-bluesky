@@ -23,16 +23,20 @@ from .storage import file_lock, read_json, write_json
 
 # Authored threads drawn from CANON.md. The day sketch may append short progress notes to them.
 SEED_THREADS = [
-    {"id": "pilates", "about": "retraining as a pilates instructor: course modules, anatomy study, practice teaching, "
-                                "how cueing feels in her mouth, sore muscles, comparing herself with classmates"},
+    {"id": "pilates", "about": "retraining as a pilates instructor: preparing for practical cueing and anatomy check-ins, "
+                                "memorizing muscle origins/insertions without blanking out, practicing cues aloud, sore muscles, "
+                                "and noticing what feels awkward versus natural next to younger classmates"},
     {"id": "back", "about": "the old back injury that brought her to pilates; mostly a background fact now, "
                              "worth mentioning only on a genuinely bad day, not a daily check-in"},
-    {"id": "money", "about": "living on limited savings after quitting marketing; rent, groceries, small splurges she weighs"},
+    {"id": "money", "about": "living on limited savings after quitting marketing; weighing concrete trade-offs like a "
+                             "secondhand winter coat vs a drafty window, kimbap/grocery price jumps, and skipping overpriced cafes"},
     {"id": "after_marketing", "about": "leaving corporate marketing in january; what she misses and what she doesn't"},
-    {"id": "jieun", "about": "jieun, a longtime friend (fictional); occasional meals, messages, being a practice client"},
+    {"id": "jieun", "about": "jieun, a longtime friend (fictional); occasional cheap meals, blunt feedback, and letting "
+                              "seo-yeon run messy 30-minute practice teaching sessions on her"},
     {"id": "family", "about": "family in daegu and busan; calls with her mother, holidays, being asked about her plans"},
     {"id": "home", "about": "living alone in seongsu-dong since january; small kitchen, cooking for one, the neighbourhood"},
-    {"id": "culture", "about": "films, books, music and things she notices in the city; design and lettering when they catch her eye"},
+    {"id": "culture", "about": "specific named korean and international independent films, translated books, albums, and "
+                                "seoul neighbourhood architecture or lettering — small concrete reactions rather than vague unnamed references"},
 ]
 
 MAX_LOG = 80
@@ -86,8 +90,9 @@ class LifeJournal:
             "You keep continuity for Han Seo-yeon, an openly fictional character (26, seongsu-dong, seoul) who left "
             "corporate marketing in january and is retraining as a pilates instructor on limited savings. "
             "Sketch a plausible, ordinary day for her today as loose possibilities, not a schedule. "
-            "Use the weekday, season, weather and her ongoing life threads; let threads progress slowly and realistically "
-            "(a course moves module by module, money stays tight, the back has good and bad days). "
+            "Use the weekday, season, weather and her ongoing life threads; let threads progress slowly with concrete "
+            "milestones (a course module and practical cueing check-in approaching, a messy practice session with jieun, "
+            "weighing a winter coat or grocery cost, a named film/book she is actually in the middle of). "
             "Most days are unremarkable: errands, study, a class, cooking, a walk, a call, a film at home. "
             "Do not repeat the same events as recent days. No real named businesses, no real public figures, "
             "no real Bluesky users, no credentials or clients. "

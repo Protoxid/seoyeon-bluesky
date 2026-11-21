@@ -937,8 +937,9 @@ class TestRunnerAndSelfModel(unittest.TestCase):
         self.assertEqual(_days_since_last_photo(rows), 3.0)
         self.assertEqual(_recent_post_languages(rows), {"ko": 2, "en": 1})
 
+        fresh_photo_ts = _fresh_iso(10)
         recent_photo_rows = [
-            {"text": "오늘 산책", "created_at": "2026-11-19T16:30:00Z", "has_image": True, "is_selfie": False},
+            {"text": "오늘 산책", "created_at": fresh_photo_ts, "has_image": True, "is_selfie": False},
             {"text": "두번째 메모", "created_at": three_days_ago, "has_image": False, "is_selfie": False},
         ]
         c_text = ActionCandidate(ActionType.PUBLISH_TEXT_POST, 0.7, 0.8, "text")
@@ -950,11 +951,11 @@ class TestRunnerAndSelfModel(unittest.TestCase):
              patch("agent.reading.public_reading", return_value=[]), \
              patch("agent.life.LifeJournal.prompt_data", return_value={}), \
              patch("agent.original_ideas.propose", return_value=(None, "declined")) as prop_call:
-            choose(DecisionOutcome(c_quiet.action, "", {}, "", {}, [c_text, c_img, c_quiet]), _make_context(date_display="2026-11-20", hours_since_last_post=8.0))
+            choose(DecisionOutcome(c_quiet.action, "", {}, "", {}, [c_text, c_img, c_quiet]), _make_context(date_display=_seoul_date_of(fresh_photo_ts), hours_since_last_post=8.0))
         pacing_arg = prop_call.call_args.kwargs["pacing"]
         recent_arg = prop_call.call_args.args[4]
         self.assertEqual(pacing_arg["photos_today"], 1)
-        self.assertAlmostEqual(pacing_arg["days_since_last_photo"], 0.0, delta=2.0)
+        self.assertAlmostEqual(pacing_arg["days_since_last_photo"], 0.0, delta=0.1)
         self.assertEqual(pacing_arg["recent_post_languages"], {"ko": 2, "en": 0})
         self.assertTrue(recent_arg[0]["has_image"])
         self.assertFalse(recent_arg[0]["is_selfie"])
@@ -985,6 +986,121 @@ class TestRunnerAndSelfModel(unittest.TestCase):
                  patch.object(engine.memory_store, "get_user_profile", return_value=UserProfile(handle="carol.bsky.social", did="did:plc:carol")):
                 out_no_rp = engine.evaluate(ctx, [], [], [{"post": mixed_post, "source": "timeline"}], can_image=False)
             self.assertFalse(any(c.action == ActionType.REPOST for c in out_no_rp.all_candidates))
+
+
+class TestDiscoveryQualityAndGrowthUpgrades(unittest.TestCase):
+    def test_filter_feed_post_rejects_bridges_bots_and_affiliate_farms(self):
+        cases = [
+            ("ordinary art share", "joshi.threads.net.ap.brid.gy", "", ""),
+            ("cool bridge mirror", "someone.brid.gy", "", ""),
+            ("latest updates", "news-bot.bsky.social", "", ""),
+            ("mybot post", "helperbot.bsky.social", "", ""),
+            ("daily post", "humanhandle.bsky.social", "AI 에이전트 from Korea 🇰🇷 - trading & musings", ""),
+            ("daily post", "other.bsky.social", "Automated bot posting hourly photography", ""),
+            ("꿀템 추천해요", "deal.bsky.social", "1분 만에 보는 살림 꿀템 · 모든 제품 구매 링크", ""),
+            ("check out https://link.inpock.co.kr/item1 today", "regular.bsky.social", "", ""),
+            ("product drop", "regular.bsky.social", "", "Deal Bot"),
+        ]
+        for text, handle, bio, name in cases:
+            with self.subTest(handle=handle, bio=bio, text=text):
+                ok, reason = ContentValidator.filter_feed_post(
+                    text, handle, langs=["ko", "en"], author_bio=bio, author_name=name
+                )
+                self.assertFalse(ok, f"expected reject for handle={handle!r}, bio={bio!r}")
+                self.assertIn("Account filter", reason)
+
+    def test_filter_feed_post_allows_real_humans_with_normal_ai_or_robot_words(self):
+        allowed = [
+            ("finished watching that robot movie last night", "filmuser.bsky.social", "indie film fan in seoul", "Mina"),
+            ("still thinking about how weird ai art looks in print", "artist.bsky.social", "talking about ai and books", "Alex"),
+            ("whether botanical expression needs another font", "daily.design", "", "Daily Design"),
+            ("quiet walk around seongsu before class", "someone.bsky.social", "pottery and black coffee", "Jiwon"),
+        ]
+        for text, handle, bio, name in allowed:
+            with self.subTest(handle=handle, text=text):
+                ok, reason = ContentValidator.filter_feed_post(
+                    text, handle, langs=["en"], author_bio=bio, author_name=name
+                )
+                self.assertTrue(ok, f"unexpectedly filtered human post: {reason}")
+
+    def test_unsolicited_feed_reply_cooldown_exempts_direct_notifications(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            mem = MemoryStore(memory_dir=tmp_path)
+            sm = StateManager(state_file=tmp_path / "state.json")
+            sm.save_state(AgentState(social_battery=0.9, physical_fatigue=0.1))
+            engine = DecisionEngine(mem_store=mem, state_mgr=sm)
+
+            mem.record_recent_reply(
+                target_handle="alice.bsky.social",
+                user_text="old post",
+                reply_text="old reply",
+                uri="at://did:plc:me/app.bsky.feed.post/r0",
+                target_uri="at://did:plc:alice/app.bsky.feed.post/p0",
+            )
+            self.assertTrue(mem.has_replied_to_author_recently("alice.bsky.social", hours=48.0))
+            self.assertFalse(mem.has_replied_to_author_recently("bob.bsky.social", hours=48.0))
+
+            alice_feed = _make_post(
+                "at://did:plc:alice/app.bsky.feed.post/new1",
+                "new movie night thought in seoul",
+                handle="alice.bsky.social",
+                did="did:plc:alice",
+            )
+            alice_notif = {
+                "uri": "at://did:plc:alice/app.bsky.feed.post/notif1",
+                "cid": "cid-notif1",
+                "reason": "reply",
+                "author": {"handle": "alice.bsky.social", "did": "did:plc:alice", "viewer": {}},
+                "record": {"text": "oh really? what film did you pick?", "createdAt": _fresh_iso(5)},
+            }
+            ctx = _make_context(hours_since_last_post=0.5, hours_since_last_action=2.0, posts_today=0, replies_today=1)
+            out = engine.evaluate(ctx, [alice_notif], [], [{"post": alice_feed, "source": "feed:film"}], can_image=False)
+
+            self.assertFalse(any(c.action == ActionType.BROWSE_AND_REPLY for c in out.all_candidates))
+            self.assertEqual(out.feed_diagnostics.get("author_cooldown"), 1)
+            self.assertTrue(any(c.action == ActionType.REPLY_COMMENT for c in out.all_candidates))
+
+    def test_discover_popular_feeds_filters_nsfw_and_default_feeds_valid(self):
+        from agent.config import DEFAULT_CUSTOM_FEED_URIS, _default_custom_feeds
+
+        self.assertGreaterEqual(len(DEFAULT_CUSTOM_FEED_URIS), 4)
+        for uri in DEFAULT_CUSTOM_FEED_URIS:
+            self.assertTrue(uri.startswith("at://"))
+        with patch.dict("os.environ", {"BSKY_CUSTOM_FEEDS": ""}, clear=False):
+            self.assertEqual(_default_custom_feeds(), DEFAULT_CUSTOM_FEED_URIS)
+        with patch.dict("os.environ", {"BSKY_CUSTOM_FEEDS": "at://did:plc:x/app.bsky.feed.generator/mine"}, clear=False):
+            self.assertEqual(_default_custom_feeds(), ["at://did:plc:x/app.bsky.feed.generator/mine"])
+
+        client = BlueskyClient()
+        mock_payload = {
+            "feeds": [
+                {"uri": "at://did:plc:bad1/app.bsky.feed.generator/nsfw", "displayName": "Asians 18+", "description": "NSFW adult photos"},
+                {"uri": "at://did:plc:bad2/app.bsky.feed.generator/lbl", "displayName": "Late Night", "description": "photos", "labels": [{"val": "porn"}]},
+                {"uri": "at://did:plc:ok/app.bsky.feed.generator/seoul", "displayName": "Seoul Streets", "description": "architecture and coffee in seoul"},
+            ]
+        }
+        with patch.object(client, "xrpc_get", return_value=mock_payload):
+            safe = client.discover_popular_feeds("korea", limit=3)
+        self.assertEqual([f["uri"] for f in safe], ["at://did:plc:ok/app.bsky.feed.generator/seoul"])
+
+    def test_selfie_prompt_2_5_days_and_understated_bluesky_tags_allowed(self):
+        from agent.original_ideas import propose
+
+        gen = Mock()
+        gen._call_llm.return_value = ('{"format":"image","kind":"moment","idea":"mirror after class","shot":"selfie"}', "mock")
+        proposal, status = propose(gen, "identity", "context", {}, [], ["text", "image"], pacing={"days_since_last_selfie": 3.0})
+        self.assertEqual(status, "proposed")
+        self.assertEqual(proposal["shot"], "selfie")
+        self.assertIn("2.5", gen._call_llm.call_args.args[0])
+
+        ok, clean, reason = ContentValidator.validate_outgoing_text(
+            "rewatched past lives before class. quiet stairwells always hit harder than the airport scene #filmsky #seoul",
+            content_type="post",
+            check_repetition=False,
+        )
+        self.assertTrue(ok, reason)
+        self.assertIn("#filmsky", clean)
 
 
 if __name__ == "__main__":
