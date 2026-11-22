@@ -135,6 +135,8 @@ flowchart LR
 
 ## Running it
 
+> **Not a developer?** If you'd rather skip stripping out Seo-yeon's Korean persona, paths, and `state` branch setup by hand, a pre-sanitized blank Starter Template ZIP + 11-page illustrated No-Code Playbook ($9) is available on [Gumroad](https://protoxide.gumroad.com/l/autonomous-ai-character-kit).
+
 <details>
 <summary><b>Requirements</b></summary>
 
