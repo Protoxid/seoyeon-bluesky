@@ -46,19 +46,10 @@ class VisualCanon:
 VISUAL_CANON = VisualCanon()
 
 def place_setting(place: Optional[str] = None) -> str:
-    """Anchor a picture in the place where the scene actually happens.
-
-    Without an explicit place, image models default to generic (often Western) streets, kitchens and packaging.
-    The place comes from the scene planner (her home, a family visit, a trip); her home is only the fallback.
-    """
+    """Keep place anchoring concise so the image model infers natural local details."""
     from .config import config
     where = (place or "").strip() or config.home_place
-    return (
-        f"Setting: {where}, present day. Every visible detail is true to that place, not a generic stock-photo look: "
-        "its architecture, streets and interiors, local food and packaging, and any readable text in the local "
-        "language and script (for a place in Korea: Korean, not Western, details and Hangul text). "
-        "No real brand names or logos."
-    )
+    return f"Setting: {where}. Natural local details, no brand logos."
 
 
 def build_image_prompt(
@@ -81,33 +72,27 @@ def build_image_prompt(
 
 def _base_prompt(clean_scene: str, mood_str: str, is_selfie: bool, location_ref: bool) -> str:
     if location_ref:
-        place = (
-            "The last reference image shows her real place: keep the same room, furniture, layout, materials and light character. "
-        )
         if is_selfie:
             return (
                 f"Candid everyday smartphone selfie of Seo-yeon, {clean_scene}{mood_str}. "
-                "The first reference images are her face, keep that identity. " + place +
-                "Natural unposed expression, authentic phone camera quality with subtle real-life imperfections, "
-                "unedited, natural lighting, no CGI."
+                "Keep her face from the first reference images and the room from the last reference image. "
+                "Natural light, unposed, no CGI."
             )
         return (
-            f"Casual smartphone photo of {clean_scene}{mood_str}. " + place +
-            "Natural light, realistic texture, no people, no CGI."
+            f"Casual smartphone photo of {clean_scene}{mood_str}. "
+            "Keep the room from the last reference image. "
+            "Natural light, no people, no CGI."
         )
 
     if is_selfie:
         return (
             f"Candid everyday smartphone selfie of Seo-yeon, {clean_scene}{mood_str}. "
-            "Natural unposed expression, authentic everyday phone camera quality with subtle real-life imperfections, "
-            "unedited, natural lighting, no studio lighting, no CGI."
+            "Natural unposed expression, authentic phone camera light, no CGI."
         )
-    else:
-        # Environmental POV
-        return (
-            f"35mm film photograph of {clean_scene}{mood_str}. "
-            "Authentic natural lighting, candid street photography, realistic texture and film grain, no people, no CGI."
-        )
+    return (
+        f"35mm film photograph of {clean_scene}{mood_str}. "
+        "Natural light, candid everyday framing, no people, no CGI."
+    )
 
 
 

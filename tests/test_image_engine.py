@@ -2,8 +2,9 @@
 tests/test_image_engine.py — Unit tests for Visual Identity & Image Generation.
 """
 
+import json
 import unittest
-from agent.visual_identity import VISUAL_CANON, build_image_prompt
+from agent.visual_identity import VISUAL_CANON, build_image_prompt, place_setting
 from agent.image_engine import ImageEngine
 
 
@@ -42,7 +43,28 @@ class TestImageEngine(unittest.TestCase):
                                           place="Haeundae, Busan, South Korea")
                 self.assertIn("Setting: Haeundae, Busan, South Korea", away)
                 self.assertNotIn(config.home_place, away)
-                self.assertIn("local language and script", away)
+                # Contract change (2026-11-22): place anchoring stays concise instead of verbose label instructions.
+                self.assertIn("Natural local details", away)
+                self.assertIn("no brand logos", away)
+                self.assertLess(len(place_setting()), 120)
+
+    def test_scene_planner_requests_simple_unlabeled_prompts_and_caps_length(self):
+        from unittest.mock import patch
+        from agent.context_engine import build_environment_context
+        from agent.generator import generator
+
+        long_desc = ("a kimchi jar on a wooden table in a seongsu restaurant, warm evening light, no people. " * 10).strip()
+        reply = json.dumps({"description": long_desc, "is_selfie": False, "location": None, "place": "Seongsu-dong, Seoul, South Korea"})
+        with patch.object(generator, "_call_llm", return_value=(reply, "mock")) as mock_llm, \
+             patch("agent.image_engine.available_locations", return_value=[]), \
+             patch("agent.visual_identity.wardrobe_subset", return_value=[]), \
+             patch("agent.life.LifeJournal.prompt_data", return_value={}):
+            scene = generator.determine_image_scene("kimchi stew for dinner", build_environment_context())
+
+        sys_prompt = mock_llm.call_args.args[0]
+        self.assertIn("short, simple, natural", sys_prompt)
+        self.assertIn("do NOT list background clutter", sys_prompt)
+        self.assertLessEqual(len(scene), 400)
 
     def test_scene_place_is_kept_and_bounded(self):
         from unittest.mock import patch
