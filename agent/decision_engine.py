@@ -158,8 +158,9 @@ class DecisionEngine:
                         {}
                     )
                     handle = other_member.get("handle", "user")
-                    profile = ms.get_user_profile(handle)
-                    profile.did = other_member.get("did", "") or profile.did
+                    member_did = other_member.get("did", "")
+                    profile = ms.get_user_profile(handle, did=member_did)
+                    profile.did = member_did or profile.did
 
                     # Deduplication: check last message in thread
                     last_msg = dm.get("lastMessage", {})

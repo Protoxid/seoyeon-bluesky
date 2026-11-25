@@ -254,7 +254,7 @@ class ContentGenerator:
         """
         for pat in SENSITIVE_PATTERNS:
             if re.search(pat, user_text, re.IGNORECASE):
-                print(f"[Generator] Sensitive interaction detected from @{author_handle}. Sending Telegram alert to my master...")
+                print("[Generator] Sensitive interaction detected. Sending Telegram alert to my master...")
                 question = (
                     f"@{author_handle} sent a message requiring guidance: \"{user_text}\"\n"
                     f"Should I decline or is there a specific stance you prefer, my master?"

@@ -134,6 +134,8 @@ class TestDmPrivacy(unittest.TestCase):
         stdout_text = captured_stdout.getvalue()
         self.assertNotIn(secret_reply, stdout_text)
         self.assertIn("private message generated", stdout_text)
+        # Workflow logs of a public repository are public: never name the DM counterpart.
+        self.assertNotIn("confidential_friend", stdout_text)
 
         # 4. Verify user_memory.json does NOT contain raw text
         if self.user_memory_file.exists():
@@ -200,6 +202,24 @@ class TestDmPrivacy(unittest.TestCase):
         self.assertEqual(profile_by_did.interaction_count, 2)
         self.assertEqual(profile_by_new_handle.did, did)
         self.assertEqual(profile_by_new_handle.interaction_count, 2)
+
+    def test_recycled_handle_does_not_inherit_previous_owner(self):
+        """A handle re-registered by a different account must not resolve to the previous owner's record."""
+        memory_store.record_user_interaction(
+            handle="recycled.bsky.social", incoming_text="hi", outgoing_text="hello",
+            interaction_type="reply", did="did:plc:previousowner",
+        )
+        profile = memory_store.get_user_profile("recycled.bsky.social", did="did:plc:newowner")
+        self.assertEqual(profile.did, "did:plc:newowner")
+        self.assertEqual(profile.interaction_count, 0)
+        self.assertEqual(profile.history, [])
+
+    def test_sensitive_escalation_log_omits_handle(self):
+        captured = io.StringIO()
+        with patch("agent.generator.notifier.ask_master"), patch("sys.stdout", captured):
+            generator.check_sensitive_escalation("can i get your kakao", "private_person.bsky.social", "Direct Message")
+        self.assertIn("Sensitive interaction detected", captured.getvalue())
+        self.assertNotIn("private_person", captured.getvalue())
 
 
 if __name__ == "__main__":

@@ -183,7 +183,7 @@ class BlueskyClient:
             print(f"[BlueskyClient Chat] {endpoint} HTTPError {e.code}: {e.reason}")
             return {}
         except Exception as e:
-            print(f"[BlueskyClient Chat] {endpoint} error: {e}")
+            print(f"[BlueskyClient Chat] {endpoint} error: {type(e).__name__}")
             return {}
 
     # --- Feed & Content Reading ---

@@ -403,13 +403,16 @@ class MasterNotifier:
                 }
                 for m in raw_msgs
             ]
-            profile = memory_store.get_user_profile(handle)
+            # Bind private memory to the conversation member's DID, never to a (recyclable) handle.
+            other_did = other.get("did", "")
+            profile = memory_store.get_user_profile(handle, did=other_did)
+            profile.did = other_did or profile.did
             reply_text, model = generator.generate_dm_reply(dm_history, profile, context)
             if not reply_text: continue
             dm_res = bsky_client.send_dm(convo_id, reply_text)
             if dm_res:
                 if not is_dry:
-                    memory_store.record_user_interaction(handle, "[private direct message]", "[private direct message reply]", "dm")
+                    memory_store.record_user_interaction(handle, "[private direct message]", "[private direct message reply]", "dm", did=other_did)
                     try:
                         from .vault import vault
                         vault.append_private_dm(convo_id, handle, dm_history[-1]["text"] if dm_history else "", reply_text)

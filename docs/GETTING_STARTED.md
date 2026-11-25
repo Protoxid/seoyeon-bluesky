@@ -22,7 +22,7 @@ See [grounded discussion](DISCUSSION.md) for source review and `reference-status
 
 ## Credentials and models
 
-Use local `.env` or GitHub Secrets. Never commit keys. Required for live operation: `BSKY_HANDLE`, `BSKY_APP_PASSWORD`, `OPENROUTER_API_KEY`. Images additionally require `KIE_API_KEY`; Telegram requires `TELEGRAM_BOT_TOKEN` and a numeric private `TELEGRAM_CHAT_ID` matching the sender. Prefer a dedicated `DATA_ENCRYPTION_KEY` (or `VAULT_KEY`). The existing workflow retains credential-derived key compatibility; rotating credentials without preserving that key can lock out the vault.
+Use local `.env` or GitHub Secrets. Never commit keys. Required for live operation: `BSKY_HANDLE`, `BSKY_APP_PASSWORD`, `OPENROUTER_API_KEY`. Images additionally require `KIE_API_KEY`; Telegram requires `TELEGRAM_BOT_TOKEN` and a numeric private `TELEGRAM_CHAT_ID` matching the sender. `DATA_ENCRYPTION_KEY` (or `VAULT_KEY`) is required in production; there is no credential-derived fallback. Generate it randomly, never as a memorable passphrase: `python -c "import secrets;print(secrets.token_urlsafe(32))"`. The ciphertext is published on the `state` branch and the key is used without a salt or work factor, so its strength rests entirely on this randomness. Keep a protected copy: losing the key means losing the vault.
 
 Model IDs are configurable through `PRIMARY_TEXT_MODEL`, `FALLBACK_TEXT_MODEL`, `VISION_MODEL`, `KIE_IMAGE_MODEL`, `KIE_POV_MODEL`, `KIE_RESOLUTION`, and `KIE_QUALITY`. Text uses OpenRouter exclusively. POV images use `gpt-image-2-6/sunburst-text-to-image`; selfies use `gpt-image-2-6/sunburst-image-to-image` with both canonical references. Availability and tariffs are external dependencies, not test guarantees.
 

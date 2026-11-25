@@ -385,7 +385,7 @@ def _execute_dm(outcome, context, is_dry):
     profile = outcome.target_data.get("profile") or memory_store.get_user_profile(handle)
     last_msg_id = outcome.target_data.get("last_message_id", "")
 
-    print(f"\n[Processing Direct Message Thread with @{handle}...]")
+    print("\n[Processing Direct Message Thread...]")  # no counterpart identifiers: Actions logs are public
 
     # 1. Pre-execution Safety: Verify message not already handled in memory
     if last_msg_id and memory_store.has_replied_to_dm(last_msg_id):
@@ -430,7 +430,7 @@ def _execute_dm(outcome, context, is_dry):
         is_delivered = True
 
     if is_delivered:
-        print(f"  [SUCCESS] Direct Message Sent to @{handle}")
+        print("  [SUCCESS] Direct Message Sent")
         sent_msg_id = res.get("id") or last_msg_id
         if convo_id and (sent_msg_id or last_msg_id):
             bsky_client.mark_convo_read(convo_id, sent_msg_id or last_msg_id)
@@ -439,7 +439,7 @@ def _execute_dm(outcome, context, is_dry):
                 memory_store.mark_dm_handled(last_msg_id)
             if sent_msg_id:
                 memory_store.mark_dm_handled(sent_msg_id)
-            memory_store.record_user_interaction(handle, "[private direct message]", "[private direct message reply]", "dm")
+            memory_store.record_user_interaction(handle, "[private direct message]", "[private direct message reply]", "dm", did=profile.did)
             vault.append_private_dm(convo_id, handle, dm_history[-1]["text"] if dm_history else "", reply_text)
             from .continuity import learn_interaction
             learn_interaction(last_msg_id or sent_msg_id, dm_history[-1]["text"] if dm_history else "", reply_text,
@@ -454,7 +454,7 @@ def _execute_dm(outcome, context, is_dry):
         executed = True
         result_details = {"dm_sent": True, "to": handle, "char_count": len(reply_text)}
     else:
-        print(f"  [ERROR] DM delivery to @{handle} failed or uncertain. Leaving message unhandled for next tick.")
+        print("  [ERROR] DM delivery failed or uncertain. Leaving message unhandled for next tick.")
         executed = False
         result_details = {"dm_sent": False, "to": handle, "error": "delivery_failed_or_uncertain"}
     return executed, result_details
@@ -854,7 +854,10 @@ def run_tick(
     print("\n[Cognitive Evaluation]")
     print(f"  Candidate Scores: {json.dumps(outcome.candidate_scores, indent=2)}")
     print(f"  Selected Action:  >>> {outcome.selected_action.value} <<<")
-    print(f"  Reasoning:        {outcome.reason}")
+    if outcome.selected_action == ActionType.ANSWER_DM:
+        print("  Reasoning:        [private conversation; details withheld from public logs]")
+    else:
+        print(f"  Reasoning:        {outcome.reason}")
 
     # 7. Action Execution Stage
     companion = outcome.target_data.pop("_companion_candidate", None)

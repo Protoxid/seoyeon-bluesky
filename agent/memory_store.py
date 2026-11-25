@@ -209,6 +209,10 @@ class MemoryStore:
             # 2. Handle fallback lookup
             if clean_handle in data:
                 u = data[clean_handle]
+                stored_did = u.get("did", "")
+                if target_did and stored_did and stored_did != target_did:
+                    # The handle now belongs to a different account: never hand it the previous owner's record.
+                    return UserProfile(handle=clean_handle, did=target_did)
                 return UserProfile(
                     handle=u.get("handle", clean_handle),
                     did=u.get("did", target_did),
